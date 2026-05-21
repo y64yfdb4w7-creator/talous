@@ -3162,6 +3162,8 @@ async function refreshAndFreeze() {
 
     await DB.bulkPutSnapshots([snap]);
     await updateNavCount();
+    // Taustasynkka Supabaseen
+    setTimeout(() => syncToSupabase(snap), 500);
 
     // Vaihe 3: Visuaalinen kuittaus
     const calc = calculateNetWorth(snap);
@@ -3213,6 +3215,157 @@ async function seedHoldingsIfEmpty() {
   console.log('Omistukset lisätty automaattisesti (' + SEED_HOLDINGS.length + ' kpl)');
 }
 
+
+// ═══════════════════════════════════════════════
+// SUPABASE KAKSISUUNTAINEN SYNKRONOINTI
+// ═══════════════════════════════════════════════
+
+// Muuntaa vanhan talous-appin snapshot-formaatin Finance OS -formaattiin
+function convertOldSnap(s) {
+  const t = s.totals || {};
+  const a = s.accounts ? Object.fromEntries(s.accounts.map(a => [a.label, a.saldo])) : {};
+  return {
+    date:                 s.date,
+    nordnet:              t.nordnet              || 0,
+    op_osakkeet:          t.op                   || 0,
+    tapiola:              0,
+    s_sijoitus:           t.ssij                 || 0,
+    rahastot:             0,
+    lasten_sijoitus:      t.lapset               || 0,
+    tulotili:             t.tulotili             || a['Tulotili']             || 0,
+    elatustili:           a['Elatustili']         || 0,
+    tavoitetili:          a['Tavoitetili']        || 0,
+    s_pankki:             a['S-Pankki']           || t.spankki               || 0,
+    op_gold:              -(Math.abs(t.opvisa     || a['OP Gold Visa']        || 0)),
+    visa:                 0,
+    luottotili:           0,
+    asuntolaina:          -(Math.abs(t.asunto     || a['Asuntolaina']         || 0)),
+    asuntolaina_remontti: -(Math.abs(t.remontti   || a['Asuntolaina (remontti)'] || 0)),
+    autolaina:            -(Math.abs(t.auto       || a['Autolaina']           || 0)),
+    _source:              'supabase_import',
+    _note:                s.note || '',
+  };
+}
+
+// Lataa data Supabasesta ja tuo IndexedDB:hen
+async function syncFromSupabase(showStatus) {
+  const supaUrl = getSupaUrl();
+  const supaKey = getSupaKey();
+  if (!supaUrl || !supaKey) return { ok: false, reason: 'no_keys' };
+
+  try {
+    const r = await fetch(supaUrl + '/rest/v1/talous_state?id=eq.main&select=data', {
+      headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey },
+      signal: abortSignalWithTimeout(15000),
+    });
+    if (!r.ok) return { ok: false, reason: 'fetch_error', status: r.status };
+
+    const rows = await r.json();
+    const data = rows && rows[0] && rows[0].data;
+    if (!data) return { ok: false, reason: 'no_data' };
+
+    const remoteSnaps = (data.snaps || []).filter(s => s.date && s.totals);
+    if (remoteSnaps.length === 0) return { ok: false, reason: 'empty' };
+
+    // Hae paikalliset snapshotit
+    const localSnaps = await DB.getAll('snapshots');
+    const localDates = new Set(localSnaps.map(s => s.date));
+
+    // Tuo vain ne joita ei paikallisesti ole
+    const toImport = remoteSnaps.filter(s => !localDates.has(s.date));
+
+    if (toImport.length > 0) {
+      const converted = toImport.map(convertOldSnap);
+      await DB.bulkPutSnapshots(converted);
+      console.log('Supabase sync: tuotu ' + toImport.length + ' snapshottia');
+    }
+
+    // Synkronoi myös holdings-kappalemäärät ja hankintahinnat
+    if (data.shares || data.costBasis) {
+      const holdings = await DB.getAll('holdings');
+      for (const h of holdings) {
+        const kpl  = data.shares   && data.shares[h.id];
+        const cost = data.costBasis && data.costBasis[h.id];
+        if (kpl  !== undefined && kpl  !== h.quantity)      await DB.putHolding({...h, quantity: parseFloat(kpl) || h.quantity});
+        if (cost !== undefined && cost !== h.purchase_price) await DB.putHolding({...h, purchase_price: parseFloat(cost) || h.purchase_price});
+      }
+    }
+
+    return { ok: true, imported: toImport.length, total: remoteSnaps.length };
+  } catch(e) {
+    console.warn('Supabase sync error:', e.message);
+    return { ok: false, reason: e.message };
+  }
+}
+
+// Tallentaa uuden snapshotin Supabaseen (upload)
+async function syncToSupabase(newSnap) {
+  const supaUrl = getSupaUrl();
+  const supaKey = getSupaKey();
+  if (!supaUrl || !supaKey) return;
+
+  try {
+    // Lue kaikki snapshotit ja tallenna koko state
+    const allSnaps = (await DB.getAll('snapshots'))
+      .sort((a,b) => b.date.localeCompare(a.date));
+    const holdings = await DB.getAll('holdings');
+
+    // Muunna Finance OS -snapshotit vanhaan formaattiin yhteensopivuuden vuoksi
+    const convertedSnaps = allSnaps.map(s => ({
+      date: s.date,
+      dateFi: (s.date||'').split('-').reverse().join('.'),
+      note: s._note || '',
+      totals: {
+        tilit:    (s.tulotili||0)+(s.elatustili||0)+(s.tavoitetili||0)+(s.s_pankki||0),
+        stocks:   (s.nordnet||0)+(s.op_osakkeet||0)+(s.tapiola||0)+(s.s_sijoitus||0)+(s.rahastot||0),
+        lainat:   Math.abs(s.asuntolaina||0)+Math.abs(s.asuntolaina_remontti||0)+Math.abs(s.autolaina||0),
+        luotot:   Math.abs(s.op_gold||0)+Math.abs(s.visa||0)+Math.abs(s.luottotili||0),
+        lapset:   s.lasten_sijoitus||0,
+        netto:    0, // lasketaan alla
+        tulotili: s.tulotili||0,
+        opvisa:   Math.abs(s.op_gold||0),
+        nordnet:  s.nordnet||0,
+        op:       s.op_osakkeet||0,
+        ssij:     s.s_sijoitus||0,
+        spankki:  s.s_pankki||0,
+        asunto:   Math.abs(s.asuntolaina||0),
+        remontti: Math.abs(s.asuntolaina_remontti||0),
+        auto:     Math.abs(s.autolaina||0),
+      },
+    }));
+    convertedSnaps.forEach(s => {
+      s.totals.netto = s.totals.tilit + s.totals.stocks - s.totals.lainat - s.totals.luotot;
+    });
+
+    const shares = {};
+    const costBasis = {};
+    holdings.forEach(h => { if (h.quantity) shares[h.id] = h.quantity; if (h.purchase_price) costBasis[h.id] = h.purchase_price; });
+
+    const state = {
+      snaps: convertedSnaps,
+      shares, costBasis,
+      accs: {}, customStocks: [], stockBrokers: {}, sales: [],
+      _financeOS: true,
+      updated_at: new Date().toISOString(),
+    };
+
+    await fetch(supaUrl + '/rest/v1/talous_state?id=eq.main', {
+      method: 'PATCH',
+      headers: {
+        apikey: supaKey,
+        Authorization: 'Bearer ' + supaKey,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ data: state, updated_at: new Date().toISOString() }),
+      signal: abortSignalWithTimeout(15000),
+    });
+    console.log('Supabase upload OK — ' + convertedSnaps.length + ' snapshottia');
+  } catch(e) {
+    console.warn('Supabase upload error:', e.message);
+  }
+}
+
 async function init() {
   try {
     // Timeout: jos DB ei avaudu 8s kuluessa, näytetään virhe
@@ -3241,7 +3394,31 @@ async function init() {
   try { cnt = await DB.count('snapshots'); } catch(e) { console.warn('Count failed:', e); }
 
   if (cnt === 0) {
-    showView('import');
+    // Tyhjä paikallinen DB — yritä ladata Supabasesta ensin
+    const el = document.getElementById('db-content');
+    showView('dashboard');
+    if (el) el.innerHTML = '<div style="padding:40px;text-align:center;color:#5a9e6a;font-family:monospace;">' +
+      '<div style="font-size:24px;margin-bottom:12px;">⟳</div>' +
+      '<div>Ladataan dataa Supabasesta...</div></div>';
+
+    const result = await syncFromSupabase(true);
+    const newCnt = await DB.count('snapshots').catch(() => 0);
+
+    if (newCnt > 0) {
+      await updateNavCount();
+      requestAnimationFrame(() => renderDashboard());
+    } else {
+      showView('import');
+      if (result.reason === 'no_keys') {
+        const imp = document.querySelector('#view-import');
+        if (imp) {
+          const note = document.createElement('div');
+          note.style.cssText = 'margin:16px;padding:12px;background:rgba(184,149,106,.1);border:1px solid rgba(184,149,106,.3);border-radius:8px;font-size:12px;color:#b8956a;font-family:monospace;';
+          note.textContent = '💡 Syötä Supabase-avaimet ⚙-asetuksista niin historia latautuu automaattisesti.';
+          imp.prepend(note);
+        }
+      }
+    }
   } else {
     showView('dashboard');
     try { requestAnimationFrame(() => renderDashboard()); } catch(e) {
@@ -3252,6 +3429,15 @@ async function init() {
         '<button onclick="location.reload()" style="padding:8px 16px;border:1px solid #3a7a4a;' +
         'background:#1a3a2a;color:#5a9e6a;border-radius:6px;cursor:pointer;">↻ Lataa uudelleen</button></div>';
     }
+    // Taustasynkka — tarkista onko Supabasessa uudempaa dataa
+    setTimeout(async () => {
+      const result = await syncFromSupabase(false);
+      if (result.ok && result.imported > 0) {
+        await updateNavCount();
+        renderDashboard();
+        console.log('Taustasynkka: ' + result.imported + ' uutta snapshottia ladattu');
+      }
+    }, 2000);
   }
 }
 
