@@ -1049,7 +1049,8 @@ async function renderSalkku() {
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:24px;flex-wrap:wrap;">
       <div>
         <div class="card-label" style="margin-bottom:3px;">Salkku yhteensä</div>
-        <div style="font-family:var(--mono);font-size:24px;font-weight:600;">${fmt(grandTotal)}</div>
+        <div class="portfolio-hero-label">Salkun arvo</div>
+      <div class="portfolio-hero">${fmt(grandTotal)}</div>
       </div>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-s" onclick="toggleAddForm()">+ Lisää holding</button>
@@ -1121,7 +1122,7 @@ async function renderSalkku() {
                 <div class="h-qty">${(h.quantity||0).toLocaleString('fi-FI')}</div>
                 <div class="h-price" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
                   <span>${h.last_price ? h.last_price.toFixed(2)+' €' : '—'}</span>
-                  ${h.last_price_src ? `<span style="font-size:9px;color:var(--text3);">${h.last_price_time||''} ${h.last_price_src}</span>` : ''}
+                  ${h.last_price_src && h.last_price_src !== 'Supabase' ? `<span class="h-src">${h.last_price_time||''} ${h.last_price_src}</span>` : (h.last_price_time ? `<span class="h-src">${h.last_price_time}</span>` : '')}
                 </div>
                 <div class="h-val">${fmt(val)}</div>
                 <div class="h-acct" style="color:${gain===null?'var(--text3)':gain>=0?'var(--green)':'var(--red)'}">
