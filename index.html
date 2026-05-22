@@ -1485,6 +1485,7 @@ async function renderDashboard() {
     <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <span>${fmtDate(latest.date)} &nbsp;·&nbsp; ${cnt.toLocaleString('fi-FI')} snapshottia &nbsp;·&nbsp; ${snaps[0].date.slice(0,4)}–${latest.date.slice(0,4)}</span>
       ${backupStatusBadge()}
+      ${syncStatusBadge()}
     </div>
 
     <!-- ── SE SUURI NAPPI ── -->
@@ -2452,6 +2453,16 @@ async function saveDayFromHoldings() {
 const APP_VERSION    = '1.0.0';
 const SCHEMA_VERSION = 4;
 
+function syncStatusBadge() {
+  const meta = getSyncMeta();
+  if (!meta.lastSyncedAt) return '';
+  const d = new Date(meta.lastSyncedAt);
+  const fi = d.toLocaleDateString('fi-FI') + ' ' + d.toLocaleTimeString('fi-FI', {hour:'2-digit',minute:'2-digit'});
+  const device = meta.lastDevice || '';
+  return '<div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:4px;display:flex;align-items:center;gap:5px;">' +
+    '<span style="color:#5a9e6a;">●</span> Synkattu ' + (device ? device + ' · ' : '') + fi + '</div>';
+}
+
 function backupStatusBadge() {
   const last = localStorage.getItem('financeOS_last_backup');
   if (!last) return `<span class="backup-status backup-none">Ei varmuuskopiota</span>`;
@@ -3247,17 +3258,40 @@ function convertOldSnap(s) {
   };
 }
 
-// Lataa data Supabasesta ja tuo IndexedDB:hen
+// ── Sync-tila localStorage:ssa ─────────────────────────────────────────
+function getSyncMeta()      { try { return JSON.parse(localStorage.getItem('finos_sync_meta') || '{}'); } catch(e) { return {}; } }
+function saveSyncMeta(meta) { localStorage.setItem('finos_sync_meta', JSON.stringify(meta)); }
+
+// Lataa data Supabasesta — timestamp-tarkistus ensin (ei lataa turhaan)
 async function syncFromSupabase(showStatus) {
   const supaUrl = getSupaUrl();
   const supaKey = getSupaKey();
   if (!supaUrl || !supaKey) return { ok: false, reason: 'no_keys' };
 
   try {
-    const r = await fetch(supaUrl + '/rest/v1/talous_state?id=eq.main&select=data', {
-      headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey },
-      signal: abortSignalWithTimeout(15000),
-    });
+    // 1. Hae vain updated_at ensin — kevyt kutsu
+    const metaR = await fetch(
+      supaUrl + '/rest/v1/talous_state?id=eq.main&select=updated_at',
+      { headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey },
+        signal: abortSignalWithTimeout(8000) }
+    );
+    if (!metaR.ok) return { ok: false, reason: 'fetch_error' };
+    const metaRows = await metaR.json();
+    const remoteUpdatedAt = metaRows && metaRows[0] && metaRows[0].updated_at;
+
+    // 2. Vertaa paikalliseen — jos sama, ei tarvitse ladata mitään
+    const syncMeta = getSyncMeta();
+    if (remoteUpdatedAt && syncMeta.lastSyncedAt === remoteUpdatedAt) {
+      console.log('Sync: ei muutoksia Supabasessa (' + remoteUpdatedAt + ')');
+      return { ok: true, imported: 0, skipped: true };
+    }
+
+    // 3. Muutoksia — lataa koko data
+    const r = await fetch(
+      supaUrl + '/rest/v1/talous_state?id=eq.main&select=data',
+      { headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey },
+        signal: abortSignalWithTimeout(20000) }
+    );
     if (!r.ok) return { ok: false, reason: 'fetch_error', status: r.status };
 
     const rows = await r.json();
@@ -3267,29 +3301,36 @@ async function syncFromSupabase(showStatus) {
     const remoteSnaps = (data.snaps || []).filter(s => s.date && s.totals);
     if (remoteSnaps.length === 0) return { ok: false, reason: 'empty' };
 
-    // Hae paikalliset snapshotit
+    // 4. Tuo vain puuttuvat päivät
     const localSnaps = await DB.getAll('snapshots');
     const localDates = new Set(localSnaps.map(s => s.date));
-
-    // Tuo vain ne joita ei paikallisesti ole
     const toImport = remoteSnaps.filter(s => !localDates.has(s.date));
 
     if (toImport.length > 0) {
-      const converted = toImport.map(convertOldSnap);
-      await DB.bulkPutSnapshots(converted);
-      console.log('Supabase sync: tuotu ' + toImport.length + ' snapshottia');
+      await DB.bulkPutSnapshots(toImport.map(convertOldSnap));
+      console.log('Sync: tuotu ' + toImport.length + ' uutta snapshottia');
     }
 
-    // Synkronoi myös holdings-kappalemäärät ja hankintahinnat
+    // 5. Synkronoi holdings (kappalemäärät + hankintahinnat)
     if (data.shares || data.costBasis) {
       const holdings = await DB.getAll('holdings');
       for (const h of holdings) {
-        const kpl  = data.shares   && data.shares[h.id];
+        const kpl  = data.shares    && data.shares[h.id];
         const cost = data.costBasis && data.costBasis[h.id];
-        if (kpl  !== undefined && kpl  !== h.quantity)      await DB.putHolding({...h, quantity: parseFloat(kpl) || h.quantity});
-        if (cost !== undefined && cost !== h.purchase_price) await DB.putHolding({...h, purchase_price: parseFloat(cost) || h.purchase_price});
+        let changed = false;
+        const updated = {...h};
+        if (kpl  !== undefined && parseFloat(kpl)  !== h.quantity)       { updated.quantity       = parseFloat(kpl)||0;  changed = true; }
+        if (cost !== undefined && parseFloat(cost) !== h.purchase_price)  { updated.purchase_price = parseFloat(cost)||0; changed = true; }
+        if (changed) await DB.putHolding(updated);
       }
     }
+
+    // 6. Tallenna sync-aikaleima — seuraava käynnistys on nopea
+    saveSyncMeta({
+      lastSyncedAt: remoteUpdatedAt || new Date().toISOString(),
+      lastDevice:   data._financeOS ? 'Finance OS' : 'Talous-appi',
+      snapCount:    remoteSnaps.length,
+    });
 
     return { ok: true, imported: toImport.length, total: remoteSnaps.length };
   } catch(e) {
@@ -3349,6 +3390,7 @@ async function syncToSupabase(newSnap) {
       updated_at: new Date().toISOString(),
     };
 
+    const nowISO = new Date().toISOString();
     await fetch(supaUrl + '/rest/v1/talous_state?id=eq.main', {
       method: 'PATCH',
       headers: {
@@ -3357,8 +3399,14 @@ async function syncToSupabase(newSnap) {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal',
       },
-      body: JSON.stringify({ data: state, updated_at: new Date().toISOString() }),
+      body: JSON.stringify({ data: state, updated_at: nowISO }),
       signal: abortSignalWithTimeout(15000),
+    });
+    // Päivitä paikallinen sync-meta — tämä laite on ajan tasalla
+    saveSyncMeta({
+      lastSyncedAt: nowISO,
+      lastDevice:   navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Mac',
+      snapCount:    convertedSnaps.length,
     });
     console.log('Supabase upload OK — ' + convertedSnaps.length + ' snapshottia');
   } catch(e) {
