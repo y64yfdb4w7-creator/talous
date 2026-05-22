@@ -1790,14 +1790,51 @@ async function renderLedger() {
     rows += '</tr>';
   }
 
+  // Add pins to combined timeline
+  var pins = await DB.getAll('pins').catch(() => []);
+
+  // Load pins
+  var pins = await DB.getAll('pins').catch(function() { return []; });
+
+
+  // Merge pins into rows
+  var pinsByDate = {};
+  pins.forEach(function(pp) {
+    if (!pinsByDate[pp.date]) pinsByDate[pp.date] = [];
+    pinsByDate[pp.date].push(pp);
+  });
+  var allRows = rows;
+  Object.keys(pinsByDate).forEach(function(pd) {
+    var pinsHtml = '';
+    pinsByDate[pd].forEach(function(pn) {
+      var delBtn = 'deletePin(\'' + pn.id + '\')';
+      pinsHtml += '<tr style="background:rgba(184,149,106,0.07)">';
+      pinsHtml += '<td colspan="6" style="color:var(--gold);padding:5px 10px">';
+      pinsHtml += String.fromCodePoint(0x1F4CD) + ' <strong>' + pn.title + '</strong>';
+      if (pn.note) pinsHtml += ' <span style="color:var(--text3);font-size:10px">&middot; ' + pn.note + '</span>';
+      pinsHtml += '</td>';
+      pinsHtml += '<td style="text-align:right"><button onclick="' + delBtn + '" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px">x</button></td>';
+      pinsHtml += '</tr>';
+    });
+    var mpos = allRows.indexOf('data-date="' + pd + '"');
+    if (mpos > -1) {
+      var rowEnd = allRows.indexOf('</tr>', mpos) + 5;
+      allRows = allRows.slice(0, rowEnd) + pinsHtml + allRows.slice(rowEnd);
+    } else {
+      allRows += pinsHtml;
+    }
+  });
+
   c.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
       '<div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);">' +
         snaps.length + ' päivää · ' + (snaps[snaps.length-1]?.date?.slice(0,4)||'') +
         '–' + (snaps[0]?.date?.slice(0,4)||'') +
       '</div>' +
-      '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);">Valitse 2 riviä vertailuun</div>' +
+      '<button onclick="openPinForm()" style="background:none;border:1px solid var(--gold-dim);' +
+        'border-radius:7px;padding:4px 10px;color:var(--gold);font-size:11px;cursor:pointer;">📍 Lisää nastamuistiinpano</button>' +
     '</div>' +
+    '<div id="pin-form-wrap"></div>' +
     renderCompare() +
     '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;">' +
     '<table class="ledger-table"><thead><tr>' +
@@ -1809,7 +1846,7 @@ async function renderLedger() {
       '<th>Velat</th>' +
       '<th>Lasten</th>' +
     '</tr></thead><tbody>' +
-    rows +
+    allRows +
     '</tbody></table></div>';
 }
 
@@ -1823,6 +1860,55 @@ function toggleLedgerRow(date) {
     _ledgerSelected = [_ledgerSelected[1], date];
   }
   renderLedger();
+}
+
+
+// ═══════════════════════════════════════════════
+// PIN-NASTAT
+// ═══════════════════════════════════════════════
+
+function openPinForm() {
+  var wrap = document.getElementById('pin-form-wrap');
+  if (!wrap) return;
+  var today = new Date().toISOString().slice(0,10);
+  wrap.innerHTML =
+    '<div style="background:var(--surface2);border:1px solid var(--gold-dim);' +
+      'border-radius:10px;padding:14px;margin-bottom:14px;">' +
+    '<div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Uusi nastamuistiinpano</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:8px;">' +
+      '<div><div style="font-size:9px;color:var(--text3);margin-bottom:4px;">Päivämäärä</div>' +
+        '<input id="pin-date" type="text" value="' + today + '" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;"></div>' +
+      '<div><div style="font-size:9px;color:var(--text3);margin-bottom:4px;">Otsikko</div>' +
+        '<input id="pin-title" type="text" placeholder="esim. Ensimmäinen 100k" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;"></div>' +
+    '</div>' +
+    '<div style="margin-bottom:10px;"><div style="font-size:9px;color:var(--text3);margin-bottom:4px;">Muistiinpano</div>' +
+      '<input id="pin-note" type="text" placeholder="Vapaaehtoinen lisätieto" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;"></div>' +
+    '<div style="display:flex;gap:8px;">' +
+      '<button onclick="savePin()" style="flex:1;background:rgba(184,149,106,0.15);border:1px solid var(--gold-dim);border-radius:7px;padding:8px;color:var(--gold);font-weight:700;cursor:pointer;">Tallenna 📍</button>' +
+      '<button onclick="document.getElementById(\'pin-form-wrap\').innerHTML=\'\'" style="background:none;border:1px solid var(--border);border-radius:7px;padding:8px 14px;color:var(--text3);cursor:pointer;">Peru</button>' +
+    '</div></div>';
+}
+
+async function savePin() {
+  var date  = (document.getElementById('pin-date')?.value || '').trim();
+  var title = (document.getElementById('pin-title')?.value || '').trim();
+  var note  = (document.getElementById('pin-note')?.value || '').trim();
+  if (!date) date = new Date().toISOString().slice(0,10);
+  if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(date)) {
+    var p = date.split('.'); date = p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
+  }
+  if (!title) { alert('Anna otsikko'); return; }
+  var pin = { id: 'pin_'+Date.now(), date: date, title: title, note: note, created_at: new Date().toISOString() };
+  await DB.putPin(pin);
+  var wrap = document.getElementById('pin-form-wrap');
+  if (wrap) wrap.innerHTML = '';
+  await renderLedger();
+}
+
+async function deletePin(id) {
+  if (!confirm('Poistetaanko nastamuistiinpano?')) return;
+  await DB.deletePin(id);
+  await renderLedger();
 }
 
 function showView(name) {

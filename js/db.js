@@ -15,7 +15,7 @@ const DB = {
   async init() {
     return new Promise((res, rej) => {
       const DB_NAME    = 'FinanceOS_3'; // renamed — avoids stale iOS cache
-      const DB_VERSION = 11; // v11: fix events store keyPath
+      const DB_VERSION = 12; // v12: add pins store
       const r = indexedDB.open(DB_NAME, DB_VERSION);
 
       r.onblocked = () => {
@@ -38,6 +38,10 @@ const DB = {
         }
         if (!db.objectStoreNames.contains('holdings')) {
           db.createObjectStore('holdings', { keyPath: 'id', autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains('pins')) {
+          const ps = db.createObjectStore('pins', { keyPath: 'id' });
+          ps.createIndex('date', 'date');
         }
       };
       r.onsuccess = e => {
@@ -121,6 +125,24 @@ const DB = {
     return new Promise((res, rej) => {
       const tx = this.db.transaction('events', 'readwrite');
       tx.objectStore('events').delete(id);
+      tx.oncomplete = res;
+      tx.onerror    = e => rej(e.target.error);
+    });
+  },
+
+  async putPin(pin) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('pins', 'readwrite');
+      const req = tx.objectStore('pins').put(pin);
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+
+  async deletePin(id) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('pins', 'readwrite');
+      tx.objectStore('pins').delete(id);
       tx.oncomplete = res;
       tx.onerror    = e => rej(e.target.error);
     });
