@@ -15,7 +15,7 @@ const DB = {
   async init() {
     return new Promise((res, rej) => {
       const DB_NAME    = 'FinanceOS_3'; // renamed — avoids stale iOS cache
-      const DB_VERSION = 10; // jump high — avoids legacy version conflicts
+      const DB_VERSION = 11; // v11: fix events store keyPath
       const r = indexedDB.open(DB_NAME, DB_VERSION);
 
       r.onblocked = () => {
@@ -24,12 +24,16 @@ const DB = {
 
       r.onupgradeneeded = e => {
         const db = e.target.result;
-        // Additive only — never delete existing stores
+        const oldVersion = e.oldVersion;
         if (!db.objectStoreNames.contains('snapshots')) {
           db.createObjectStore('snapshots', { keyPath: 'date' });
         }
+        // v11: recreate events store without autoIncrement (string keys)
+        if (db.objectStoreNames.contains('events') && oldVersion < 11) {
+          db.deleteObjectStore('events');
+        }
         if (!db.objectStoreNames.contains('events')) {
-          const es = db.createObjectStore('events', { keyPath: 'id', autoIncrement: true });
+          const es = db.createObjectStore('events', { keyPath: 'id' });
           es.createIndex('date', 'date');
         }
         if (!db.objectStoreNames.contains('holdings')) {
