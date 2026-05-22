@@ -1,7 +1,7 @@
 // Finance OS — Service Worker
 // Välimuistittaa kaikki JS-tiedostot → nopea lataus, offline-tuki
 
-const CACHE_NAME = 'finance-os-v5';
+const CACHE_NAME = 'finance-os-v6';
 const ASSETS = [
   '/talous/',
   '/talous/index.html',
