@@ -1,0 +1,27 @@
+;;;;;;;;
+;;;;;;;;
+;;Visa;Jatkuva luottotili;Autolaina;Asuntolaina I;Asuntolaina II;;
+;korko %;3 kuukauden euribor + 8,95 %;3kk euribor 365 + 1,250%;5,288 %;3,072 %;3,810 %;;
+;palkkiot;2 € + 2,75 % siirron määrästä;nostoprovisio 1%;;;;;
+;velkasaldo;1 000;1 864;15 033;13 488;7 442;;
+;lyhennys kk;;50;251;139;108;;
+;korkoa;;5,96 %;68,5;35,7;24,4;;
+;kuluja;;;2,3;2,3;2,3;;
+;;tilisiirto visalta tulotilille 500e;;;;;;
+;;16;;;;;151,5596;yht. kuukaudessa
+;;;;;;;;
+;;;;;;;yht.;
+;laskennallinen vuosi;192;111,0944;849,6;456;320,4;1 929,0944;yht. vuodessa
+;;;;;;;;
+;;;;;;;;
+;vuosi 2023/11;;;;;;;
+;;Visa;Jatkuva luottotili;Autolaina;Asuntolaina I;Asuntolaina II;;
+;korko %;12,956 (euribor 3kk + 8,95%);5,258% (euribor 3kk);5,288 %;4,428 %;5,006 %;;
+;palkkiot;2 € + 2,75 % siirron määrästä;joustoluotto: ennen 1.9.2019 avatun luoton nosto maksaa 3% nostettavasta määrästä, kuitenkin vähintään 3 euroa ja enintään 170 euroa.;;;;;
+;velkasaldo;;1 474;12 988;12 437;6 563;;
+;lyhennys kk;;50;262;139;113;;
+;korkoa;;5,258 %;57;46;23;;
+;kuluja;;;2,3;2,3;2,3;;
+;kk maksu;8e/kk;50e/kk;;;;;
+;;;;;;;;
+;laskennallinen vuosi;0;87,8504;711,6;579,6;303,6;1 682,6504;yht. vuodessa
