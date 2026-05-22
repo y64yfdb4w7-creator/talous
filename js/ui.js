@@ -818,60 +818,194 @@ function showEvInfo(text) {
 // ═══════════════════════════════════════════════
 // EVENTS VIEW
 // ═══════════════════════════════════════════════
+// ── Tapahtuma-tyypit ────────────────────────────────────────────────────
+const EV_TYPES = [
+  { id: 'dividend',      label: 'Osinko',          icon: '💰', color: 'var(--green)'  },
+  { id: 'purchase',      label: 'Osto',             icon: '📈', color: 'var(--cyan)'   },
+  { id: 'sale',          label: 'Myynti',           icon: '📉', color: 'var(--amber)'  },
+  { id: 'transfer_in',   label: 'Siirto sisään',    icon: '⬇',  color: 'var(--cyan)'   },
+  { id: 'transfer_out',  label: 'Siirto ulos',      icon: '⬆',  color: 'var(--text3)'  },
+  { id: 'fee',           label: 'Kulu/välityspalkkio', icon: '💸', color: 'var(--red)' },
+  { id: 'other',         label: 'Muu',              icon: '📝', color: 'var(--text2)'  },
+];
+
+let _evFormOpen = false;
+
 async function renderEvents() {
   const c = document.getElementById('ev-content');
   const evts = (await DB.getAll('events')).sort((a,b) => b.date.localeCompare(a.date));
 
-  if (evts.length === 0) {
-    c.innerHTML = `<div class="empty">
-      <div class="empty-icon">📅</div>
-      <div class="empty-title">Ei tapahtumia</div>
-      <p>Tapahtumia löytyy Osinko- ja Isot hankinnat -sarakkeista.</p>
-    </div>`;
-    return;
-  }
-
-  // Summary stats
-  const totalDiv = evts
-    .filter(e => e.type === 'dividend')
-    .reduce((s,e) => s + (e.amount || 0), 0);
+  const totalDiv  = evts.filter(e => e.type==='dividend').reduce((s,e) => s+(e.amount||0), 0);
+  const totalBuy  = evts.filter(e => e.type==='purchase').reduce((s,e) => s+(e.amount||0), 0);
+  const totalSell = evts.filter(e => e.type==='sale').reduce((s,e) => s+(e.amount||0), 0);
 
   // Group by year
   const byYear = {};
   for (const ev of evts) {
-    const y = ev.date.slice(0,4);
+    const y = (ev.date||'????').slice(0,4);
     (byYear[y] = byYear[y] || []).push(ev);
   }
 
+  function evTypeInfo(type) {
+    return EV_TYPES.find(t => t.id === type) || EV_TYPES[EV_TYPES.length-1];
+  }
+
+  // Add event form
+  const today = new Date().toISOString().slice(0,10);
+  const formHtml = `
+    <div id="ev-form" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;
+      padding:16px;margin-bottom:20px;display:${_evFormOpen ? 'block' : 'none'};">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">
+        Uusi tapahtuma
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Päivämäärä</div>
+          <input id="ev-date" type="date" value="${today}"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+              padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Tyyppi</div>
+          <select id="ev-type"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+              padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
+            ${EV_TYPES.map(t => `<option value="${t.id}">${t.icon} ${t.label}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Osake / Lähde</div>
+          <input id="ev-source" type="text" placeholder="esim. MANTA.HE tai Nordnet"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+              padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Summa €</div>
+          <input id="ev-amount" type="number" step="0.01" placeholder="0.00"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+              padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
+        </div>
+        <div style="grid-column:1/-1;">
+          <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Muistiinpano</div>
+          <input id="ev-note" type="text" placeholder="Vapaaehtoinen lisätieto"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+              padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveEvent()" class="btn-p" style="flex:1;">Tallenna tapahtuma</button>
+        <button onclick="_evFormOpen=false;renderEvents();" class="btn-s">Peru</button>
+      </div>
+    </div>`;
+
+  // Summary cards
+  const summaryHtml = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Osingot yht.</div>
+        <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--green);">${fmt(totalDiv)}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Ostot yht.</div>
+        <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--cyan);">${fmt(totalBuy)}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Myynnit yht.</div>
+        <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--amber);">${fmt(totalSell)}</div>
+      </div>
+    </div>`;
+
+  // Events list
+  const listHtml = evts.length === 0
+    ? '<div style="text-align:center;padding:40px;color:var(--text3);font-family:var(--mono);font-size:12px;">Ei tapahtumia vielä.<br>Lisää ensimmäinen yllä olevalla lomakkeella.</div>'
+    : Object.keys(byYear).sort().reverse().map(y => {
+        const yEvts = byYear[y];
+        const yDiv = yEvts.filter(e=>e.type==='dividend').reduce((s,e)=>s+(e.amount||0),0);
+        return `
+          <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);
+            border-left:2px solid var(--cyan);padding-left:8px;margin:16px 0 8px;font-weight:700;">
+            ${y}${yDiv>0?' &nbsp;·&nbsp; <span style="color:var(--green)">'+fmt(yDiv)+' osingot</span>':''}
+          </div>
+          ${yEvts.map(ev => {
+            const ti = evTypeInfo(ev.type);
+            return `
+              <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:10px 12px;background:var(--surface);border:1px solid var(--border);
+                border-radius:8px;margin-bottom:5px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:16px;">${ti.icon}</span>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--text);">
+                      ${ti.label}${ev.source ? ' · '+ev.source : ''}
+                    </div>
+                    <div style="font-size:10px;color:var(--text3);font-family:var(--mono);">
+                      ${fmtDate(ev.date)}${ev.note ? ' · '+ev.note : ''}
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:${ti.color};">
+                    ${ev.amount != null ? fmt(ev.amount) : ''}
+                  </div>
+                  <button onclick="deleteEvent('${ev.id}')"
+                    style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;
+                      padding:2px 6px;border-radius:4px;">✕</button>
+                </div>
+              </div>`;
+          }).join('')}`;
+      }).join('');
+
   c.innerHTML = `
-    <div style="display:flex; gap:24px; margin-bottom:28px; flex-wrap:wrap;">
-      <div><div class="card-label" style="margin-bottom:4px;">Tapahtumia yhteensä</div>
-           <div style="font-family:var(--mono); font-size:22px; font-weight:600;">${evts.length}</div></div>
-      <div><div class="card-label" style="margin-bottom:4px;">Osingot yhteensä</div>
-           <div style="font-family:var(--mono); font-size:22px; font-weight:600; color:var(--green);">${fmt(totalDiv)}</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);">
+        ${evts.length} tapahtumaa
+      </div>
+      <button onclick="_evFormOpen=!_evFormOpen;renderEvents();" class="btn-s">
+        ${_evFormOpen ? '✕ Sulje' : '+ Lisää tapahtuma'}
+      </button>
     </div>
-    ${Object.keys(byYear).sort().reverse().map(y => {
-      const yEvts = byYear[y];
-      const yDiv = yEvts.filter(e=>e.type==='dividend').reduce((s,e)=>s+(e.amount||0),0);
-      return `
-        <div class="ev-year-header">${y} &nbsp;<span style="color:var(--green);font-size:9px;">${yDiv > 0 ? fmt(yDiv)+' osingot' : ''}</span></div>
-        <div class="ev-list">
-          ${yEvts.map(ev => `
-            <div class="ev-item ${ev.type}">
-              <div class="ev-meta">
-                <div class="ev-date">${fmtDate(ev.date)}</div>
-                <div class="ev-src">${ev.source || ''}</div>
-              </div>
-              <div class="ev-body">
-                ${ev.note
-                  ? `<div class="ev-note-text">${ev.note}</div>`
-                  : `<div class="ev-title">${ev.title}</div>`}
-                ${ev.amount !== null ? `<div class="ev-amt">${fmt(ev.amount)}</div>` : ''}
-              </div>
-            </div>`).join('')}
-        </div>`;
-    }).join('')}
+    ${formHtml}
+    ${summaryHtml}
+    ${listHtml}
   `;
+}
+
+async function saveEvent() {
+  const date   = document.getElementById('ev-date')?.value;
+  const type   = document.getElementById('ev-type')?.value;
+  const source = document.getElementById('ev-source')?.value?.trim();
+  const amount = parseFloat(document.getElementById('ev-amount')?.value) || null;
+  const note   = document.getElementById('ev-note')?.value?.trim();
+
+  if (!date || !type) { alert('Täytä päivämäärä ja tyyppi.'); return; }
+
+  const ev = {
+    id:     'ev_' + Date.now(),
+    date,
+    type,
+    source: source || '',
+    amount,
+    note:   note || '',
+    title:  EV_TYPES.find(t=>t.id===type)?.label || type,
+    created_at: new Date().toISOString(),
+  };
+
+  const tx = DB._db.transaction('events', 'readwrite');
+  tx.objectStore('events').put(ev);
+  await new Promise(r => { tx.oncomplete = r; });
+
+  _evFormOpen = false;
+  await renderEvents();
+  await updateNavCount();
+}
+
+async function deleteEvent(id) {
+  if (!confirm('Poistetaanko tapahtuma?')) return;
+  const tx = DB._db.transaction('events', 'readwrite');
+  tx.objectStore('events').delete(id);
+  await new Promise(r => { tx.oncomplete = r; });
+  await renderEvents();
+  await updateNavCount();
 }
 
 // ═══════════════════════════════════════════════
