@@ -1676,6 +1676,155 @@ function selectPeriod(i) {
   rows.innerHTML = html;
 }
 
+
+// ═══════════════════════════════════════════════
+// LEDGER — Rivi per päivä taloushistoria
+// ═══════════════════════════════════════════════
+
+let _ledgerSelected = [];  // max 2 selected dates for compare
+
+async function renderLedger() {
+  const c = document.getElementById('ledger-content');
+  if (!c) return;
+
+  const snaps = (await DB.getAll('snapshots'))
+    .filter(s => s.date && s.date.length === 10)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  if (snaps.length === 0) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">📒</div>' +
+      '<div class="empty-title">Ei dataa</div>' +
+      '<div class="empty-sub">Tallenna päivän tiedot Dashboardilta niin historia kertyy tähän.</div></div>';
+    return;
+  }
+
+  function calcNetto(s) {
+    const calc = calculateNetWorth(s);
+    return calc.netWorth;
+  }
+
+  function fmtK(n) {
+    if (n == null) return '–';
+    const abs = Math.abs(n);
+    if (abs >= 1000) return (n < 0 ? '−' : '') + (abs/1000).toFixed(1) + 'k';
+    return fmt(n);
+  }
+
+  function deltaClass(n) {
+    if (!n || n === 0) return 'ledger-neu';
+    return n > 0 ? 'ledger-pos' : 'ledger-neg';
+  }
+
+  function fmtDelta(n) {
+    if (n == null || n === 0) return '–';
+    return (n > 0 ? '+' : '') + fmtK(n);
+  }
+
+  // Compare box
+  function renderCompare() {
+    if (_ledgerSelected.length < 2) {
+      return '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);' +
+        'padding:10px;text-align:center;margin-bottom:12px;">' +
+        'Valitse kaksi riviä vertaillaksesi &nbsp;·&nbsp; ' + _ledgerSelected.length + '/2 valittu</div>';
+    }
+    const [d1, d2] = _ledgerSelected.sort();
+    const s1 = snaps.find(s => s.date === d1);
+    const s2 = snaps.find(s => s.date === d2);
+    if (!s1 || !s2) return '';
+
+    const c1 = calculateNetWorth(s1), c2 = calculateNetWorth(s2);
+    const rows = [
+      { label: 'Netto',    v1: c1.netWorth,    v2: c2.netWorth    },
+      { label: 'Salkku',   v1: c1.investments, v2: c2.investments },
+      { label: 'Käteinen', v1: c1.cash,        v2: c2.cash        },
+      { label: 'Velat',    v1: -c1.longTermDebt - c1.shortTermDebt,
+                           v2: -c2.longTermDebt - c2.shortTermDebt },
+    ];
+
+    const fi1 = d1.split('-').reverse().join('.');
+    const fi2 = d2.split('-').reverse().join('.');
+
+    return '<div class="compare-box">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+      '<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);">VERTAILU</div>' +
+      '<button onclick="_ledgerSelected=[];renderLedger()" style="background:none;border:none;' +
+        'color:var(--text3);cursor:pointer;font-size:14px;">✕</button></div>' +
+      '<div class="compare-grid">' +
+      rows.map(r => {
+        const delta = r.v2 - r.v1;
+        const pct   = r.v1 !== 0 ? (delta / Math.abs(r.v1) * 100) : null;
+        var rowHtml = '<div class="compare-col">';
+        rowHtml += '<div class="compare-label">' + r.label + '</div>';
+        rowHtml += '<div style="display:flex;justify-content:space-between;gap:4px;margin-bottom:3px;">';
+        rowHtml += '<div style="text-align:left"><div style="font-size:9px;color:var(--text3)">' + fi1 + '</div>';
+        rowHtml += '<div class="compare-val" style="font-size:13px">' + fmtK(r.v1) + '</div></div>';
+        rowHtml += '<div style="text-align:right"><div style="font-size:9px;color:var(--text3)">' + fi2 + '</div>';
+        rowHtml += '<div class="compare-val" style="font-size:13px">' + fmtK(r.v2) + '</div></div>';
+        rowHtml += '</div>';
+        rowHtml += '<div class="compare-delta ' + deltaClass(delta) + '">' + fmtDelta(delta);
+        if (pct != null) rowHtml += ' (' + (pct>=0?'+':'') + pct.toFixed(1) + '%)';
+        rowHtml += '</div></div>';
+        return rowHtml;
+      }).join('') +
+      '</div></div>';
+  }
+
+  // Build table rows
+  var rows = '';
+  for (var ri = 0; ri < snaps.length; ri++) {
+    var s     = snaps[ri];
+    var calc  = calculateNetWorth(s);
+    var netto = calc.netWorth;
+    var prev  = snaps[ri + 1];
+    var delta = prev ? netto - calculateNetWorth(prev).netWorth : null;
+    var fi    = s.date.split('-').reverse().join('.');
+    var isSel = _ledgerSelected.indexOf(s.date) >= 0;
+    rows += '<tr class="' + (isSel ? 'selected' : '') + '" data-date="' + s.date + '" onclick="toggleLedgerRow(this.dataset.date)">';
+    rows += '<td>' + fi + '</td>';
+    rows += '<td style="color:var(--text);font-weight:700">' + fmtK(netto) + '</td>';
+    rows += '<td class="' + deltaClass(delta) + '">' + fmtDelta(delta) + '</td>';
+    rows += '<td>' + fmtK(calc.investments) + '</td>';
+    rows += '<td>' + fmtK(calc.cash) + '</td>';
+    rows += '<td>' + fmtK(-(calc.longTermDebt + calc.shortTermDebt)) + '</td>';
+    rows += '<td>' + fmtK(calc.lapset || 0) + '</td>';
+    rows += '</tr>';
+  }
+
+  c.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+      '<div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);">' +
+        snaps.length + ' päivää · ' + (snaps[snaps.length-1]?.date?.slice(0,4)||'') +
+        '–' + (snaps[0]?.date?.slice(0,4)||'') +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);">Valitse 2 riviä vertailuun</div>' +
+    '</div>' +
+    renderCompare() +
+    '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;">' +
+    '<table class="ledger-table"><thead><tr>' +
+      '<th style="text-align:left;">Päivä</th>' +
+      '<th>Netto</th>' +
+      '<th>Muutos</th>' +
+      '<th>Salkku</th>' +
+      '<th>Käteinen</th>' +
+      '<th>Velat</th>' +
+      '<th>Lasten</th>' +
+    '</tr></thead><tbody>' +
+    rows +
+    '</tbody></table></div>';
+}
+
+function toggleLedgerRow(date) {
+  if (_ledgerSelected.includes(date)) {
+    _ledgerSelected = _ledgerSelected.filter(d => d !== date);
+  } else if (_ledgerSelected.length < 2) {
+    _ledgerSelected.push(date);
+  } else {
+    // Replace oldest selection
+    _ledgerSelected = [_ledgerSelected[1], date];
+  }
+  renderLedger();
+}
+
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -1686,6 +1835,7 @@ function showView(name) {
   if (name === 'historia')      requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku')        requestAnimationFrame(() => renderSalkku());
   if (name === 'likviditeetti') requestAnimationFrame(() => renderLikviditeetti());
+  if (name === 'ledger')        requestAnimationFrame(() => renderLedger());
 }
 
 async function updateNavCount() {

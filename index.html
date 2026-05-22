@@ -611,6 +611,41 @@
       margin-bottom: 6px;
     }
 
+    
+    /* ── LEDGER ── */
+    .ledger-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+    .ledger-table th {
+      background: var(--surface2); color: var(--text3);
+      font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+      padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--border);
+      white-space: nowrap; position: sticky; top: 0; z-index: 2;
+    }
+    .ledger-table th:first-child { text-align: left; }
+    .ledger-table td {
+      padding: 7px 10px; text-align: right;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      white-space: nowrap; color: var(--text2);
+    }
+    .ledger-table td:first-child { text-align: left; color: var(--text); font-weight: 600; }
+    .ledger-table tr:hover td { background: var(--surface); cursor: pointer; }
+    .ledger-table tr.selected td { background: rgba(184,149,106,0.12); }
+    .ledger-table tr.selected td:first-child { color: var(--gold); }
+    .ledger-pos { color: var(--green); }
+    .ledger-neg { color: #c05a5a; }
+    .ledger-neu { color: var(--text3); }
+    .compare-box {
+      background: var(--surface); border: 1px solid var(--gold-dim);
+      border-radius: 12px; padding: 16px; margin-bottom: 16px;
+    }
+    .compare-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px; margin-top: 10px;
+    }
+    .compare-col { text-align: center; }
+    .compare-label { font-size: 9px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+    .compare-val { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--text); }
+    .compare-delta { font-family: var(--mono); font-size: 12px; margin-top: 2px; }
+
     </style>
 </head>
 <body>
@@ -622,6 +657,7 @@
   <button class="nav-btn" id="btn-salkku" onclick="showView('salkku')">Salkku</button>
   <button class="nav-btn" id="btn-likviditeetti" onclick="showView('likviditeetti')">Kassavirta</button>
   <button class="nav-btn" id="btn-historia" onclick="showView('historia')">Historia</button>
+  <button class="nav-btn" id="btn-ledger" onclick="showView('ledger')">Ledger</button>
   <button class="nav-btn" id="btn-events" onclick="showView('events')">Tapahtumat</button>
   <div class="nav-spacer"></div>
   <span class="nav-count" id="nav-count"></span>
@@ -636,6 +672,13 @@
       <div class="empty-icon">📊</div>
       <div class="empty-title">Ladataan...</div>
     </div>
+  </div>
+</div>
+
+<!-- LEDGER VIEW -->
+<div id="view-ledger" class="view">
+  <div id="ledger-content">
+    <div class="empty"><div class="empty-icon">📒</div><div class="empty-title">Ladataan...</div></div>
   </div>
 </div>
 
