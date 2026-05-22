@@ -15,7 +15,7 @@ const DB = {
   async init() {
     return new Promise((res, rej) => {
       const DB_NAME    = 'FinanceOS_3'; // renamed — avoids stale iOS cache
-      const DB_VERSION = 12; // v12: add pins store
+      const DB_VERSION = 13; // v13: add backups store
       const r = indexedDB.open(DB_NAME, DB_VERSION);
 
       r.onblocked = () => {
@@ -42,6 +42,9 @@ const DB = {
         if (!db.objectStoreNames.contains('pins')) {
           const ps = db.createObjectStore('pins', { keyPath: 'id' });
           ps.createIndex('date', 'date');
+        }
+        if (!db.objectStoreNames.contains('backups')) {
+          db.createObjectStore('backups', { keyPath: 'id' });
         }
       };
       r.onsuccess = e => {
@@ -112,6 +115,24 @@ const DB = {
     });
   },
 
+  async putSnapshot(snap) {
+    return new Promise((res, rej) => {
+      const tx  = this.db.transaction('snapshots', 'readwrite');
+      const req = tx.objectStore('snapshots').put(snap);
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+
+  async deleteSnapshot(date) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('snapshots', 'readwrite');
+      tx.objectStore('snapshots').delete(date);
+      tx.oncomplete = res;
+      tx.onerror    = e => rej(e.target.error);
+    });
+  },
+
   async putEvent(ev) {
     return new Promise((res, rej) => {
       const tx = this.db.transaction('events', 'readwrite');
@@ -145,6 +166,52 @@ const DB = {
       tx.objectStore('pins').delete(id);
       tx.oncomplete = res;
       tx.onerror    = e => rej(e.target.error);
+    });
+  },
+
+  async putBackup(backup) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('backups', 'readwrite');
+      const req = tx.objectStore('backups').put(backup);
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+
+  async clearOldBackups(keepIds) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('backups', 'readwrite');
+      const store = tx.objectStore('backups');
+      const req = store.getAllKeys();
+      req.onsuccess = e => {
+        const keys = e.target.result;
+        keys.forEach(k => { if (!keepIds.includes(k)) store.delete(k); });
+        tx.oncomplete = res;
+      };
+      req.onerror = e => rej(e.target.error);
+    });
+  },
+
+  async archiveSnapshot(date, archived) {
+    const all = await this.getAll('snapshots');
+    const snap = all.find(s => s.date === date);
+    if (!snap) return;
+    snap._archived = archived;
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('snapshots', 'readwrite');
+      const req = tx.objectStore('snapshots').put(snap);
+      req.onsuccess = res; req.onerror = e => rej(e.target.error);
+    });
+  },
+
+  async deleteSnapshotsAfter(date) {
+    const all = await this.getAll('snapshots');
+    const toDelete = all.filter(s => s.date > date);
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('snapshots', 'readwrite');
+      const store = tx.objectStore('snapshots');
+      toDelete.forEach(s => store.delete(s.date));
+      tx.oncomplete = res; tx.onerror = e => rej(e.target.error);
     });
   },
 

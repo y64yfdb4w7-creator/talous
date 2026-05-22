@@ -160,6 +160,10 @@ async function renderDashboard() {
     </div>
 
     <!-- ── SE SUURI NAPPI ── -->
+    <button onclick="rollbackLatestSnapshot()" style="font-size:11px;padding:6px 12px;
+      background:rgba(255,100,100,0.08);border:1px solid rgba(255,100,100,0.2);
+      border-radius:7px;color:#c07070;cursor:pointer;font-family:var(--mono);"
+      title="Palauta edellinen snapshot">↩ Rollback</button>
     <button id="btn-freeze" onclick="refreshAndFreeze()"
       style="width:100%;margin-bottom:20px;padding:14px 20px;
              background:linear-gradient(135deg,#1a2818,#1a1d1b);
@@ -680,6 +684,7 @@ function onChartLeave() {
 // ═══════════════════════════════════════════════
 async function renderHistoria() {
   const c = document.getElementById('hist-view-content');
+  autoBackup();
   const cnt = await DB.count('snapshots');
   if (cnt === 0) {
     c.innerHTML = `<div class="empty"><div class="empty-icon">📈</div>
@@ -698,7 +703,22 @@ async function renderHistoria() {
   ];
 
   c.innerHTML = `
-    <div class="sec">Varallisuushistoria</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div class="sec" style="margin:0;">Varallisuushistoria</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:5px 11px;
+          background:rgba(192,90,90,0.08);border:1px solid rgba(192,90,90,0.25);
+          border-radius:7px;color:#c07070;cursor:pointer;font-family:var(--mono);">↩ Rollback</button>
+        <button onclick="downloadBackupNow()" style="font-size:10px;padding:5px 11px;
+          background:rgba(90,158,106,0.08);border:1px solid rgba(90,158,106,0.25);
+          border-radius:7px;color:#6ab87a;cursor:pointer;font-family:var(--mono);">↓ Lataa backup</button>
+        <button onclick="showBackupList()" style="font-size:10px;padding:5px 11px;
+          background:none;border:1px solid var(--border);
+          border-radius:7px;color:var(--text3);cursor:pointer;font-family:var(--mono);">📋 Backupit</button>
+      </div>
+    </div>
+    <div id="backup-list-panel"></div>
+    <div class="sec" style="margin-top:4px;">Varallisuushistoria</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
       ${LAYERS.map(l=>`
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text2);">
@@ -830,6 +850,31 @@ const EV_TYPES = [
 ];
 
 let _evFormOpen = false;
+
+
+async function updateBackupStatus() {
+  const el = document.getElementById('backup-status-text');
+  if (!el) return;
+  const backups = await DB.getAll('backups').catch(() => []);
+  if (backups.length === 0) { el.textContent = 'Ei varmuuskopioita vielä. Tallenna päivä niin varmuuskopio syntyy automaattisesti.'; return; }
+  const latest = backups.sort((a,b) => b.id.localeCompare(a.id))[0];
+  const d = new Date(latest.created_at);
+  el.textContent = backups.length + ' varmuuskopiota · Viimeisin ' + d.toLocaleDateString('fi-FI') + ' ' + d.toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function showRestoreOptions() {
+  const el = document.getElementById('restore-options');
+  if (!el) return;
+  const backups = (await DB.getAll('backups').catch(() => [])).sort((a,b) => b.id.localeCompare(a.id));
+  if (backups.length === 0) { el.style.display='block'; el.innerHTML='<div style="color:var(--text3);font-size:11px">Ei varmuuskopioita.</div>'; return; }
+  el.style.display = 'block';
+  el.innerHTML = '<div style="font-size:9px;color:var(--text3);margin-bottom:6px;">Valitse palautettava varmuuskopio:</div>' +
+    backups.slice(0,10).map(b => {
+      const d = new Date(b.created_at);
+      return '<button onclick="restoreFromBackup(\'' + b.id + '\')" style="display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer;margin-bottom:4px;">' +
+        d.toLocaleDateString('fi-FI') + ' · ' + (b.snapCount || '?') + ' snapshottia</button>';
+    }).join('');
+}
 
 async function renderEvents() {
   const c = document.getElementById('ev-content');
@@ -1681,7 +1726,8 @@ function selectPeriod(i) {
 // LEDGER — Rivi per päivä taloushistoria
 // ═══════════════════════════════════════════════
 
-let _ledgerSelected = [];  // max 2 selected dates for compare
+let _ledgerSelected = [];
+let _showArchived = false;  // max 2 selected dates for compare
 
 async function renderLedger() {
   const c = document.getElementById('ledger-content');
@@ -1689,6 +1735,7 @@ async function renderLedger() {
 
   const snaps = (await DB.getAll('snapshots'))
     .filter(s => s.date && s.date.length === 10)
+    .filter(s => _showArchived || !s._archived)
     .sort((a, b) => b.date.localeCompare(a.date));
 
   if (snaps.length === 0) {
@@ -1787,6 +1834,14 @@ async function renderLedger() {
     rows += '<td>' + fmtK(calc.cash) + '</td>';
     rows += '<td>' + fmtK(-(calc.longTermDebt + calc.shortTermDebt)) + '</td>';
     rows += '<td>' + fmtK(calc.lapset || 0) + '</td>';
+    rows += '<td style="text-align:right;white-space:nowrap">';
+    if (!snaps[ri]._archived) {
+      rows += '<button onclick="archiveSnap(\'' + s.date + '\',true)" title="Arkistoi" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">📦</button>';
+      if (ri === 0) rows += '<button onclick="rollbackTo(\'' + s.date + '\')" title="Palauta tähän" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">↩</button>';
+    } else {
+      rows += '<button onclick="archiveSnap(\'' + s.date + '\',false)" title="Palauta näkyviin" style="background:none;border:none;color:var(--gold-dim);cursor:pointer;font-size:11px;padding:2px 4px">↩📦</button>';
+    }
+    rows += '</td>';
     rows += '</tr>';
   }
 
@@ -1831,8 +1886,12 @@ async function renderLedger() {
         snaps.length + ' päivää · ' + (snaps[snaps.length-1]?.date?.slice(0,4)||'') +
         '–' + (snaps[0]?.date?.slice(0,4)||'') +
       '</div>' +
+      '<div style="display:flex;gap:8px;">' +
       '<button onclick="openPinForm()" style="background:none;border:1px solid var(--gold-dim);' +
         'border-radius:7px;padding:4px 10px;color:var(--gold);font-size:11px;cursor:pointer;">📍 Lisää nastamuistiinpano</button>' +
+      '<button onclick="_showArchived=!_showArchived;renderLedger()" style="background:none;border:1px solid var(--border);' +
+        'border-radius:7px;padding:4px 10px;color:var(--text3);font-size:11px;cursor:pointer;">' + (_showArchived ? '👁 Piilota arkisto' : '📦 Näytä arkisto') + '</button>' +
+    '</div>' +
     '</div>' +
     '<div id="pin-form-wrap"></div>' +
     renderCompare() +
@@ -1845,6 +1904,7 @@ async function renderLedger() {
       '<th>Käteinen</th>' +
       '<th>Velat</th>' +
       '<th>Lasten</th>' +
+      '<th></th>' +
     '</tr></thead><tbody>' +
     allRows +
     '</tbody></table></div>';
@@ -1866,6 +1926,27 @@ function toggleLedgerRow(date) {
 // ═══════════════════════════════════════════════
 // PIN-NASTAT
 // ═══════════════════════════════════════════════
+
+
+// ── Data Trust Layer ────────────────────────────────────────────────────
+
+async function rollbackTo(date) {
+  const all = (await DB.getAll('snapshots')).sort((a,b) => b.date.localeCompare(a.date));
+  const toDelete = all.filter(s => s.date > date);
+  if (toDelete.length === 0) { alert('Ei poistettavia snapshoteja.'); return; }
+  const fi = date.split('-').reverse().join('.');
+  if (!confirm('Palautetaanko tilanne ' + fi + ':een?\n\n' + toDelete.length + ' myöhempää snapshottia poistetaan.\n\nTätä ei voi perua.')) return;
+  await DB.deleteSnapshotsAfter(date);
+  _ledgerSelected = [];
+  await updateNavCount();
+  await renderLedger();
+  alert('Palautettu. Historia palautettu ' + fi + ':een.');
+}
+
+async function archiveSnap(date, archived) {
+  await DB.archiveSnapshot(date, archived);
+  await renderLedger();
+}
 
 function openPinForm() {
   var wrap = document.getElementById('pin-form-wrap');
@@ -1909,6 +1990,145 @@ async function deletePin(id) {
   if (!confirm('Poistetaanko nastamuistiinpano?')) return;
   await DB.deletePin(id);
   await renderLedger();
+}
+
+
+// ═══════════════════════════════════════════════
+// DATA TRUST LAYER
+// ═══════════════════════════════════════════════
+
+// ── 1. ROLLBACK ─────────────────────────────────
+async function rollbackLatestSnapshot() {
+  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return b.date.localeCompare(a.date); });
+  if (snaps.length < 2) {
+    alert('Tarvitaan vähintään 2 snapshottia rollbackiin. Ei tehdä mitään.');
+    return;
+  }
+  var latest = snaps[0];
+  var prev   = snaps[1];
+  var latestFi = latest.date.split('-').reverse().join('.');
+  var prevFi   = prev.date.split('-').reverse().join('.');
+
+  var calc1 = calculateNetWorth(latest);
+  var calc2 = calculateNetWorth(prev);
+  var fmt2 = function(n) { return new Intl.NumberFormat('fi-FI',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n); };
+
+  var ok = confirm(
+    'ROLLBACK — Palautetaan tila:\n\n' +
+    'Poistetaan:  ' + latestFi + '  Netto: ' + fmt2(calc1.netWorth) + '\n' +
+    'Palautetaan: ' + prevFi   + '  Netto: ' + fmt2(calc2.netWorth) + '\n\n' +
+    'Haluatko jatkaa?'
+  );
+  if (!ok) return;
+
+  // Archive instead of delete
+  var archived = Object.assign({}, latest, { _archived: true, _archivedAt: new Date().toISOString() });
+  await DB.putSnapshot(archived);
+  alert('Rollback valmis. Tila palautettu ' + prevFi + '.');
+
+  // Refresh views
+  if (document.getElementById('view-dashboard')?.classList.contains('active')) renderDashboard();
+  if (document.getElementById('view-historia')?.classList.contains('active')) renderHistoria();
+  if (document.getElementById('view-ledger')?.classList.contains('active')) renderLedger();
+}
+
+// ── 2. ARCHIVE SNAPSHOT ─────────────────────────
+async function archiveSnapshot(date) {
+  var snaps = await DB.getAll('snapshots');
+  var snap = snaps.find(function(s){ return s.date === date; });
+  if (!snap) return;
+  var fi = date.split('-').reverse().join('.');
+  if (!confirm('Arkistoidaanko snapshot ' + fi + '? Se piilotetaan mutta ei poisteta.')) return;
+  await DB.putSnapshot(Object.assign({}, snap, { _archived: true, _archivedAt: new Date().toISOString() }));
+  await renderHistoria();
+  await renderLedger();
+}
+
+// ── 3. AUTO BACKUP (Time Machine -tyylinen) ─────
+var _lastBackupDate = null;
+
+async function autoBackup() {
+  var today = new Date().toISOString().slice(0, 10);
+  var lastKey = 'finos_last_backup_' + today;
+  if (localStorage.getItem(lastKey)) return; // Jo tehty tänään
+
+  try {
+    var snaps    = await DB.getAll('snapshots');
+    var holdings = await DB.getAll('holdings');
+    var events   = await DB.getAll('events');
+    var pins     = await DB.getAll('pins').catch(function(){ return []; });
+
+    var backup = {
+      version:   '1.0',
+      createdAt: new Date().toISOString(),
+      snaps:     snaps,
+      holdings:  holdings,
+      events:    events,
+      pins:      pins,
+    };
+
+    // Tallenna localStorage:iin rolling backup
+    // Rakenne: finos_backup_YYYY-MM-DD
+    localStorage.setItem('finos_backup_' + today, JSON.stringify(backup));
+    localStorage.setItem(lastKey, '1');
+
+    // Siivoa vanhat — pidä vain 7 viimeistä päivää
+    var backupKeys = Object.keys(localStorage).filter(function(k){ return k.startsWith('finos_backup_'); });
+    backupKeys.sort().reverse();
+    backupKeys.slice(7).forEach(function(k){ localStorage.removeItem(k); });
+
+    console.log('Auto-backup OK: ' + today + ' (' + snaps.length + ' snapshottia)');
+  } catch(e) {
+    console.warn('Auto-backup failed:', e.message);
+  }
+}
+
+function listBackups() {
+  var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('finos_backup_'); });
+  keys.sort().reverse();
+  return keys.map(function(k) {
+    try {
+      var data = JSON.parse(localStorage.getItem(k));
+      return {
+        key:  k,
+        date: k.replace('finos_backup_', ''),
+        snaps: (data.snaps || []).length,
+        size:  (localStorage.getItem(k).length / 1024).toFixed(0) + ' KB',
+      };
+    } catch(e) { return { key: k, date: k, snaps: 0, size: '?' }; }
+  });
+}
+
+async function restoreFromBackup(key) {
+  var raw = localStorage.getItem(key);
+  if (!raw) { alert('Varmuuskopiota ei löydy.'); return; }
+  var date = key.replace('finos_backup_', '').split('-').reverse().join('.');
+  if (!confirm('Palautetaanko varmuuskopio ' + date + '? Nykyinen data korvataan.')) return;
+  try {
+    var data = JSON.parse(raw);
+    if (data.snaps && data.snaps.length > 0) {
+      await DB.bulkPutSnapshots(data.snaps);
+    }
+    alert('Palautus valmis — ' + (data.snaps||[]).length + ' snapshottia palautettu.');
+    location.reload();
+  } catch(e) {
+    alert('Palautusvirhe: ' + e.message);
+  }
+}
+
+async function downloadBackupNow() {
+  var snaps    = await DB.getAll('snapshots');
+  var holdings = await DB.getAll('holdings');
+  var events   = await DB.getAll('events');
+  var pins     = await DB.getAll('pins').catch(function(){ return []; });
+  var backup   = { version: '1.0', createdAt: new Date().toISOString(), snaps: snaps, holdings: holdings, events: events, pins: pins };
+  var blob     = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  var url      = URL.createObjectURL(blob);
+  var a        = document.createElement('a');
+  a.href       = url;
+  a.download   = 'financeOS_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function showView(name) {

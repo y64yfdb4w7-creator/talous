@@ -199,6 +199,9 @@ async function refreshAndFreeze() {
     await updateNavCount();
     // Taustasynkka Supabaseen
     setTimeout(() => syncToSupabase(snap), 500);
+    // Automaattinen varmuuskopio
+    setTimeout(() => autoBackup(), 1000);
+    setTimeout(() => autoBackup(), 2000);
 
     // Vaihe 3: Visuaalinen kuittaus
     const calc = calculateNetWorth(snap);
@@ -436,4 +439,77 @@ async function syncToSupabase(newSnap) {
   } catch(e) {
     console.warn('Supabase upload error:', e.message);
   }
+}
+
+// ═══════════════════════════════════════════════
+// AUTOMAATTINEN VARMUUSKOPIO — Rolling backups
+// ═══════════════════════════════════════════════
+
+async function autoBackup() {
+  try {
+    const snaps    = await DB.getAll('snapshots');
+    const holdings = await DB.getAll('holdings');
+    const events   = await DB.getAll('events').catch(() => []);
+    const pins     = await DB.getAll('pins').catch(() => []);
+
+    const now     = new Date();
+    const dateStr = now.toISOString().slice(0,10);
+    const tsStr   = now.toISOString();
+
+    const backup = {
+      id:        'backup_' + dateStr,
+      created_at: tsStr,
+      snapCount: snaps.length,
+      data: { snaps, holdings, events, pins }
+    };
+
+    await DB.putBackup(backup);
+
+    // Rolling cleanup: keep last 7 daily + last 4 weekly + last 12 monthly
+    const allBackups = (await DB.getAll('backups')).sort((a,b) => b.id.localeCompare(a.id));
+    
+    // Build keep set
+    const keepIds = new Set();
+    let weekCount = 0, monthCount = 0;
+    
+    allBackups.forEach((b, i) => {
+      if (i < 7) { keepIds.add(b.id); return; }  // 7 daily
+      const d = new Date(b.created_at);
+      const dow = d.getDay();
+      if (dow === 0 && weekCount < 4)  { keepIds.add(b.id); weekCount++;  return; }
+      if (d.getDate() === 1 && monthCount < 12) { keepIds.add(b.id); monthCount++; }
+    });
+
+    await DB.clearOldBackups([...keepIds]);
+    
+    // Update status
+    localStorage.setItem('finos_last_backup', tsStr);
+    localStorage.setItem('finos_backup_count', (await DB.getAll('backups').catch(() => [])).length);
+    
+    console.log('Automaattinen varmuuskopio tallennettu: ' + dateStr);
+  } catch(e) {
+    console.warn('Backup error:', e.message);
+  }
+}
+
+async function restoreFromBackup(backupId) {
+  const backups = await DB.getAll('backups');
+  const backup  = backups.find(b => b.id === backupId);
+  if (!backup) { alert('Varmuuskopiota ei löydy.'); return; }
+  
+  if (!confirm('Palautetaanko varmuuskopio ' + backup.id.replace('backup_','') + '?\n\nTämä KORVAA nykyisen datan varmuuskopiolla.')) return;
+  
+  await DB.bulkPutSnapshots(backup.data.snaps || []);
+  for (const h of (backup.data.holdings || [])) await DB.putHolding(h);
+  
+  alert('Varmuuskopio palautettu! ' + (backup.data.snaps?.length || 0) + ' snapshottia.');
+  location.reload();
+}
+
+function backupStatusText() {
+  const last = localStorage.getItem('finos_last_backup');
+  const count = localStorage.getItem('finos_backup_count') || '?';
+  if (!last) return 'Ei varmuuskopioita';
+  const d = new Date(last);
+  return count + ' varmuuskopiota · viimeisin ' + d.toLocaleDateString('fi-FI');
 }
