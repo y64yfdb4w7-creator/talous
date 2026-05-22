@@ -1521,7 +1521,7 @@ async function renderLikviditeetti() {
   // ── KERROS 1: Net Cash Hero ──
   '<div style="text-align:center;padding:32px 20px 24px;margin-bottom:4px;">' +
     '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Netto-likviditeetti</div>' +
-    '<div style="font-size:36px;font-family:var(--mono);font-weight:700;letter-spacing:-.01em;color:var(--text);line-height:1;margin-bottom:8px;">' + fmt(nettoLikvi) + '</div>' +
+    '<div style="font-size:36px;font-family:var(--mono);font-weight:700;letter-spacing:-.01em;color:' + (nettoLikvi < 0 ? 'var(--red,#c05a5a)' : 'var(--text)') + ';line-height:1;margin-bottom:8px;">' + fmt(nettoLikvi) + '</div>' +
     '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);">' +
       'Tulotili <span style="color:var(--text2);">' + fmt(tulotili) + '</span>' +
       ' &nbsp;−&nbsp; Luottokortit <span style="color:var(--text2);">' + fmt(totalLuotot) + '</span>' +
