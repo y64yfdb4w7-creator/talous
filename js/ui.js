@@ -1744,7 +1744,7 @@ async function renderLedger() {
     const fi1 = d1.split('-').reverse().join('.');
     const fi2 = d2.split('-').reverse().join('.');
 
-    return '<div class="compare-box">' +
+    return '<div class="compare-box-spacer"></div><div class="compare-box">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;">' +
       '<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);">VERTAILU</div>' +
       '<button onclick="_ledgerSelected=[];renderLedger()" style="background:none;border:none;' +
