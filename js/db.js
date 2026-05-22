@@ -104,6 +104,24 @@ const DB = {
     });
   },
 
+  async putEvent(ev) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('events', 'readwrite');
+      const req = tx.objectStore('events').put(ev);
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+
+  async deleteEvent(id) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('events', 'readwrite');
+      tx.objectStore('events').delete(id);
+      tx.oncomplete = res;
+      tx.onerror    = e => rej(e.target.error);
+    });
+  },
+
   async clear() {
     return new Promise((res, rej) => {
       const stores = ['snapshots','events','holdings'].filter(

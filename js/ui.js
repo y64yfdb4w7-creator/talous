@@ -997,9 +997,12 @@ async function saveEvent() {
     created_at: new Date().toISOString(),
   };
 
-  const tx = DB._db.transaction('events', 'readwrite');
-  tx.objectStore('events').put(ev);
-  await new Promise(r => { tx.oncomplete = r; });
+  try {
+    await DB.putEvent(ev);
+  } catch(e) {
+    alert('Tallennusvirhe: ' + e.message);
+    return;
+  }
 
   _evFormOpen = false;
   await renderEvents();
@@ -1008,9 +1011,7 @@ async function saveEvent() {
 
 async function deleteEvent(id) {
   if (!confirm('Poistetaanko tapahtuma?')) return;
-  const tx = DB._db.transaction('events', 'readwrite');
-  tx.objectStore('events').delete(id);
-  await new Promise(r => { tx.oncomplete = r; });
+  await DB.deleteEvent(id);
   await renderEvents();
   await updateNavCount();
 }
