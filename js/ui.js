@@ -861,7 +861,7 @@ async function renderEvents() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
         <div>
           <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Päivämäärä</div>
-          <input id="ev-date" type="date" value="${today}"
+          <input id="ev-date" type="text" value="${today}" placeholder="2026-05-22"
             style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
               padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
         </div>
@@ -971,13 +971,20 @@ async function renderEvents() {
 }
 
 async function saveEvent() {
-  const date   = document.getElementById('ev-date')?.value;
+  let date   = (document.getElementById('ev-date')?.value || '').trim();
   const type   = document.getElementById('ev-type')?.value;
   const source = document.getElementById('ev-source')?.value?.trim();
   const amount = parseFloat(document.getElementById('ev-amount')?.value) || null;
   const note   = document.getElementById('ev-note')?.value?.trim();
 
-  if (!date || !type) { alert('Täytä päivämäärä ja tyyppi.'); return; }
+  // Jos päivämäärä on tyhjä, käytä tänään
+  if (!date) date = new Date().toISOString().slice(0,10);
+  // Muunna DD.MM.YYYY → YYYY-MM-DD jos tarpeen
+  if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(date)) {
+    const p = date.split('.');
+    date = p[2] + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0');
+  }
+  if (!type) { alert('Valitse tyyppi.'); return; }
 
   const ev = {
     id:     'ev_' + Date.now(),
