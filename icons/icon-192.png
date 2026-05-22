@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="24" fill="#030c18"/>
+  <rect width="192" height="192" rx="24" fill="none" stroke="#00d4ff" stroke-width="6" opacity="0.4"/>
+  <!-- F letter -->
+  <text x="96" y="130.56" font-family="Arial Black,sans-serif" font-weight="900"
+    font-size="105.60000000000001" fill="#00d4ff" text-anchor="middle"
+    style="text-shadow: 0 0 24px #00d4ff">F</text>
+  <!-- small OS text -->
+  <text x="138.24" y="157.44" font-family="Arial,sans-serif" font-weight="700"
+    font-size="30.72" fill="#00ff9d" text-anchor="middle">OS</text>
+</svg>

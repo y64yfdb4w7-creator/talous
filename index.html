@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="fi">
 <head>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Finance OS">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="theme-color" content="#030c18">
+  <meta name="mobile-web-app-capable" content="yes">
+
+
   <meta charset="UTF-8">
   
   <title>Finance OS</title>
@@ -827,6 +837,17 @@ function setFinnhubKey(k) {
 }
 function getSupaUrl() { return localStorage.getItem('finos_supa_url') || ''; }
 function getSupaKey() { return localStorage.getItem('finos_supa_key') || ''; }
+</script>
+
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/talous/sw.js')
+      .then(reg => console.log('SW rekisteröity:', reg.scope))
+      .catch(err => console.warn('SW virhe:', err));
+  });
+}
 </script>
 
 </body>
