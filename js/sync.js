@@ -236,6 +236,21 @@ async function refreshAndFreeze() {
   }
 }
 
+async function seedHoldingsIfEmpty() {
+  const existing = await DB.count('holdings');
+  if (existing > 0) return; // jo lisätty, ei tehdä mitään
+  const today = new Date().toISOString().slice(0, 10);
+  for (const h of SEED_HOLDINGS) {
+    await DB.putHolding({
+      ...h,
+      last_price_date: today,
+      active: true,
+    });
+  }
+  console.log('Omistukset lisätty automaattisesti (' + SEED_HOLDINGS.length + ' kpl)');
+}
+
+
 // ═══════════════════════════════════════════════
 // SUPABASE KAKSISUUNTAINEN SYNKRONOINTI
 // ═══════════════════════════════════════════════

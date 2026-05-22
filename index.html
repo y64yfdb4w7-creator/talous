@@ -739,11 +739,95 @@
 <script src="js/db.js"></script>
 <script src="js/calculations.js"></script>
 <script src="js/import.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/sync.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/app.js"></script>
 
+<div id="chart-tooltip"></div>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-overlay" onclick="toggleSettings()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;"></div>
+<div id="settings-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:min(360px,100vw);
+  background:#141715;border-left:1px solid #222624;z-index:400;padding:28px 22px;overflow-y:auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <span style="font-weight:800;font-size:16px;letter-spacing:.06em;">ASETUKSET</span>
+    <button onclick="toggleSettings()" style="background:none;border:none;color:#67706c;font-size:22px;cursor:pointer;">✕</button>
+  </div>
+  <div style="font-size:11px;color:#67706c;background:#1a1d1b;border-left:3px solid #7a6045;
+    border-radius:0 6px 6px 0;padding:10px 13px;margin-bottom:20px;line-height:1.7;">
+    Avaimet tallennetaan vain tähän laitteeseen (localStorage).<br>
+    Supabase → Settings → API Keys → <strong style="color:#b8956a;">anon / public</strong>
+  </div>
+  <div style="margin-bottom:14px;">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#67706c;margin-bottom:6px;">Supabase URL</div>
+    <input id="s-url" type="text" placeholder="https://xxxx.supabase.co"
+      style="width:100%;background:#1a1d1b;border:1px solid #222624;border-radius:7px;
+        padding:9px 12px;color:#dedad1;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;">
+  </div>
+  <div style="margin-bottom:14px;">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#67706c;margin-bottom:6px;">Supabase anon key (eyJ...)</div>
+    <input id="s-key" type="password" placeholder="eyJ..."
+      style="width:100%;background:#1a1d1b;border:1px solid #222624;border-radius:7px;
+        padding:9px 12px;color:#dedad1;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;">
+  </div>
+  <div style="margin-bottom:20px;">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#67706c;margin-bottom:6px;">Finnhub API key</div>
+    <input id="s-fh" type="password" placeholder="d7k6..."
+      style="width:100%;background:#1a1d1b;border:1px solid #222624;border-radius:7px;
+        padding:9px 12px;color:#dedad1;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;">
+  </div>
+  <button onclick="saveSettings()"
+    style="width:100%;background:#b8956a;color:#090906;font-family:'Syne',sans-serif;
+      font-weight:700;font-size:13px;border:none;padding:11px;border-radius:8px;cursor:pointer;">
+    Tallenna
+  </button>
+  <div id="s-saved" style="display:none;text-align:center;margin-top:10px;
+    font-size:12px;color:#5a9e6a;font-family:'IBM Plex Mono',monospace;">✓ Tallennettu</div>
+  <div style="margin-top:24px;font-size:10px;color:#353d39;line-height:1.8;">
+    Supabase URL löytyy:<br>supabase.com → projekti → Settings → API<br><br>
+    Anon key löytyy:<br>Settings → API Keys → anon / public
+  </div>
+</div>
+
+<script>
+function toggleSettings() {
+  const panel   = document.getElementById('settings-panel');
+  const overlay = document.getElementById('settings-overlay');
+  const open    = panel.style.display !== 'none';
+  panel.style.display   = open ? 'none' : 'block';
+  overlay.style.display = open ? 'none' : 'block';
+  if (!open) {
+    document.getElementById('s-url').value = localStorage.getItem('finos_supa_url') || '';
+    document.getElementById('s-key').value = localStorage.getItem('finos_supa_key') || '';
+    document.getElementById('s-fh').value  = localStorage.getItem('finos_finnhub_key') || '';
+    document.getElementById('s-saved').style.display = 'none';
+  }
+}
+
+function saveSettings() {
+  const url = document.getElementById('s-url').value.trim();
+  const key = document.getElementById('s-key').value.trim();
+  const fh  = document.getElementById('s-fh').value.trim();
+  if (url) localStorage.setItem('finos_supa_url', url);
+  if (key) localStorage.setItem('finos_supa_key', key);
+  if (fh)  localStorage.setItem('finos_finnhub_key', fh);
+  document.getElementById('s-saved').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('s-saved').style.display = 'none';
+    toggleSettings();
+  }, 1200);
+}
+
+// Override getFinnhubKey to use unified key storage
+function getFinnhubKey() {
+  return localStorage.getItem('finos_finnhub_key') || '';
+}
+function setFinnhubKey(k) {
+  localStorage.setItem('finos_finnhub_key', k.trim());
+}
+function getSupaUrl() { return localStorage.getItem('finos_supa_url') || ''; }
+function getSupaKey() { return localStorage.getItem('finos_supa_key') || ''; }
+</script>
 
 </body>
 </html>
