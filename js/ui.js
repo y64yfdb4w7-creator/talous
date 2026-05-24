@@ -208,11 +208,10 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
 
 // ═══════════════════════════════════════════════
 // MOBIILI-DASHBOARD v3 — Wealth Cockpit
-// Rakenne:
-//   1. Heartbeat (signaali)
-//   2. 2x2 orientaatiokerros (nopea tilannekuva)
-//   3. Operatiivinen rytmi (OP Gold + mittari)
-//   4. Aikarakenne (lainat + vapautuva kapasiteetti)
+// 1. Heartbeat  2. 2x2 orientaatio
+// 3. Operatiivinen rytmi (OP Gold)
+// 4. Aikarakenne (lainat + kapasiteetti)
+// 5. Reservi
 // ═══════════════════════════════════════════════
 function _fK(n) {
   if (n == null) return '—';
@@ -231,47 +230,44 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
   const cycle = sig && sig.cycle;
   const runway= sig && sig.runway;
 
-  // 1v nettokehitys
   const snap1y = snaps.length > 1 ? snaps[Math.max(0, snaps.length-366)] : null;
   const d1y    = snap1y ? nw - calculateNetWorth(snap1y).netWorth : null;
+  const liquid = cash - calc.shortTermDebt;
 
   // ── 1. HEARTBEAT ──────────────────────────────
   var hbRow = '';
   if (hb) {
     hbRow = '<div style="display:flex;align-items:center;justify-content:space-between;'
       +'padding:9px 13px;background:var(--surface);border:1px solid var(--border);'
-      +'border-radius:10px;margin-bottom:8px;gap:8px;">'
+      +'border-radius:10px;margin-bottom:8px;gap:8px;overflow:hidden;">'
       +'<div style="display:flex;align-items:center;gap:7px;min-width:0;">'
       +'<span style="font-size:13px;color:'+hb.color+';flex-shrink:0;">'+hb.dot+'</span>'
       +'<span style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+hb.label+'</span>'
-      +(tempo ? '<span style="font-size:10px;color:var(--text3);flex-shrink:0;">'+tempo.tempo+'%</span>' : '')
+      +(tempo ? '<span style="font-size:10px;color:var(--text3);flex-shrink:0;"> '+tempo.tempo+'%</span>' : '')
       +'</div>'
       +(cycle ? '<span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap;">Eräp. '+cycle.daysUntilDue+' pv</span>' : '')
       +'</div>';
   }
 
   // ── 2. 2x2 ORIENTAATIOKERROS ─────────────────
+  // Kuorma: neutraali harmaa — pitkä velka ei ole hälytin
   function tile(label, value, sub, vc) {
     return '<div style="background:var(--surface);border:1px solid var(--border);'
-      +'border-radius:10px;padding:10px 11px;min-width:0;">'
+      +'border-radius:10px;padding:10px 11px;min-width:0;overflow:hidden;">'
       +'<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;'
-      +'text-transform:uppercase;margin-bottom:4px;white-space:nowrap;">'
-      +label+'</div>'
+      +'text-transform:uppercase;margin-bottom:4px;">' + label + '</div>'
       +'<div style="font-family:var(--mono);font-size:18px;font-weight:700;'
-      +'color:'+(vc||'var(--text)')+';line-height:1.1;white-space:nowrap;">'
-      +value+'</div>'
+      +'color:'+(vc||'var(--text)')+';line-height:1.1;">' + value + '</div>'
       +(sub ? '<div style="font-size:10px;color:var(--text3);margin-top:3px;'
-        +'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-        +sub+'</div>' : '')
+        +'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + sub + '</div>' : '')
       +'</div>';
   }
 
-  const liquid = cash - calc.shortTermDebt;
-  const nwSub  = d1y !== null ? (d1y>=0?'+':'−')+_fK(Math.abs(d1y))+' / 1v' : null;
+  const nwSub = d1y !== null ? (d1y>=0?'+':'−')+_fK(Math.abs(d1y))+' / 1v' : null;
 
   var grid = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">'
     + tile('Sijoitukset', _fK(inv), 'Nordnet + OP')
-    + tile('Kuorma', _fK(-debt), 'kortit + lainat', 'var(--red)')
+    + tile('Kuorma', _fK(-debt), 'kortit + lainat', '#6b7280')
     + tile('Käyttötilit', _fK(cash), 'netto '+_fK(liquid), 'var(--text2)')
     + tile('Nettovarallisuus', _fK(nw), nwSub)
     +'</div>';
@@ -298,8 +294,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
         +'<div style="position:relative;height:14px;background:rgba(0,0,0,0.25);border-radius:4px;overflow:hidden;">'
         +'<div style="position:absolute;left:40%;width:20%;top:0;bottom:0;background:rgba(90,158,106,0.12);"></div>'
         +'<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.12);"></div>'
-        +'<div style="position:absolute;left:'+bPct+'%;top:2px;bottom:2px;width:3px;'
-        +'border-radius:2px;transform:translateX(-50%);background:'+bClr+';"></div>'
+        +'<div style="position:absolute;left:'+bPct+'%;top:2px;bottom:2px;width:3px;border-radius:2px;transform:translateX(-50%);background:'+bClr+';"></div>'
         +'<div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 7px;justify-content:space-between;">'
         +'<span style="font-family:var(--mono);font-size:9px;color:#fff;">'+fmt(-cur)+'</span>'
         +'<span style="font-size:9px;color:rgba(255,255,255,0.3);">ka. '+fmt(-base)+'</span>'
@@ -312,19 +307,21 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 
     rytmiBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
       +'border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-      +'<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">● Operatiivinen rytmi · OP Gold</span>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      +'<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">● Operatiivinen rytmi</span>'
       +cycLabel+'</div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;">'
-      +'<span style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--gold);">'+fmt(-cur)+'</span>'
-      +(diff !== null ? '<span style="font-size:11px;font-weight:600;color:'+(diff>0?'#5a9e6a':'#b8956a')+'">'
-        +(diff>0?'+':'')+_fK(diff)+' vs normaali</span>' : '')
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+      +'<span style="font-size:11px;color:var(--text3);">OP Gold</span>'
+      +'<span style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--gold);">'+fmt(-cur)+'</span>'
       +'</div>'
+      +(diff !== null ? '<div style="font-size:11px;font-weight:600;color:'+(diff>0?'#5a9e6a':'#b8956a')+';margin-top:2px;">'
+        +(diff>0?'+':'')+fmt(diff)+' vs normaali</div>' : '')
       + palkki
       +'</div>';
   }
 
   // ── 4. AIKARAKENNE ───────────────────────────
+  // Päättymisvuosi on päätieto, saldo toissijainen
   const nowYear = new Date().getFullYear();
   const loanDefs = [
     { key:'asuntolaina',          label:'Asuntolaina',   endsYear:2029, monthly:200 },
@@ -337,18 +334,19 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     const bal = latest[ld.key];
     if (!bal || Math.abs(bal) < 10) return;
     const yLeft = ld.endsYear - nowYear;
-    const pClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : '#6b7280';
+    const yClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
     if (ld.endsYear > nowYear) totalFree += ld.monthly;
-    loanRows += '<div style="display:flex;justify-content:space-between;align-items:center;'
-      +'padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+    // Päättymisvuosi iso, saldo pienempänä alla
+    loanRows += '<div style="display:flex;justify-content:space-between;align-items:flex-start;'
+      +'padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
       +'<div>'
-      +'<div style="font-size:11px;color:var(--text2);">'+ld.label+'</div>'
-      +'<div style="font-size:10px;color:'+pClr+';margin-top:1px;">'
-      +'→ päättyy '+ld.endsYear+'</div>'
+      +'<div style="font-size:13px;font-weight:600;color:var(--text2);">'+ld.label+'</div>'
+      +'<div style="font-size:12px;color:'+yClr+';margin-top:2px;font-weight:500;">→ '+ld.endsYear+'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:1px;">'+fmt(bal)+'</div>'
       +'</div>'
-      +'<div style="text-align:right;">'
-      +'<div style="font-family:var(--mono);font-size:12px;color:var(--text2);">'+fmt(bal)+'</div>'
-      +'<div style="font-size:10px;color:#5a9e6a;margin-top:1px;">+'+fmt(ld.monthly)+'/kk</div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+      +'<div style="font-size:12px;color:#5a9e6a;font-weight:600;">+'+fmt(ld.monthly)+'/kk</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:1px;">vapautuu</div>'
       +'</div></div>';
   });
 
@@ -356,23 +354,21 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
   if (loanRows) {
     aikaBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
       +'border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
-      +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;'
-      +'letter-spacing:.05em;margin-bottom:8px;">◼ Aikarakenne · pitkät velat</div>'
+      +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">◼ Aikarakenne · pitkät velat</div>'
       + loanRows
       +(totalFree > 0
-        ? '<div style="margin-top:8px;padding:7px 9px;border-radius:6px;'
-          +'background:rgba(90,158,106,0.07);border:1px solid rgba(90,158,106,0.15);">'
-          +'<span style="font-size:10px;color:#5a9e6a;">⬆ Vapautuu yhteensä +'+fmt(totalFree)+'/kk</span>'
+        ? '<div style="margin-top:8px;padding:7px 10px;border-radius:7px;'
+          +'background:rgba(90,158,106,0.07);border:1px solid rgba(90,158,106,0.18);">'
+          +'<div style="font-size:11px;color:#5a9e6a;font-weight:600;">⬆ Yhteensä +'+fmt(totalFree)+'/kk vapautuu</div>'
           +'</div>' : '')
       +'</div>';
   }
 
-  // ── Reservi (kompakti) ────────────────────────
+  // ── 5. RESERVI ───────────────────────────────
   const rClr = runway ? (runway.months < 3 ? '#c05a5a' : runway.months < 8 ? '#b8956a' : '#5a9e6a') : 'var(--text3)';
   var reserviRow = runway ? (
     '<div style="display:flex;justify-content:space-between;align-items:center;'
-    +'padding:9px 13px;background:var(--surface);border:1px solid var(--border);'
-    +'border-radius:10px;">'
+    +'padding:9px 13px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">'
     +'<span style="font-size:11px;color:var(--text3);">Strateginen reservi · sijoitukset × 0,65</span>'
     +'<span style="font-family:var(--mono);font-size:15px;font-weight:700;color:'+rClr+';">'+runway.months+' kk</span>'
     +'</div>'
