@@ -59,7 +59,7 @@ function renderHeartbeatCard(sig) {
   }
 
   var dirBlock = direction
-    ? '<div style="font-size:10px;color:' + direction.color + ';text-align:right;max-width:140px;line-height:1.4;margin-top:2px;">' + direction.label + '</div>'
+    ? '<div style="font-size:10px;color:' + direction.color + ';text-align:right;max-width:45%;line-height:1.4;margin-top:2px;">' + direction.label + '</div>'
     : '';
 
   return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 16px 14px;margin-bottom:14px;position:relative;overflow:hidden;">'
