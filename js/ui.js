@@ -2923,14 +2923,20 @@ async function renderEntryView() {
     </div>
   </div>
 
-  <!-- ── MERKITTÄVÄ TAPAHTUMA ── -->
-  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;">4 · Merkittävä tapahtuma — vapaaehtoinen</div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
-    overflow:hidden;margin-bottom:16px;">
-    <div style="padding:10px 14px;">
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;" id="tag-bar">
+  <!-- ── MERKITTÄVÄ TAPAHTUMA (kollapsoituva) ── -->
+  <div style="margin-bottom:16px;">
+    <button id="konteksti-toggle" onclick="toggleKonteksti()"
+      style="width:100%;padding:10px 14px;border-radius:11px;
+      border:1px dashed rgba(0,200,255,0.2);background:transparent;
+      color:var(--text3);font-size:12px;cursor:pointer;text-align:left;
+      display:flex;justify-content:space-between;align-items:center;">
+      <span>+ Lisää konteksti · merkittävä tapahtuma</span>
+      <span style="font-size:10px;opacity:.6;">vapaaehtoinen</span>
+    </button>
+    <div id="konteksti-body" style="display:none;background:var(--card);
+      border:1px solid var(--border);border-radius:0 0 11px 11px;
+      border-top:none;padding:12px 14px;">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">
         ${['Autohuolto','Matka','Bonus','Palkka+','Isohankinta','Laskuerä','Muu'].map(t =>
           `<button onclick="toggleTag(this)" data-tag="${t}" style="font-size:11px;padding:3px 10px;
             border-radius:20px;border:1px solid var(--border);background:transparent;
@@ -2944,7 +2950,7 @@ async function renderEntryView() {
           background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);font-size:14px;">
         <span style="font-size:12px;color:var(--text3);">€</span>
       </div>
-      <textarea id="event-note" placeholder="Lisätieto — selitys poikkeamalle (vapaaehtoinen)"
+      <textarea id="event-note" placeholder="Selitys poikkeamalle — vapaaehtoinen"
         rows="2" style="width:100%;border:1px solid var(--border);border-radius:7px;
         background:rgba(0,200,255,0.04);color:var(--text);font-size:12px;padding:7px 10px;
         font-family:var(--sans);resize:none;"></textarea>
@@ -2981,23 +2987,27 @@ async function renderEntryView() {
     if (lt) lt.textContent = tot > 0 ? fmt(-tot) : '—';
   }
 
-  document.querySelectorAll('[id^="inp-"]').forEach(inp => inp.addEventListener('input', updateDerived));
-  updateDerived();
+  updateEntryDerived();
 }
 
 function entryRow(label, id, val, unit, sub) {
   const display = val ? Math.abs(val) : '';
+  const fmtVal  = val ? fmt(Math.abs(val)) : '—';
   return `<div style="display:flex;justify-content:space-between;align-items:center;
-    padding:7px 0;border-bottom:1px solid rgba(0,200,255,0.05);">
+    padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);cursor:pointer;"
+    onclick="entryActivate(this,'${id}')">
     <div>
       <div style="font-size:13px;color:var(--text2);">${label}</div>
       ${sub ? `<div style="font-size:10px;color:var(--text3);">${sub}</div>` : ''}
     </div>
-    <div style="display:flex;align-items:center;gap:5px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="disp-${id}" style="font-family:var(--mono);font-size:15px;font-weight:600;
+        color:var(--text);">${fmtVal}</span>
       <input id="inp-${id}" type="number" value="${display}" placeholder="0"
-        style="width:110px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;
-        background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);
-        font-size:14px;text-align:right;">
+        style="width:110px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
+        background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
+        font-size:14px;text-align:right;display:none;"
+        onblur="entryDeactivate(this,'${id}')" oninput="updateEntryDerived()">
       <span style="font-size:12px;color:var(--text3);">${unit}</span>
     </div>
   </div>`;
@@ -3005,16 +3015,21 @@ function entryRow(label, id, val, unit, sub) {
 
 function entryLoan(label, id, val, endsYear, monthly) {
   const display = val ? Math.abs(val) : '';
+  const fmtVal  = val ? fmt(Math.abs(val)) : '—';
   const yLeft = endsYear - new Date().getFullYear();
   const yClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
   return `<div style="padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;
+      cursor:pointer;" onclick="entryActivate(this.parentElement,'${id}')">
       <div style="font-size:13px;color:var(--text2);">${label}</div>
-      <div style="display:flex;align-items:center;gap:5px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="disp-${id}" style="font-family:var(--mono);font-size:15px;font-weight:600;
+          color:var(--text2);">${fmtVal}</span>
         <input id="inp-${id}" type="number" value="${display}" placeholder="0"
-          style="width:110px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;
-          background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);
-          font-size:14px;text-align:right;">
+          style="width:110px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
+          background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
+          font-size:14px;text-align:right;display:none;"
+          onblur="entryDeactivate(this,'${id}')" oninput="updateEntryDerived()">
         <span style="font-size:12px;color:var(--text3);">€</span>
       </div>
     </div>
@@ -3039,6 +3054,46 @@ function toggleTag(btn) {
     btn.style.color = '#5a9e6a';
     btn.style.borderColor = 'rgba(90,158,106,0.4)';
   }
+}
+
+// Tap-to-edit: klikkaus näyttää inputin, blur palauttaa arvon
+function entryActivate(row, id) {
+  const disp = document.getElementById('disp-' + id);
+  const inp  = document.getElementById('inp-'  + id);
+  if (!disp || !inp) return;
+  disp.style.display = 'none';
+  inp.style.display  = 'block';
+  inp.focus();
+  inp.select();
+}
+function entryDeactivate(inp, id) {
+  const disp = document.getElementById('disp-' + id);
+  if (!disp) return;
+  const v = parseFloat(inp.value);
+  disp.textContent = (!isNaN(v) && v !== 0) ? fmt(Math.abs(v)) : '—';
+  inp.style.display  = 'none';
+  disp.style.display = 'block';
+  updateEntryDerived();
+}
+function updateEntryDerived() {
+  function v(id) { return parseFloat(document.getElementById('inp-'+id)?.value) || 0; }
+  const tulotili = v('tulotili');
+  const opGold   = Math.abs(v('op_gold'));
+  const netto    = tulotili - opGold;
+  const el = document.getElementById('nettorytmi-val');
+  if (el) { el.textContent = fmt(netto); el.style.color = netto >= 0 ? '#5a9e6a' : 'var(--text)'; }
+  const tot = Math.abs(v('asuntolaina')) + Math.abs(v('autolaina')) + Math.abs(v('asuntolaina_remontti'));
+  const lt  = document.querySelector('#laina-total span:last-child');
+  if (lt) lt.textContent = tot > 0 ? fmt(-tot) : '—';
+}
+
+function toggleKonteksti() {
+  const body = document.getElementById('konteksti-body');
+  const btn  = document.getElementById('konteksti-toggle');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (btn) btn.textContent = open ? '+ Lisää konteksti' : '− Sulje';
 }
 
 async function saveEntrySnapshot() {
