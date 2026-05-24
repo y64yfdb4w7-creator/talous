@@ -287,15 +287,42 @@
     }
     .kpi-grid {
       display: grid;
-      grid-template-columns: 2fr 2fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
       margin-bottom: 28px;
-      align-items: start;
     }
-    /* Nettovarallisuus spans full width — always last */
-    .kpi-wide { grid-column: 1 / -1; }
-    /* Käyttötilit — kompakti, ei veny täyteen korkeuteen */
-    .kpi-compact { align-self: start; }
+    .kpi-wide { grid-column: span 2; }
+
+    /* ── TOOLTIP ── */
+    .tip {
+      position: relative;
+      cursor: help;
+      border-bottom: 1px dotted rgba(255,255,255,0.2);
+    }
+    .tip::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e2420;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 9px 13px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text2);
+      white-space: normal;
+      max-width: 240px;
+      line-height: 1.6;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s;
+      z-index: 200;
+      text-align: left;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .tip:hover::after { opacity: 1; }
 
     .card {
       background: var(--surface);
@@ -542,7 +569,6 @@
     @media (max-width: 580px) {
       .kpi-grid { grid-template-columns: 1fr; }
       .kpi-wide { grid-column: span 1; }
-      .kpi-compact { align-self: auto; }
       .map-row { grid-template-columns: 28px 1fr 16px 130px 55px; }
       .view { padding: 16px 14px; }
       .holding-hd, .holding-row {

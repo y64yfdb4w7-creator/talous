@@ -358,10 +358,117 @@ async function renderDashboard() {
       <!-- 2. SITOUMUKSET — luottokortit + rytmimittari + lainat -->
       <div class="card">
         <div class="card-label" style="color:var(--text3);">Sitoumukset</div>
-        <div class="card-value" style="color:var(--red);">${fmt(-(creditDebt + ltDebt))}</div>
+        <div class="card-value tip" style="color:var(--red);"
+          data-tip="Luottokortit (${fmt(-creditDebt)}) + Pitkäaikaiset lainat (${fmt(-ltDebt)})"
+        >${fmt(-(creditDebt + ltDebt))}</div>
 
         <!-- OP GOLD: rytmimittari -->
         ${latest.op_gold !== undefined ? (() => {
+          const tempo    = sig && sig.tempo;
+          const curSpend = Math.abs(latest.op_gold);
+          const baseline = tempo ? tempo.paceAvg : null;
+          const diffEur  = baseline ? (baseline - curSpend) : null;
+          const devPct   = baseline ? Math.round(((curSpend - baseline) / baseline) * 100) : null;
+
+          const meterHTML = baseline ? (() => {
+            const clamp      = Math.max(-50, Math.min(50, devPct));
+            const markerPct  = 50 + clamp;
+            const markerColor = Math.abs(clamp) <= 10 ? '#5a9e6a'
+                              : Math.abs(clamp) <= 25 ? '#b8956a' : '#c05a5a';
+            const label = Math.abs(clamp) <= 10 ? 'Normaali sykli'
+                        : clamp > 0 ? `+${Math.abs(devPct)} % normaalia korkeampi`
+                        : `${Math.abs(devPct)} % alle normaalin`;
+            const tipMeter = `Laskenta: (normaali ${fmt(-baseline)} − nykyinen ${fmt(-curSpend)}) ÷ normaali × 100 = ${devPct > 0 ? '+' : ''}${devPct} %`;
+            return `
+              <div style="margin-top:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;
+                            margin-bottom:4px;">
+                  <span style="font-size:10px;color:var(--text3);letter-spacing:.05em;
+                               text-transform:uppercase;">Rytmi vs. oma normaali</span>
+                  <span class="tip" style="font-size:10px;color:${markerColor};font-weight:600;"
+                    data-tip="${tipMeter}">${label}</span>
+                </div>
+                <div class="tip" style="position:relative;height:18px;border-radius:5px;
+                            background:rgba(0,0,0,0.25);overflow:hidden;"
+                  data-tip="${tipMeter}">
+                  <div style="position:absolute;left:40%;width:20%;top:0;bottom:0;
+                              background:rgba(90,158,106,0.15);"></div>
+                  <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;
+                              background:rgba(255,255,255,0.2);"></div>
+                  <div style="position:absolute;left:${markerPct}%;top:3px;bottom:3px;
+                              width:3px;border-radius:2px;transform:translateX(-50%);
+                              background:${markerColor};transition:left .4s;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:9px;
+                            color:var(--text3);margin-top:2px;">
+                  <span>−50 %</span><span>0 = normaali</span><span>+50 %</span>
+                </div>
+              </div>`;
+          })() : '';
+
+          const diffTip = baseline
+            ? `5 kk:n historiallinen keskiarvo pv ${tempo.dayNum}:lle = ${fmt(-baseline)}. Nykyinen: ${fmt(-curSpend)}. Erotus: ${fmt(Math.abs(diffEur))} ${diffEur > 0 ? '(alle normaalin)' : '(yli normaalin)'}`
+            : '';
+
+          const diffLabel = diffEur === null ? '' :
+            diffEur > 0
+              ? `<span class="tip" style="color:#5a9e6a;font-size:11px;font-weight:600;"
+                   data-tip="${diffTip}">+${fmt(diffEur)} alle normaalin</span>`
+              : `<span class="tip" style="color:#b8956a;font-size:11px;font-weight:600;"
+                   data-tip="${diffTip}">${fmt(Math.abs(diffEur))} yli normaalin</span>`;
+
+          const baselineTip = baseline
+            ? `Laskettu 5 edellisen kuukauden snapshoista, päivänumero ${tempo.dayNum}. Kuukaudet: ${tempo.paceAvg ? fmt(-baseline) : '–'} ka.`
+            : '';
+
+          return `
+            <div style="margin-top:10px;padding:10px 12px;border-radius:8px;
+                        background:rgba(0,0,0,0.15);">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span style="font-size:10px;color:var(--text3);text-transform:uppercase;
+                             letter-spacing:.05em;">OP Gold · kk-sykli</span>
+                <span class="tip" style="font-family:var(--mono);font-size:15px;color:var(--gold);"
+                  data-tip="OP Gold -luottokortin saldo tänään (${new Date().toLocaleDateString('fi-FI')})">
+                  ${fmt(-curSpend)}</span>
+              </div>
+              ${baseline ? `<div style="margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                ${diffLabel}
+                <span class="tip" style="font-size:10px;color:var(--text3);"
+                  data-tip="${baselineTip}">· normaali ${fmt(-baseline)}</span>
+              </div>` : ''}
+              ${meterHTML}
+            </div>`;
+        })() : ''}
+
+        ${latest.visa !== undefined ? `
+          <div class="sub-row" style="margin-top:8px;">
+            <span>Visa</span>
+            <span style="color:var(--gold);">${fmt(-Math.abs(latest.visa))}</span>
+          </div>` : ''}
+        ${latest.luottotili !== undefined ? `
+          <div class="sub-row">
+            <span>Luottotili</span>
+            <span style="color:var(--gold);">${fmt(-Math.abs(latest.luottotili))}</span>
+          </div>` : ''}
+
+        <div style="height:1px;background:var(--border);margin:10px 0;"></div>
+        <div style="font-size:10px;letter-spacing:.06em;color:var(--text3);
+                    text-transform:uppercase;margin-bottom:6px;">Lainat · pitkäaikaiset</div>
+        ${latest.asuntolaina !== undefined ? `<div class="sub-row">
+          <span>Asuntolaina</span>
+          <span class="tip" data-tip="Asuntolainan jäljellä oleva pääoma">${fmt(latest.asuntolaina)}</span>
+        </div>` : ''}
+        ${latest.asuntolaina_remontti !== undefined ? `<div class="sub-row">
+          <span>+ Remontti</span>
+          <span class="tip" data-tip="Remonttiluoton jäljellä oleva pääoma">${fmt(latest.asuntolaina_remontti)}</span>
+        </div>` : ''}
+        ${latest.autolaina !== undefined ? `<div class="sub-row">
+          <span>Autolaina</span>
+          <span class="tip" data-tip="Autolainan jäljellä oleva pääoma">${fmt(latest.autolaina)}</span>
+        </div>` : ''}
+      </div>
+
+
           const tempo    = sig && sig.tempo;
           const curSpend = Math.abs(latest.op_gold);
           const baseline = tempo ? tempo.paceAvg : null;
