@@ -228,10 +228,19 @@ async function renderDashboard() {
   // ── CALCULATION ENGINE ──
   const calc     = calculateNetWorth(latest);
   const calcPrev = prev ? calculateNetWorth(prev) : null;
-  const sig      = computeAllSignals(snaps, latest, calc);
+  const sig = (typeof computeAllSignals === 'function')
+    ? computeAllSignals(snaps, latest, calc)
+    : null;
 
   if (window.innerWidth < 580) {
-    c.innerHTML = renderMobileDashboard(snaps, latest, calc, sig, cnt);
+    try {
+      c.innerHTML = renderMobileDashboard(snaps, latest, calc, sig, cnt);
+    } catch(e) {
+      c.innerHTML = '<div style="padding:20px;color:#c05a5a;font-family:monospace;font-size:12px;line-height:1.8;">'
+        + '⚠ Virhe: ' + e.message + '<br><br>'
+        + '<button onclick="location.reload()" style="padding:10px 20px;background:#1a3a2a;border:1px solid #3a7a4a;color:#5a9e6a;border-radius:8px;font-size:14px;cursor:pointer;">↻ Lataa uudelleen</button>'
+        + '</div>';
+    }
     return;
   }
 
