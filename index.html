@@ -673,6 +673,7 @@
   <button class="nav-btn" id="btn-historia" onclick="showView('historia')">Historia</button>
   <button class="nav-btn" id="btn-ledger" onclick="showView('ledger')">Ledger</button>
   <button class="nav-btn" id="btn-events" onclick="showView('events')">Tapahtumat</button>
+  <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
   <span class="nav-count" id="nav-count"></span>
   <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:8px;">↑ Tuo data</button>
@@ -718,11 +719,20 @@
 </div>
 
 <!-- EVENTS VIEW -->
-<div id="view-events" class="view">
-  <div id="ev-content">
+<div id="view-events" class="view">  <div id="ev-content">
     <div class="empty">
       <div class="empty-icon">📅</div>
       <div class="empty-title">Ei tapahtumia</div>
+    </div>
+  </div>
+</div>
+
+<!-- MYYNNIT VIEW -->
+<div id="view-myynnit" class="view">
+  <div id="myynnit-content">
+    <div class="empty">
+      <div class="empty-icon">📉</div>
+      <div class="empty-title">Ladataan...</div>
     </div>
   </div>
 </div>
@@ -836,6 +846,7 @@
 
 <script src="js/db.js"></script>
 <script src="js/calculations.js"></script>
+<script src="js/signals.js"></script>
 <script src="js/import.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/sync.js"></script>

@@ -1,12 +1,13 @@
-// Finance OS — Service Worker
+// Finance OS — Service Worker v11
 // Välimuistittaa kaikki JS-tiedostot → nopea lataus, offline-tuki
 
-const CACHE_NAME = 'finance-os-v10';
+const CACHE_NAME = 'finance-os-v11';
 const ASSETS = [
   '/talous/',
   '/talous/index.html',
   '/talous/js/db.js',
   '/talous/js/calculations.js',
+  '/talous/js/signals.js',
   '/talous/js/import.js',
   '/talous/js/ui.js',
   '/talous/js/sync.js',
@@ -18,7 +19,7 @@ const ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('SW: Välimuistitetaan tiedostot...');
+      console.log('SW v11: Välimuistitetaan tiedostot...');
       return cache.addAll(ASSETS);
     }).then(() => self.skipWaiting())
   );
@@ -55,7 +56,6 @@ self.addEventListener('fetch', event => {
     caches.match(event.request).then(cached => {
       if (cached) return cached;
       return fetch(event.request).then(response => {
-        // Välimuistita uudet tiedostot automaattisesti
         if (response.ok && event.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));

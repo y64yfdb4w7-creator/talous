@@ -1,3 +1,107 @@
+// ═══════════════════════════════════════════════
+// FINANCIAL HEARTBEAT CARD  (Sprint 5)
+// ═══════════════════════════════════════════════
+function renderHeartbeatCard(sig) {
+  if (!sig) return '';
+
+  const hb     = sig.heartbeat;
+  const tempo  = sig.tempo;
+  const runway = sig.runway;
+  const liquid = sig.liquid;
+
+  const tempoBar = tempo ? (() => {
+    const pct      = Math.min(tempo.tempo, 200);
+    const barPct   = Math.round(pct / 2);
+    const barColor = pct > 130 ? '#c05a5a' : pct > 105 ? '#b8956a' : '#5a9e6a';
+    return `
+      <div style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;
+                    color:var(--text3);letter-spacing:.07em;margin-bottom:5px;">
+          <span>KULUTUSTEMPO · PV ${tempo.dayNum}</span>
+          <span style="color:${barColor};font-weight:700;">${tempo.tempo} % normaalista</span>
+        </div>
+        <div style="position:relative;height:24px;background:var(--surface2);
+                    border-radius:6px;overflow:hidden;">
+          <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;
+                      background:rgba(255,255,255,0.15);"></div>
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${barPct}%;
+                      background:${barColor};opacity:0.75;border-radius:6px;
+                      transition:width .4s;"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;
+                      padding:0 10px;justify-content:space-between;">
+            <span style="font-family:var(--mono);font-size:11px;font-weight:600;
+                         color:#fff;">${fmt(-tempo.curSpend)}</span>
+            <span style="font-size:10px;color:rgba(255,255,255,0.45);">
+              ka. ${fmt(-tempo.paceAvg)}
+            </span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;">
+          5 kk:n historiallinen normaali · sama päivänumero
+        </div>
+      </div>`;
+  })() : '';
+
+  const runwayBlock = runway ? (() => {
+    const months  = runway.months;
+    const color   = months < 6 ? '#c05a5a' : months < 12 ? '#b8956a' : '#5a9e6a';
+    const barPct  = Math.min(Math.round((months / 36) * 100), 100);
+    return `
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;
+                    margin-bottom:5px;">
+          <span style="font-size:10px;letter-spacing:.07em;color:var(--text3);
+                       text-transform:uppercase;">Toimintavara</span>
+          <span style="font-family:var(--mono);font-size:18px;font-weight:700;
+                       color:${color};">${months} kk</span>
+        </div>
+        <div style="position:relative;height:8px;background:var(--surface2);
+                    border-radius:4px;overflow:hidden;">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${barPct}%;
+                      background:${color};opacity:0.6;border-radius:4px;
+                      transition:width .5s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;
+                    color:var(--text3);margin-top:4px;">
+          <span>Kuukausikulutus ka. ${fmt(-runway.monthlyBurn)}</span>
+          <span>Kapasiteetti ${fmt(runway.totalCapacity)}</span>
+        </div>
+      </div>`;
+  })() : '';
+
+  const liqColor = liquid >= 0 ? 'var(--green)' : 'var(--red)';
+  const liqLabel = liquid >= 0 ? 'Tulotili kattaa luottokortit' : 'Luottokortit ylittävät käteisen';
+
+  return `
+    <div style="background:var(--surface2);border:1px solid var(--border);
+                border-radius:14px;padding:18px 18px 16px;margin-bottom:16px;
+                position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                  background:linear-gradient(90deg,transparent,${hb.color}40,transparent);
+                  border-radius:14px 14px 0 0;"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <span style="font-size:18px;color:${hb.color};line-height:1;">${hb.dot}</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text1);
+                      letter-spacing:.02em;">${hb.label}</div>
+          ${hb.sub ? `<div style="font-size:11px;color:var(--text3);margin-top:1px;">${hb.sub}</div>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;
+                  margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div>
+          <div style="font-size:10px;letter-spacing:.07em;color:var(--text3);
+                      text-transform:uppercase;margin-bottom:3px;">Netto-likviditeetti</div>
+          <div style="font-size:10px;color:var(--text3);">${liqLabel}</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:700;
+                    color:${liqColor};">${fmt(liquid)}</div>
+      </div>
+      ${tempoBar}
+      ${runwayBlock}
+    </div>`;
+}
+
 async function renderDashboard() {
   const c = document.getElementById('db-content');
   const cnt = await DB.count('snapshots');
@@ -20,6 +124,7 @@ async function renderDashboard() {
   // ── CALCULATION ENGINE ──
   const calc     = calculateNetWorth(latest);
   const calcPrev = prev ? calculateNetWorth(prev) : null;
+  const sig      = computeAllSignals(snaps, latest, calc);
 
   const nw       = calc.netWorth;
   const prevNw   = calcPrev ? calcPrev.netWorth : null;
@@ -179,6 +284,8 @@ async function renderDashboard() {
       border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
+
+    ${renderHeartbeatCard(sig)}
 
     <div class="kpi-grid">
       <!-- Net Worth + koostumus + periodit -->
@@ -2142,6 +2249,7 @@ function showView(name) {
   if (name === 'salkku')        requestAnimationFrame(() => renderSalkku());
   if (name === 'likviditeetti') requestAnimationFrame(() => renderLikviditeetti());
   if (name === 'ledger')        requestAnimationFrame(() => renderLedger());
+  if (name === 'myynnit')      requestAnimationFrame(() => renderMyynnit());
 }
 
 async function updateNavCount() {
@@ -2216,3 +2324,340 @@ document.getElementById('btn-clear').addEventListener('click', async () => {
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// MYYNNIT — osakkeiden myyntikirjaukset
+// ═══════════════════════════════════════════════
+
+async function renderMyynnit() {
+  const c = document.getElementById('myynnit-content');
+  if (!c) return;
+
+  const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false && h.quantity > 0);
+  const sales    = (await DB.getAll('sales')).sort((a, b) => b.date.localeCompare(a.date));
+
+  // Koosta holdingvalinta: ticker + nimi + kpl (yksilöllinen per holding.id)
+  const holdingOpts = holdings.map(h =>
+    `<option value="${h.id}">${h.display_name || h.ticker} — ${(h.quantity||0).toLocaleString('fi-FI')} kpl @ ${h.last_price ? h.last_price.toFixed(2)+' €' : '?'}</option>`
+  ).join('');
+
+  // ── Lomake ──────────────────────────────────────────────
+  const formHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+                padding:20px;margin-bottom:24px;">
+      <div style="font-weight:700;font-size:15px;margin-bottom:16px;color:var(--green);">+ Kirjaa myynti</div>
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+
+        <div class="form-field">
+          <label class="form-label">Osake / Holding</label>
+          <select class="form-select" id="ms-holding" onchange="myyntiPreviewUpdate()">
+            <option value="">Valitse...</option>
+            ${holdingOpts}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">Myyntipäivä</label>
+          <input class="form-input" id="ms-date" type="date" value="${new Date().toISOString().slice(0,10)}">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">Myyty (kpl)</label>
+          <input class="form-input" id="ms-qty" type="number" min="0.001" step="0.001"
+                 placeholder="esim. 10" oninput="myyntiPreviewUpdate()">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">Myyntikurssi (€ / kpl)</label>
+          <input class="form-input" id="ms-price" type="number" min="0.001" step="0.01"
+                 placeholder="esim. 18.50" oninput="myyntiPreviewUpdate()">
+        </div>
+
+      </div>
+
+      <!-- Live-esikatselu -->
+      <div id="ms-preview" style="margin-top:16px;display:none;"></div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn-p" onclick="myyntiSave()">Tallenna myynti</button>
+        <button class="btn-s" onclick="myyntiPreviewUpdate()">↻ Laske</button>
+      </div>
+    </div>`;
+
+  // ── Ryhmittely vuosittain ────────────────────────────────
+  const byYear = {};
+  for (const s of sales) {
+    const yr = s.date.slice(0, 4);
+    (byYear[yr] = byYear[yr] || []).push(s);
+  }
+
+  let salesHTML = '';
+  if (sales.length === 0) {
+    salesHTML = `<div class="empty" style="padding:48px;">
+      <div class="empty-icon">📉</div>
+      <div class="empty-title">Ei myyntejä vielä</div>
+      <p style="color:var(--text2);">Kirjaa ensimmäinen myynti yllä olevalla lomakkeella.</p>
+    </div>`;
+  } else {
+    for (const yr of Object.keys(byYear).sort().reverse()) {
+      const yrSales = byYear[yr];
+      const sum = calcYearlySalesSummary(yrSales);
+
+      salesHTML += `
+        <div style="margin-bottom:32px;">
+          <!-- Vuosiyhteenveto -->
+          <div style="font-family:var(--mono);font-size:11px;text-transform:uppercase;
+                      letter-spacing:.1em;color:var(--text3);margin-bottom:10px;">${yr}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+                      gap:8px;margin-bottom:16px;">
+            <div class="card" style="padding:14px 16px;">
+              <div class="card-label">Myyntiä yhteensä</div>
+              <div class="card-value" style="font-size:20px;">${fmt(sum.proceeds)}</div>
+            </div>
+            <div class="card" style="padding:14px 16px;">
+              <div class="card-label">Voitto (suos. menet.)</div>
+              <div class="card-value ${sum.profit >= 0 ? 'pos' : 'neg'}" style="font-size:20px;">
+                ${fmtDelta(sum.profit)}
+              </div>
+            </div>
+            <div class="card" style="padding:14px 16px;">
+              <div class="card-label">Veroarvio 30/34 %</div>
+              <div class="card-value neg" style="font-size:20px;">${fmt(sum.tax)}</div>
+            </div>
+            <div class="card" style="padding:14px 16px;">
+              <div class="card-label">Netto käteen</div>
+              <div class="card-value pos" style="font-size:20px;">${fmt(sum.proceeds - sum.tax)}</div>
+            </div>
+          </div>
+
+          <!-- Verosäännöt -->
+          <div style="background:rgba(90,158,106,.06);border:1px solid rgba(90,158,106,.2);
+                      border-radius:8px;padding:10px 14px;margin-bottom:14px;
+                      font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.8;">
+            <span style="color:var(--green);font-weight:700;">Suomen verosäännöt ${yr} —</span>
+            FIFO käyttää holdingille tallennettua hankintahintaa.
+            HMO 20 %: vero lasketaan 80 %:sta myyntihintaa (alle 10 v omistus).
+            HMO 40 %: vero lasketaan 60 %:sta (yli 10 v omistus).
+            Veroaste: 30 % enintään 30 000 €, 34 % ylittävältä osalta.
+          </div>
+
+          <!-- Yksittäiset myynnit -->
+          ${yrSales.map(s => renderSaleCard(s)).join('')}
+        </div>`;
+    }
+  }
+
+  c.innerHTML = formHTML + salesHTML;
+}
+
+function renderSaleCard(s) {
+  const rec = s.calc?.recommended;
+
+  const rows = (s.calc?.methods || []).map(m => {
+    const isRec = m.key === rec;
+    const profitStr = m.profit != null ? fmtDelta(m.profit) : '—';
+    const taxStr    = m.tax    != null ? fmt(m.tax)          : '—';
+    const netStr    = m.profit != null && m.tax != null
+      ? fmt(m.profit - m.tax) : '—';
+    return `
+      <tr style="background:${isRec ? 'rgba(90,158,106,.08)' : 'transparent'}">
+        <td style="padding:8px 10px;font-family:var(--mono);font-size:12px;
+                   color:${isRec ? 'var(--green)' : 'var(--text2)'};">
+          ${m.label}
+          ${isRec ? '<span style="margin-left:6px;font-size:10px;background:rgba(90,158,106,.2);color:var(--green);padding:1px 6px;border-radius:4px;border:1px solid rgba(90,158,106,.3);">✓ suositus</span>' : ''}
+        </td>
+        <td style="padding:8px 10px;font-family:var(--mono);font-size:12px;text-align:right;
+                   color:var(--text);">${fmt(s.totalEur)}</td>
+        <td style="padding:8px 10px;font-family:var(--mono);font-size:12px;text-align:right;
+                   color:${m.profit >= 0 ? 'var(--green)' : 'var(--red)'};">${profitStr}</td>
+        <td style="padding:8px 10px;font-family:var(--mono);font-size:12px;text-align:right;
+                   color:var(--red);">${taxStr}</td>
+        <td style="padding:8px 10px;font-family:var(--mono);font-size:12px;text-align:right;
+                   color:${m.profit - (m.tax||0) >= 0 ? 'var(--green)' : 'var(--red)'};">${netStr}</td>
+      </tr>`;
+  }).join('');
+
+  // Toimintavaravaikutus
+  const recMethod = s.calc?.methods?.find(m => m.key === rec);
+  const netCash = recMethod ? (s.totalEur - (recMethod.tax || 0)) : null;
+
+  return `
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px;">
+      <!-- Otsikkorivi -->
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:12px 14px;background:var(--surface2);flex-wrap:wrap;gap:8px;">
+        <div>
+          <span style="font-weight:700;font-size:14px;color:var(--text);">${s.holdingName || s.ticker}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:8px;">${s.ticker}</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <span style="font-family:var(--mono);font-size:12px;color:var(--text2);">
+            ${fmtDate(s.date)} &nbsp;·&nbsp; ${(s.qty||0).toLocaleString('fi-FI')} kpl
+            &nbsp;·&nbsp; ${s.pricePerShare?.toFixed(2)} €/kpl
+          </span>
+          <button onclick="myyntiDelete('${s.id}')"
+            style="font-size:11px;padding:4px 10px;background:rgba(192,90,90,.1);
+                   border:1px solid rgba(192,90,90,.3);border-radius:6px;
+                   color:#c05a5a;cursor:pointer;">Poista</button>
+        </div>
+      </div>
+
+      <!-- Metoditaulukko -->
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--surface);">
+              <th style="padding:7px 10px;text-align:left;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;letter-spacing:.07em;color:var(--text3);">Menetelmä</th>
+              <th style="padding:7px 10px;text-align:right;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;letter-spacing:.07em;color:var(--text3);">Myyntitulo</th>
+              <th style="padding:7px 10px;text-align:right;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;letter-spacing:.07em;color:var(--text3);">Voitto/Tappio</th>
+              <th style="padding:7px 10px;text-align:right;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;letter-spacing:.07em;color:var(--text3);">Veroarvio</th>
+              <th style="padding:7px 10px;text-align:right;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;letter-spacing:.07em;color:var(--text3);">Netto käteen</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+
+      <!-- Toimintavaravaikutus -->
+      ${netCash != null ? `
+        <div style="padding:10px 14px;background:rgba(90,158,106,.04);
+                    border-top:1px solid rgba(90,158,106,.15);
+                    font-family:var(--mono);font-size:11px;color:var(--text2);">
+          💡 Suositellulla menetelmällä vapautuu toimintavaraan
+          <span style="color:var(--green);font-weight:700;">${fmt(netCash)}</span>
+          verojen jälkeen.
+          ${s.purchasePrice ? `Hankintahinta oli ${s.purchasePrice.toFixed(2)} €/kpl.` : ''}
+        </div>` : ''}
+    </div>`;
+}
+
+// Live-esikatselu lomakkeessa
+function myyntiPreviewUpdate() {
+  const previewEl = document.getElementById('ms-preview');
+  if (!previewEl) return;
+
+  const holdingId = parseInt(document.getElementById('ms-holding')?.value);
+  const qty       = parseFloat(document.getElementById('ms-qty')?.value);
+  const price     = parseFloat(document.getElementById('ms-price')?.value);
+
+  if (!holdingId || !qty || !price || isNaN(qty) || isNaN(price)) {
+    previewEl.style.display = 'none';
+    return;
+  }
+
+  DB.getAll('holdings').then(holdings => {
+    const h = holdings.find(x => x.id === holdingId);
+    if (!h) return;
+
+    const purchasePrice = h.purchase_price || 0;
+    const result = calcSaleMethods(qty, price, purchasePrice);
+
+    const rows = result.methods.map(m => {
+      const isRec = m.key === result.recommended;
+      return `
+        <tr style="background:${isRec ? 'rgba(90,158,106,.10)' : 'transparent'}">
+          <td style="padding:7px 10px;font-family:var(--mono);font-size:12px;
+                     color:${isRec ? 'var(--green)' : 'var(--text2)'};">
+            ${m.label}${isRec ? ' <span style="font-size:10px;color:var(--green);">✓</span>' : ''}
+          </td>
+          <td style="padding:7px 10px;text-align:right;font-family:var(--mono);font-size:12px;">${fmt(result.totalSale)}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:var(--mono);font-size:12px;
+                     color:${m.profit >= 0 ? 'var(--green)' : 'var(--red)'};">
+            ${m.profit != null ? fmtDelta(m.profit) : '—'}
+          </td>
+          <td style="padding:7px 10px;text-align:right;font-family:var(--mono);font-size:12px;
+                     color:var(--red);">${m.tax != null ? fmt(m.tax) : '—'}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:var(--mono);font-size:12px;
+                     color:${m.profit - (m.tax||0) >= 0 ? 'var(--green)' : 'var(--red)'};">
+            ${m.profit != null ? fmt(m.profit - (m.tax||0)) : '—'}
+          </td>
+        </tr>`;
+    }).join('');
+
+    previewEl.style.display = 'block';
+    previewEl.innerHTML = `
+      <div style="font-family:var(--mono);font-size:11px;text-transform:uppercase;
+                  letter-spacing:.08em;color:var(--text3);margin-bottom:8px;">Esikatselu</div>
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--surface);">
+              <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;color:var(--text3);">Menetelmä</th>
+              <th style="padding:6px 10px;text-align:right;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;color:var(--text3);">Myyntitulo</th>
+              <th style="padding:6px 10px;text-align:right;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;color:var(--text3);">Voitto</th>
+              <th style="padding:6px 10px;text-align:right;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;color:var(--text3);">Vero</th>
+              <th style="padding:6px 10px;text-align:right;font-family:var(--mono);font-size:10px;
+                         text-transform:uppercase;color:var(--text3);">Netto</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  });
+}
+
+async function myyntiSave() {
+  const holdingId = parseInt(document.getElementById('ms-holding')?.value);
+  const dateVal   = document.getElementById('ms-date')?.value;
+  const qty       = parseFloat(document.getElementById('ms-qty')?.value);
+  const price     = parseFloat(document.getElementById('ms-price')?.value);
+
+  if (!holdingId || !dateVal || !qty || !price || isNaN(qty) || isNaN(price)) {
+    alert('Täytä kaikki kentät oikein.'); return;
+  }
+
+  const holdings = await DB.getAll('holdings');
+  const h = holdings.find(x => x.id === holdingId);
+  if (!h) { alert('Holdingia ei löydy.'); return; }
+
+  const purchasePrice = h.purchase_price || 0;
+  const calc = calcSaleMethods(qty, price, purchasePrice);
+
+  const sale = {
+    id:            'sale_' + Date.now(),
+    holdingId,
+    holdingName:   h.display_name || h.ticker,
+    ticker:        h.ticker,
+    account:       h.account,
+    date:          dateVal,
+    qty,
+    pricePerShare: price,
+    totalEur:      calc.totalSale,
+    purchasePrice: purchasePrice || null,
+    calc,
+  };
+
+  await DB.putSale(sale);
+
+  // Vähennä kappalemäärä holdingista
+  const newQty = Math.max(0, (h.quantity || 0) - qty);
+  await DB.putHolding({ ...h, quantity: newQty });
+
+  // Nollaa lomake
+  ['ms-holding','ms-qty','ms-price'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const prev = document.getElementById('ms-preview');
+  if (prev) prev.style.display = 'none';
+
+  await renderMyynnit();
+  // Päivitä myös Salkku-näkymä jos auki
+  if (document.getElementById('view-salkku')?.classList.contains('active')) {
+    renderSalkku();
+  }
+}
+
+async function myyntiDelete(id) {
+  if (!confirm('Poistetaanko myyntimerkintä? Kappalemäärää ei palauteta automaattisesti.')) return;
+  await DB.deleteSale(id);
+  await renderMyynnit();
+}

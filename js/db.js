@@ -15,7 +15,7 @@ const DB = {
   async init() {
     return new Promise((res, rej) => {
       const DB_NAME    = 'FinanceOS_3'; // renamed — avoids stale iOS cache
-      const DB_VERSION = 13; // v13: add backups store
+      const DB_VERSION = 14; // v14: add sales store
       const r = indexedDB.open(DB_NAME, DB_VERSION);
 
       r.onblocked = () => {
@@ -45,6 +45,11 @@ const DB = {
         }
         if (!db.objectStoreNames.contains('backups')) {
           db.createObjectStore('backups', { keyPath: 'id' });
+        }
+        // v14: sales store
+        if (!db.objectStoreNames.contains('sales')) {
+          const ss = db.createObjectStore('sales', { keyPath: 'id' });
+          ss.createIndex('date', 'date');
         }
       };
       r.onsuccess = e => {
@@ -164,6 +169,24 @@ const DB = {
     return new Promise((res, rej) => {
       const tx = this.db.transaction('pins', 'readwrite');
       tx.objectStore('pins').delete(id);
+      tx.oncomplete = res;
+      tx.onerror    = e => rej(e.target.error);
+    });
+  },
+
+  async putSale(sale) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('sales', 'readwrite');
+      const req = tx.objectStore('sales').put(sale);
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+
+  async deleteSale(id) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('sales', 'readwrite');
+      tx.objectStore('sales').delete(id);
       tx.oncomplete = res;
       tx.onerror    = e => rej(e.target.error);
     });
