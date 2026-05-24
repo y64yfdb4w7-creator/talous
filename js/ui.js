@@ -171,142 +171,128 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
 }
 
 // ═══════════════════════════════════════════════
-// MOBIILI-DASHBOARD (alle 580 px)
-// 2×2 status-grid — taskuohjaamo
+// MOBIILI-DASHBOARD (alle 580px) — 2×2 status
 // ═══════════════════════════════════════════════
-function _fmtK(n) {
+function _fK(n) {
   if (n == null) return '—';
-  const abs = Math.abs(n), sign = n < 0 ? '−' : '';
-  if (abs >= 1000) return sign + (abs / 1000).toFixed(1).replace('.', ',') + 'k';
-  return sign + Math.round(abs);
+  const abs = Math.abs(n), s = n < 0 ? '−' : '';
+  if (abs >= 1000) return s + (abs/1000).toFixed(1).replace('.',',') + 'k';
+  return s + Math.round(abs);
 }
-
 function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
-  const nw     = calc.netWorth;
-  const inv    = calc.investments;
-  const cash   = calc.cash;
+  const inv    = calc.investments, cash = calc.cash;
   const debt   = calc.shortTermDebt + calc.longTermDebt;
   const liquid = cash - calc.shortTermDebt;
+  const nw     = calc.netWorth;
   const hb     = sig && sig.heartbeat;
   const tempo  = sig && sig.tempo;
   const runway = sig && sig.runway;
   const cycle  = sig && sig.cycle;
 
-  // Sparkline
-  const recent  = snaps.slice(-60);
-  const nwVals  = recent.map(s => calculateNetWorth(s).netWorth);
-  const minNW   = Math.min(...nwVals), maxNW = Math.max(...nwVals);
-  const sW = 280, sH = 32;
-  const pts = nwVals.map((v, i) => {
-    const x = (i / Math.max(nwVals.length - 1, 1)) * sW;
-    const y = sH - ((v - minNW) / Math.max(maxNW - minNW, 1)) * sH;
-    return x.toFixed(1) + ',' + y.toFixed(1);
+  // 1v muutos
+  const snap1y  = snaps.length > 1 ? snaps[Math.max(0, snaps.length-366)] : null;
+  const d1y     = snap1y ? nw - calculateNetWorth(snap1y).netWorth : null;
+
+  // Sparkline 60pv
+  const rec = snaps.slice(-60);
+  const vs  = rec.map(s => calculateNetWorth(s).netWorth);
+  const mn  = Math.min(...vs), mx = Math.max(...vs);
+  const pts = vs.map((v,i) => {
+    const x = (i/Math.max(vs.length-1,1))*280;
+    const y = 28 - ((v-mn)/Math.max(mx-mn,1))*28;
+    return x.toFixed(1)+','+y.toFixed(1);
   }).join(' ');
 
-  const snap1y  = snaps.length > 1 ? snaps[Math.max(0, snaps.length - 366)] : null;
-  const delta1y = snap1y ? nw - calculateNetWorth(snap1y).netWorth : null;
-
-  // Heartbeat — ohut yksirivinen
-  const hbRow = hb ? (
-    '<div style="display:flex;align-items:center;justify-content:space-between;'
-    + 'padding:8px 12px;background:var(--surface);border:1px solid var(--border);'
-    + 'border-radius:9px;margin-bottom:8px;">'
-    + '<div style="display:flex;align-items:center;gap:7px;">'
-    + '<span style="font-size:13px;color:' + hb.color + ';">' + hb.dot + '</span>'
-    + '<span style="font-size:12px;font-weight:600;color:var(--text);">' + hb.label + '</span>'
-    + (tempo ? '<span style="font-size:10px;color:var(--text3);">' + tempo.tempo + '%</span>' : '')
-    + '</div>'
-    + (cycle ? '<span style="font-size:10px;color:var(--text3);">Eräp. ' + cycle.daysUntilDue + ' pv</span>' : '')
-    + '</div>'
-  ) : '';
-
-  // Laatan apufunktio
-  function tile(label, value, sub, valueColor) {
+  // Laatta
+  function T(label, val, sub, vc) {
     return '<div style="background:var(--surface);border:1px solid var(--border);'
-      + 'border-radius:9px;padding:9px 10px;">'
-      + '<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;'
-      + 'text-transform:uppercase;margin-bottom:3px;">' + label + '</div>'
-      + '<div style="font-family:var(--mono);font-size:16px;font-weight:700;color:' + (valueColor || 'var(--text)') + ';line-height:1.1;">' + value + '</div>'
-      + (sub ? '<div style="font-size:10px;color:var(--text3);margin-top:2px;line-height:1.2;">' + sub + '</div>' : '')
-      + '</div>';
+      +'border-radius:9px;padding:10px 11px;min-width:0;">'
+      +'<div style="font-size:8px;color:var(--text3);letter-spacing:.03em;'
+      +'text-transform:uppercase;margin-bottom:4px;white-space:nowrap;">' + label + '</div>'
+      +'<div style="font-family:var(--mono);font-size:17px;font-weight:700;'
+      +'color:' + (vc||'var(--text)') + ';line-height:1;">' + val + '</div>'
+      +(sub ? '<div style="font-size:10px;color:var(--text3);margin-top:3px;'
+        +'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + sub + '</div>' : '')
+      +'</div>';
   }
 
-  // OP Gold sub-teksti
-  var goldSub = '';
-  if (tempo && tempo.paceAvg && latest.op_gold) {
-    const diff = tempo.paceAvg - Math.abs(latest.op_gold);
-    const clr  = diff > 0 ? '#5a9e6a' : '#b8956a';
-    goldSub = '<span style="color:' + clr + ';">' + (diff > 0 ? '+' : '') + _fmtK(diff) + ' vs normaali</span>';
+  // OP Gold rytmi
+  var goldBlock = '';
+  if (latest.op_gold !== undefined) {
+    const goldVal = fmt(-(latest.op_gold||0));
+    const bClr = !tempo ? 'var(--text3)' : tempo.tempo < 90 ? '#5a9e6a' : tempo.tempo > 110 ? '#b8956a' : 'var(--text3)';
+    const diffTxt = tempo && tempo.paceAvg
+      ? (tempo.tempo < 100 ? '+' : '') + _fK(tempo.paceAvg - Math.abs(latest.op_gold||0)) + ' vs normaali'
+      : '';
+    const cycleLabel = cycle ? (cycle.cycleOk ? '● koroton' : '○ tarkista') : '';
+    const cycleClr   = cycle && cycle.cycleOk ? '#5a9e6a' : '#b8956a';
+    var tBar = '';
+    if (tempo) {
+      const p = Math.min(tempo.tempo,200), bp = Math.round(p/2);
+      const tc = p>130?'#c05a5a':p>105?'#b8956a':'#5a9e6a';
+      tBar = '<div style="position:relative;height:10px;background:rgba(0,0,0,0.3);'
+        +'border-radius:3px;overflow:hidden;margin-top:5px;">'
+        +'<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.1);"></div>'
+        +'<div style="position:absolute;left:0;top:0;bottom:0;width:'+bp+'%;background:'+tc+';opacity:0.7;border-radius:3px;"></div>'
+        +'</div>';
+    }
+    goldBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
+      +'border-radius:9px;padding:9px 11px;margin-bottom:7px;overflow:hidden;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">'
+      +'<span style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em;">OP Gold · kk-sykli</span>'
+      +(cycle?'<span style="font-size:10px;color:'+cycleClr+';flex-shrink:0;">'+cycleLabel+'</span>':'')
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:3px;gap:4px;">'
+      +'<span style="font-family:var(--mono);font-size:15px;font-weight:700;color:var(--gold);flex-shrink:0;">' + goldVal + '</span>'
+      +(diffTxt?'<span style="font-size:10px;color:'+bClr+';text-align:right;overflow:hidden;text-overflow:ellipsis;">'+diffTxt+'</span>':'')
+      +'</div>'
+      + tBar
+      +'</div>';
   }
 
-  // Rytmipalkki (hyvin kompakti)
-  var tempoBar = '';
-  if (tempo) {
-    const pct = Math.min(tempo.tempo, 200);
-    const bPct = Math.round(pct / 2);
-    const bClr = pct > 130 ? '#c05a5a' : pct > 105 ? '#b8956a' : '#5a9e6a';
-    tempoBar = '<div style="position:relative;height:12px;background:rgba(0,0,0,0.3);'
-      + 'border-radius:3px;overflow:hidden;margin-top:6px;">'
-      + '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.1);"></div>'
-      + '<div style="position:absolute;left:0;top:0;bottom:0;width:' + bPct + '%;background:' + bClr + ';opacity:0.7;border-radius:3px;"></div>'
-      + '</div>';
-  }
-
-  return '<div>'
+  return '<div style="max-width:100%;overflow:hidden;">'
     // Status
-    + '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);'
-    + 'margin-bottom:8px;font-family:var(--mono);">'
-    + '<span>' + fmtDate(latest.date) + ' · ' + cnt.toLocaleString('fi-FI') + ' snapshotia</span>'
-    + backupStatusBadge() + syncStatusBadge()
-    + '</div>'
-
+    +'<div style="display:flex;justify-content:space-between;align-items:center;'
+    +'font-size:10px;color:var(--text3);margin-bottom:8px;font-family:var(--mono);'
+    +'overflow:hidden;gap:4px;">'
+    +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+    + fmtDate(latest.date)+' · '+cnt.toLocaleString('fi-FI')+' snapshotia</span>'
+    +'</div>'
     // Heartbeat
-    + hbRow
-
-    // 2×2 laattaruudukko
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">'
-    + tile('Sijoitukset', _fmtK(inv), 'Nordnet + OP', 'var(--text)')
-    + tile('Sitoumukset', _fmtK(-debt), 'lainat + kortit', 'var(--red)')
-    + tile('Käyttötilit', _fmtK(cash), 'netto ' + _fmtK(liquid), 'var(--text2)')
-    + tile('Nettovarallisuus', _fmtK(nw),
-        delta1y !== null ? (delta1y >= 0 ? '+' : '−') + _fmtK(Math.abs(delta1y)) + ' / 1v' : null,
-        'var(--text)')
-    + '</div>'
-
+    +(hb?'<div style="display:flex;align-items:center;justify-content:space-between;'
+      +'padding:8px 11px;background:var(--surface);border:1px solid var(--border);'
+      +'border-radius:9px;margin-bottom:7px;overflow:hidden;gap:4px;">'
+      +'<div style="display:flex;align-items:center;gap:6px;min-width:0;">'
+      +'<span style="font-size:13px;color:'+hb.color+';flex-shrink:0;">'+hb.dot+'</span>'
+      +'<span style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+hb.label+'</span>'
+      +(tempo?'<span style="font-size:10px;color:var(--text3);flex-shrink:0;">'+tempo.tempo+'%</span>':'')
+      +'</div>'
+      +(cycle?'<span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap;">Eräp. '+cycle.daysUntilDue+' pv</span>':'')
+      +'</div>':'')
+    // 2×2 grid
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;">'
+    + T('Sijoitukset', _fK(inv), 'Nordnet+OP')
+    + T('Sitoumukset', _fK(-debt), 'lainat+kortit', 'var(--red)')
+    + T('Käyttötilit', _fK(cash), 'netto '+_fK(liquid), 'var(--text2)')
+    + T('Nettovarallisuus', _fK(nw), d1y!=null?(d1y>=0?'+':'−')+_fK(Math.abs(d1y))+'/1v':null)
+    +'</div>'
     // Sparkline
-    + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;'
-    + 'padding:8px 10px;margin-bottom:8px;">'
-    + '<svg viewBox="0 0 ' + sW + ' ' + sH + '" style="display:block;width:100%;height:28px;">'
-    + '<polyline points="' + pts + '" fill="none" stroke="#5a9e6a" stroke-width="1.5" stroke-linejoin="round" opacity="0.6"/>'
-    + '</svg>'
-    + '</div>'
-
+    +'<div style="background:var(--surface);border:1px solid var(--border);'
+    +'border-radius:9px;padding:7px 10px;margin-bottom:7px;">'
+    +'<svg viewBox="0 0 280 28" style="display:block;width:100%;height:26px;">'
+    +'<polyline points="'+pts+'" fill="none" stroke="#5a9e6a" stroke-width="1.5" stroke-linejoin="round" opacity="0.6"/>'
+    +'</svg></div>'
     // OP Gold
-    + (latest.op_gold !== undefined
-      ? '<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;'
-      + 'padding:9px 12px;margin-bottom:8px;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">'
-      + '<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">OP Gold · kk-sykli</span>'
-      + (cycle ? '<span style="font-size:10px;color:' + (cycle.cycleOk ? '#5a9e6a' : '#b8956a') + ';">' + (cycle.cycleOk ? '● koroton' : '○ tarkista') + '</span>' : '')
-      + '</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-      + '<span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--gold);">' + fmt(-(latest.op_gold || 0)) + '</span>'
-      + (goldSub ? '<span style="font-size:10px;">' + goldSub + '</span>' : '')
-      + '</div>'
-      + tempoBar
-      + '</div>' : '')
-
+    + goldBlock
     // Reservi
-    + (runway
-      ? '<div style="display:flex;justify-content:space-between;align-items:center;'
-      + 'padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;">'
-      + '<span style="font-size:10px;color:var(--text3);">Strateginen reservi</span>'
-      + '<span style="font-family:var(--mono);font-size:14px;font-weight:700;color:'
-      + (runway.months < 3 ? '#c05a5a' : runway.months < 8 ? '#b8956a' : '#5a9e6a') + ';">'
-      + runway.months + ' kk</span>'
-      + '</div>' : '')
-
-    + '</div>';
+    +(runway?'<div style="display:flex;justify-content:space-between;align-items:center;'
+      +'padding:8px 11px;background:var(--surface);border:1px solid var(--border);'
+      +'border-radius:9px;overflow:hidden;">'
+      +'<span style="font-size:10px;color:var(--text3);">Strateginen reservi</span>'
+      +'<span style="font-family:var(--mono);font-size:14px;font-weight:700;flex-shrink:0;color:'
+      +(runway.months<3?'#c05a5a':runway.months<8?'#b8956a':'#5a9e6a')+';">'+runway.months+' kk</span>'
+      +'</div>':'')
+    +'</div>';
 }
 
 async function renderDashboard() {
@@ -333,7 +319,6 @@ async function renderDashboard() {
   const calcPrev = prev ? calculateNetWorth(prev) : null;
   const sig      = computeAllSignals(snaps, latest, calc);
 
-  // ── Mobiili: oma minimalistinen status-näkymä ──
   if (window.innerWidth < 580) {
     c.innerHTML = renderMobileDashboard(snaps, latest, calc, sig, cnt);
     return;
