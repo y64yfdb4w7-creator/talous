@@ -213,7 +213,8 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
 // 4. Aikarakenne (lainat + kapasiteetti)
 // 5. Reservi
 // ═══════════════════════════════════════════════
-function _fK(n) {
+function _fK(n) { if (n == null) return '—'; return fmt(n); }
+function _fK_OLD(n) {
   if (n == null) return '—';
   const a = Math.abs(n), s = n < 0 ? '−' : '';
   if (a >= 1000) return s + (a/1000).toFixed(1).replace('.',',') + 'k';
