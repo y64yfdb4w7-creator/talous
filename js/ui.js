@@ -3214,7 +3214,7 @@ async function saveEntrySnapshot() {
       );
       if (sspankki && sspankki.quantity > 0) {
         const impliedPrice = tapiolaVal / sspankki.quantity;
-        await DB.put('holdings', Object.assign({}, sspankki, {
+        await DB.putHolding(Object.assign({}, sspankki, {
           last_price:      impliedPrice,
           last_price_date: today,
           last_price_src:  'Snapshot (tapiola)',
