@@ -2993,14 +2993,18 @@ async function renderEntryView() {
 function entryRow(label, id, val, unit, sub) {
   const display = val ? Math.abs(val) : '';
   const fmtVal  = val ? fmt(Math.abs(val)) : '—';
-  return `<div style="display:flex;justify-content:space-between;align-items:center;
-    padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);cursor:pointer;"
-    onclick="entryActivate(this,'${id}')">
+  return `<div class="entry-row" style="display:flex;justify-content:space-between;align-items:center;
+    padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);cursor:pointer;
+    border-radius:6px;transition:background .12s;margin:0 -8px;padding-left:8px;padding-right:8px;"
+    onclick="entryActivate(this,'${id}')"
+    onmouseenter="this.style.background='rgba(0,200,255,0.04)';this.querySelector('.edit-hint').style.opacity='1'"
+    onmouseleave="this.style.background='transparent';this.querySelector('.edit-hint').style.opacity='0'">
     <div>
       <div style="font-size:13px;color:var(--text2);">${label}</div>
       ${sub ? `<div style="font-size:10px;color:var(--text3);">${sub}</div>` : ''}
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span class="edit-hint" style="font-size:10px;color:var(--text3);opacity:0;transition:opacity .15s;">✎</span>
       <span id="disp-${id}" style="font-family:var(--mono);font-size:15px;font-weight:600;
         color:var(--text);">${fmtVal}</span>
       <input id="inp-${id}" type="number" value="${display}" placeholder="0"
@@ -3020,9 +3024,14 @@ function entryLoan(label, id, val, endsYear, monthly) {
   const yClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
   return `<div style="padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;
-      cursor:pointer;" onclick="entryActivate(this.parentElement,'${id}')">
+      cursor:pointer;border-radius:6px;transition:background .12s;margin:0 -8px 3px;
+      padding:4px 8px;"
+      onclick="entryActivate(this.parentElement,'${id}')"
+      onmouseenter="this.style.background='rgba(0,200,255,0.04)';this.querySelector('.edit-hint').style.opacity='1'"
+      onmouseleave="this.style.background='transparent';this.querySelector('.edit-hint').style.opacity='0'">
       <div style="font-size:13px;color:var(--text2);">${label}</div>
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="edit-hint" style="font-size:10px;color:var(--text3);opacity:0;transition:opacity .15s;">✎</span>
         <span id="disp-${id}" style="font-family:var(--mono);font-size:15px;font-weight:600;
           color:var(--text2);">${fmtVal}</span>
         <input id="inp-${id}" type="number" value="${display}" placeholder="0"
@@ -3033,7 +3042,7 @@ function entryLoan(label, id, val, endsYear, monthly) {
         <span style="font-size:12px;color:var(--text3);">€</span>
       </div>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;">
+    <div style="display:flex;justify-content:space-between;font-size:10px;padding:0 0 4px;">
       <span style="color:${yClr};">→ päättyy ${endsYear}</span>
       <span style="color:#5a9e6a;">+${fmt(monthly)}/kk vapautuu</span>
     </div>
