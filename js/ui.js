@@ -369,28 +369,17 @@ async function renderDashboard() {
   c.innerHTML = `
     <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <span>${fmtDate(latest.date)} &nbsp;·&nbsp; ${cnt.toLocaleString('fi-FI')} snapshottia &nbsp;·&nbsp; ${snaps[0].date.slice(0,4)}–${latest.date.slice(0,4)}</span>
-      ${backupStatusBadge()}
-      ${syncStatusBadge()}
+      <span style="display:flex;gap:8px;align-items:center;">
+        ${backupStatusBadge()}
+        ${syncStatusBadge()}
+        <button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
+          background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);
+          border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);"
+          title="Palauta edellinen snapshot">↩ rollback</button>
+      </span>
     </div>
-
-    <!-- ── SE SUURI NAPPI ── -->
-    <button onclick="rollbackLatestSnapshot()" style="font-size:11px;padding:6px 12px;
-      background:rgba(255,100,100,0.08);border:1px solid rgba(255,100,100,0.2);
-      border-radius:7px;color:#c07070;cursor:pointer;font-family:var(--mono);"
-      title="Palauta edellinen snapshot">↩ Rollback</button>
-    <button id="btn-freeze" onclick="refreshAndFreeze()"
-      style="width:100%;margin-bottom:20px;padding:14px 20px;
-             background:linear-gradient(135deg,#1a2818,#1a1d1b);
-             border:1px solid #3a5535;border-radius:12px;
-             color:#5a9e6a;font-family:'Syne',sans-serif;
-             font-weight:800;font-size:15px;letter-spacing:.04em;
-             cursor:pointer;transition:all .2s;display:flex;
-             align-items:center;justify-content:center;gap:10px;">
-      <span id="btn-freeze-icon" style="font-size:20px;">↻</span>
-      <span id="btn-freeze-label">Päivitä kurssit &amp; Jäädytä snapshot</span>
-    </button>
-    <div id="freeze-status" style="display:none;margin:-12px 0 16px;padding:10px 14px;
-      border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+    <div id="freeze-status" style="display:none;margin:8px 0 12px;padding:8px 12px;
+      border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
 

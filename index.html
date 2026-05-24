@@ -709,7 +709,15 @@
   <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
   <span class="nav-count" id="nav-count"></span>
-  <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:8px;">↑ Tuo data</button>
+  <button id="btn-freeze-nav" onclick="refreshAndFreeze()" title="Päivitä kurssit &amp; tallenna snapshot"
+    style="margin-left:8px;padding:6px 14px;font-size:13px;font-weight:700;
+           background:rgba(90,158,106,0.15);border:1px solid rgba(90,158,106,0.4);
+           border-radius:8px;color:#5a9e6a;cursor:pointer;transition:all .2s;
+           display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;">
+    <span id="btn-freeze-icon-nav" style="font-size:15px;">↻</span>
+    <span style="font-size:12px;letter-spacing:.04em;">Päivitä</span>
+  </button>
+  <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:4px;">↑ Tuo data</button>
   <button class="nav-btn" onclick="toggleSettings()" style="margin-left:4px;" title="Asetukset">⚙</button>
 </nav>
 
