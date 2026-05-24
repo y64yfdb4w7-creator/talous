@@ -571,8 +571,11 @@
     @media (max-width: 580px) {
       .kpi-grid { grid-template-columns: 1fr; }
       .kpi-wide { grid-column: span 1; }
+      .kpi-compact { align-self: auto; }
       .map-row { grid-template-columns: 28px 1fr 16px 130px 55px; }
-      .view { padding: 16px 14px; }
+      .view { padding: 12px 12px; }
+      .card { padding: 14px 14px; }
+      .card-value { font-size: 26px; }
       .holding-hd, .holding-row {
         grid-template-columns: 65px 1fr 55px 75px 85px;
       }
@@ -580,6 +583,8 @@
       .holding-row div:nth-child(6) { display: none; }
       .period-chip { min-width: 50px; padding: 4px 7px; }
       .change-row { flex-wrap: wrap; gap: 4px; }
+      /* Heartbeat kompaktimpi mobiilissa */
+      .hb-card { padding: 12px 12px 10px; margin-bottom: 10px; }
     }
 
     /* ── COMPOSITION BAR ── */
@@ -709,7 +714,15 @@
   <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
   <span class="nav-count" id="nav-count"></span>
-  <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:8px;">↑ Tuo data</button>
+  <button id="btn-freeze-nav" onclick="refreshAndFreeze()" title="Päivitä kurssit &amp; tallenna snapshot"
+    style="margin-left:8px;padding:5px 10px;font-size:16px;background:none;
+           border:1px solid var(--border);border-radius:7px;color:var(--text2);
+           cursor:pointer;transition:all .15s;line-height:1;"
+    onmouseover="this.style.color='var(--gold)';this.style.borderColor='var(--gold-dim)'"
+    onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border)'">
+    <span id="btn-freeze-icon-nav">↻</span>
+  </button>
+  <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:4px;">↑ Tuo data</button>
   <button class="nav-btn" onclick="toggleSettings()" style="margin-left:4px;" title="Asetukset">⚙</button>
 </nav>
 

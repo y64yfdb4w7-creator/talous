@@ -136,14 +136,13 @@ async function refreshAndFreeze() {
     return;
   }
 
-  const btn   = document.getElementById('btn-freeze');
-  const icon  = document.getElementById('btn-freeze-icon');
-  const label = document.getElementById('btn-freeze-label');
+  const btn   = document.getElementById('btn-freeze-nav');
+  const icon  = document.getElementById('btn-freeze-icon-nav');
+  const label = null;  // ei erillistä label-elementtiä
   const status = document.getElementById('freeze-status');
 
-  if (btn) { btn.disabled = true; }
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
   if (icon)  icon.textContent = '⟳';
-  if (label) label.textContent = 'Haetaan kursseja...';
 
   try {
     // Vaihe 1: Hae kurssit
@@ -155,8 +154,7 @@ async function refreshAndFreeze() {
     const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false && h.last_price);
     if (holdings.length === 0) {
       if (icon)  icon.textContent = '↻';
-      if (label) label.textContent = 'Päivitä kurssit & Jäädytä snapshot';
-      if (btn)   btn.disabled = false;
+      if (btn)   { btn.disabled = false; btn.style.opacity = ''; }
       if (status) {
         status.style.display = 'block';
         status.style.background = 'rgba(192,90,90,.08)';
@@ -209,10 +207,9 @@ async function refreshAndFreeze() {
     const delta = prevCalc ? calc.netWorth - prevCalc.netWorth : null;
 
     if (icon)  icon.textContent = '✓';
-    if (label) label.textContent = 'Snapshot tallennettu!';
     if (btn) {
-      btn.style.borderColor = '#3a5535';
-      btn.style.background = 'linear-gradient(135deg,#1a3a18,#1a2518)';
+      btn.style.color = 'var(--gold)';
+      btn.style.borderColor = 'var(--gold-dim)';
     }
 
     const deltaStr = delta !== null
@@ -226,15 +223,13 @@ async function refreshAndFreeze() {
 
     setTimeout(() => {
       if (icon)  icon.textContent = '↻';
-      if (label) label.textContent = 'Päivitä kurssit & Jäädytä snapshot';
-      if (btn) { btn.disabled = false; btn.style.borderColor=''; btn.style.background=''; }
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.style.color = ''; btn.style.borderColor = ''; }
       renderDashboard();
     }, 2500);
 
   } catch(e) {
     if (icon)  icon.textContent = '↻';
-    if (label) label.textContent = 'Päivitä kurssit & Jäädytä snapshot';
-    if (btn)   btn.disabled = false;
+    if (btn)   { btn.disabled = false; btn.style.opacity = ''; }
     alert('Virhe: ' + e.message);
   }
 }
