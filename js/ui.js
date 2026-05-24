@@ -79,6 +79,14 @@ function renderHeartbeatCard(sig) {
 // Kerros 1: Operatiivinen sykli (OP Gold, elävä)
 // Kerros 2: Rakenteellinen kuorma (lainat, aikahorisontti)
 // ═══════════════════════════════════════════════
+
+// Lue lainan konfiguraatio localStoragesta (tai käytä oletuksia)
+function _loanCfg(key, endsYear, monthly) {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('loan_cfg_' + key) || '{}');
+    return { endsYear: cfg.endsYear || endsYear, monthly: cfg.monthly || monthly };
+  } catch(e) { return { endsYear, monthly }; }
+}
 function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
   var tempo   = sig && sig.tempo;
   var fc      = sig && sig.futureCapacity;
@@ -133,9 +141,9 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
 
   // ── Rakenteellinen kuorma (lainat) ────────────
   var loanDefs = [
-    { key:'asuntolaina',          label:'Asuntolaina',   endsYear:2029 },
-    { key:'autolaina',            label:'Autolaina',     endsYear:2027 },
-    { key:'asuntolaina_remontti', label:'Remonttilaina', endsYear:2026 },
+    Object.assign({ key:'asuntolaina',          label:'Asuntolaina'  }, _loanCfg('asuntolaina',          2029, 200)),
+    Object.assign({ key:'autolaina',            label:'Autolaina'    }, _loanCfg('autolaina',            2027, 255)),
+    Object.assign({ key:'asuntolaina_remontti', label:'Remonttilaina'}, _loanCfg('asuntolaina_remontti', 2026, 170)),
   ];
   var loanRows = '';
   loanDefs.forEach(function(ld) {
@@ -339,9 +347,9 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
   // Päättymisvuosi on päätieto, saldo toissijainen
   const nowYear = new Date().getFullYear();
   const loanDefs = [
-    { key:'asuntolaina',          label:'Asuntolaina',   endsYear:2029, monthly:200 },
-    { key:'autolaina',            label:'Autolaina',     endsYear:2027, monthly:255 },
-    { key:'asuntolaina_remontti', label:'Remonttilaina', endsYear:2026, monthly:170 },
+    Object.assign({ key:'asuntolaina',          label:'Asuntolaina'  }, _loanCfg('asuntolaina',          2029, 200)),
+    Object.assign({ key:'autolaina',            label:'Autolaina'    }, _loanCfg('autolaina',            2027, 255)),
+    Object.assign({ key:'asuntolaina_remontti', label:'Remonttilaina'}, _loanCfg('asuntolaina_remontti', 2026, 170)),
   ];
   var loanRows = '';
   var totalFree = 0;
@@ -3191,6 +3199,30 @@ async function saveEntrySnapshot() {
   };
 
   await DB.putSnapshot(snap);
+
+  // Jos tapiola/s_sijoitus tallennettiin, päivitä implisiittinen yksikköhinta S-Pankki-omistukselle
+  const tapiolaVal = snap.tapiola || snap.s_sijoitus || 0;
+  if (tapiolaVal > 0) {
+    try {
+      const holdings = await DB.getAll('holdings');
+      const sspankki = holdings.find(h =>
+        h.active !== false &&
+        ((h.ticker||'').toUpperCase().includes('SPANKKI') ||
+         (h.ticker||'').toUpperCase().includes('ESG') ||
+         (h.account||'').toLowerCase().includes('s-pankki') ||
+         (h.account||'').toLowerCase().includes('spankki'))
+      );
+      if (sspankki && sspankki.quantity > 0) {
+        const impliedPrice = tapiolaVal / sspankki.quantity;
+        await DB.put('holdings', Object.assign({}, sspankki, {
+          last_price:      impliedPrice,
+          last_price_date: today,
+          last_price_src:  'Snapshot (tapiola)',
+          last_price_time: todayFi,
+        }));
+      }
+    } catch(e) { console.log('tapiola holding sync:', e); }
+  }
 
   // Synkronoi Supabaseen
   try { await syncToSupabase([snap]); } catch(e) {}
