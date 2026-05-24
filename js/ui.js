@@ -80,128 +80,123 @@ function renderHeartbeatCard(sig) {
 // Kerros 2: Rakenteellinen kuorma (lainat, aikahorisontti)
 // ═══════════════════════════════════════════════
 function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
-  var tempo    = sig && sig.tempo;
-  var fc       = sig && sig.futureCapacity;
-  var curSpend = latest.op_gold !== undefined ? Math.abs(latest.op_gold) : 0;
-  var baseline = tempo ? tempo.paceAvg : null;
-  var diffEur  = baseline ? (baseline - curSpend) : null;
-  var devPct   = baseline ? Math.round(((curSpend - baseline) / baseline) * 100) : null;
+  var tempo   = sig && sig.tempo;
+  var fc      = sig && sig.futureCapacity;
+  var nowYear = new Date().getFullYear();
 
-  // ── Rytmimittari ──────────────────────────────
-  var meterHTML = '';
-  if (baseline !== null) {
-    var clamp     = Math.max(-50, Math.min(50, devPct));
-    var markerPct = 50 + clamp;
-    var mColor    = Math.abs(clamp) <= 10 ? '#5a9e6a' : Math.abs(clamp) <= 25 ? '#b8956a' : '#c05a5a';
-    var mLabel    = Math.abs(clamp) <= 10 ? 'Normaali sykli'
-                  : clamp > 0 ? ('+' + Math.abs(devPct) + ' % normaalia korkeampi')
-                  : (Math.abs(devPct) + ' % alle normaalin');
-    var tipMeter  = 'Laskenta: normaali ' + fmt(-baseline) + ' vs nykyinen ' + fmt(-curSpend)
-                  + ' \u2192 ' + (devPct > 0 ? '+' : '') + devPct + ' %';
-    meterHTML = '<div style="margin-top:10px;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
-      + '<span style="font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;">Rytmi vs. oma normaali</span>'
-      + '<span class="tip" style="font-size:10px;color:' + mColor + ';font-weight:600;" data-tip="' + tipMeter + '">' + mLabel + '</span></div>'
-      + '<div class="tip" style="position:relative;height:18px;border-radius:5px;background:rgba(0,0,0,0.25);overflow:hidden;" data-tip="' + tipMeter + '">'
-      + '<div style="position:absolute;left:40%;width:20%;top:0;bottom:0;background:rgba(90,158,106,0.15);"></div>'
-      + '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.2);"></div>'
-      + '<div style="position:absolute;left:' + markerPct + '%;top:3px;bottom:3px;width:3px;border-radius:2px;transform:translateX(-50%);background:' + mColor + ';transition:left .4s;"></div>'
-      + '</div>'
-      + '<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px;">'
-      + '<span>\u221250 %</span><span>0 = normaali</span><span>+50 %</span></div></div>';
-  }
-
-  // ── OP Gold + operatiivinen sykli ────────────
-  var opGoldHTML = '';
+  // ── Operatiivinen rytmi: Tulotili − OP Gold ──
+  var rytmiHTML = '';
   if (latest.op_gold !== undefined) {
-    var diffTip = baseline
-      ? ('5 kk ka. pv ' + (tempo ? tempo.dayNum : '?') + ':lle = ' + fmt(-baseline)
-         + ' \u00b7 Nykyinen: ' + fmt(-curSpend))
-      : '';
-    var diffSpan = '';
-    if (diffEur !== null) {
-      diffSpan = diffEur > 0
-        ? '<span class="tip" style="color:#5a9e6a;font-size:11px;font-weight:600;" data-tip="' + diffTip + '">+' + fmt(diffEur) + ' alle normaalin</span>'
-        : '<span class="tip" style="color:#b8956a;font-size:11px;font-weight:600;" data-tip="' + diffTip + '">' + fmt(Math.abs(diffEur)) + ' yli normaalin</span>';
+    var tulotili = latest.tulotili ?? 0;
+    var opGold   = Math.abs(latest.op_gold ?? 0);
+    var curNetto = tulotili - opGold;
+    var baseline = tempo ? tempo.paceAvg : null;
+    var diffEur  = baseline !== null ? curNetto - baseline : null;
+    var devPct   = (baseline !== null && baseline !== 0)
+                   ? Math.round(((curNetto - baseline) / Math.abs(baseline)) * 100) : null;
+
+    var devColor = '#5a9e6a', devLabel = 'Normaali sykli';
+    if (devPct !== null) {
+      if (devPct > 10)       { devColor = '#5a9e6a'; devLabel = '+'+devPct+' % parempi kuin normaali'; }
+      else if (devPct < -10) { devColor = '#b8956a'; devLabel = Math.abs(devPct)+' % yli normaalin'; }
     }
-    opGoldHTML = '<div style="padding:10px 12px;border-radius:8px;background:rgba(0,0,0,0.12);margin-top:10px;">'
-      + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">\u25cf Operatiivinen sykli</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-      + '<span style="font-size:10px;color:var(--text3);">OP Gold \u00b7 kk-sykli</span>'
-      + '<span class="tip" style="font-family:var(--mono);font-size:15px;color:var(--gold);" data-tip="OP Gold -luottokortin saldo tänään">' + fmt(-curSpend) + '</span>'
+
+    rytmiHTML = '<div style="padding:11px 12px;border-radius:8px;background:rgba(0,0,0,0.12);margin-top:10px;">'
+      + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">● Operatiivinen rytmi</div>'
+      // Tulotili rivi
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+      + '<span style="font-size:11px;color:var(--text3);">Tulotili</span>'
+      + '<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili)+'</span>'
       + '</div>'
-      + (baseline ? '<div style="margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + diffSpan
-        + '<span style="font-size:10px;color:var(--text3);">\u00b7 normaali ' + fmt(-baseline) + '</span></div>' : '')
-      + meterHTML
-      + (latest.visa ? '<div class="sub-row" style="margin-top:6px;"><span style="font-size:11px;">Visa</span><span style="color:var(--gold);">' + fmt(-Math.abs(latest.visa)) + '</span></div>' : '')
-      + (latest.luottotili ? '<div class="sub-row"><span style="font-size:11px;">Luottotili</span><span style="color:var(--gold);">' + fmt(-Math.abs(latest.luottotili)) + '</span></div>' : '')
+      // OP Gold rivi
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+      + '<span style="font-size:11px;color:var(--text3);">OP Gold</span>'
+      + '<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold)+'</span>'
+      + '</div>'
+      // Viiva
+      + '<div style="height:1px;background:rgba(255,255,255,0.08);margin:6px 0;"></div>'
+      // Nettorytmi
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
+      + '<span style="font-size:11px;font-weight:600;color:var(--text);">Nettorytmi</span>'
+      + '<span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text);">'+fmt(curNetto)+'</span>'
+      + '</div>'
+      // Baseline + poikkeama
+      + (baseline !== null ? (
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+        + '<span style="font-size:10px;color:var(--text3);">Normaali (5 kk ka.)</span>'
+        + '<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+fmt(baseline)+'</span>'
+        + '</div>'
+        + '<div style="font-size:12px;font-weight:600;color:'+devColor+';">'+devLabel+'</div>'
+      ) : '')
       + '</div>';
   }
 
-  // ── Rakenteellinen kuorma (aikahorisontti) ────
-  var nowYear  = new Date().getFullYear();
+  // ── Rakenteellinen kuorma (lainat) ────────────
   var loanDefs = [
-    { key: 'asuntolaina',          label: 'Asuntolaina',   endsYear: 2029 },
-    { key: 'autolaina',            label: 'Autolaina',     endsYear: 2027 },
-    { key: 'asuntolaina_remontti', label: 'Remonttilaina', endsYear: 2026 },
+    { key:'asuntolaina',          label:'Asuntolaina',   endsYear:2029 },
+    { key:'autolaina',            label:'Autolaina',     endsYear:2027 },
+    { key:'asuntolaina_remontti', label:'Remonttilaina', endsYear:2026 },
   ];
   var loanRows = '';
   loanDefs.forEach(function(ld) {
     var bal = latest[ld.key];
     if (!bal || Math.abs(bal) < 10) return;
-    var yearsLeft = ld.endsYear - nowYear;
-    var progress  = Math.max(5, Math.min(95, Math.round((1 - yearsLeft / 10) * 100)));
-    var pColor    = yearsLeft <= 1 ? '#5a9e6a' : yearsLeft <= 3 ? '#b8956a' : '#6b7280';
+    var yLeft = ld.endsYear - nowYear;
+    var pClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : '#6b7280';
+    var prog  = Math.max(5, Math.min(95, Math.round((1 - yLeft / 10) * 100)));
     loanRows += '<div style="margin-bottom:10px;">'
       + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
-      + '<span style="font-size:11px;color:var(--text2);">' + ld.label + '</span>'
-      + '<span style="font-family:var(--mono);font-size:12px;color:var(--text2);">' + fmt(bal) + '</span>'
+      + '<span style="font-size:11px;color:var(--text2);">'+ld.label+'</span>'
+      + '<span style="font-family:var(--mono);font-size:12px;color:var(--text2);">'+fmt(bal)+'</span>'
       + '</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-      + '<span style="font-size:10px;color:' + pColor + ';">\u2192 p\u00e4\u00e4ttyy ' + ld.endsYear + '</span>'
+      + '<div style="display:flex;justify-content:space-between;margin-bottom:3px;">'
+      + '<span style="font-size:10px;color:'+pClr+';">\u2192 p\u00e4\u00e4ttyy '+ld.endsYear+'</span>'
       + '<span style="font-size:10px;color:var(--text3);">\u25cf Etenee suunnitelmassa</span>'
       + '</div>'
-      + '<div style="position:relative;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">'
-      + '<div style="position:absolute;left:0;top:0;bottom:0;width:' + progress + '%;background:' + pColor + ';opacity:0.45;border-radius:2px;"></div>'
+      + '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">'
+      + '<div style="height:100%;width:'+prog+'%;background:'+pClr+';opacity:0.4;"></div>'
       + '</div></div>';
   });
 
   // ── Future Capacity ───────────────────────────
   var fcHTML = '';
-  if (fc && fc.timeline && fc.timeline.length > 0) {
-    var upcoming = fc.timeline.filter(function(t) { return t.year > nowYear; });
+  if (fc && fc.timeline) {
+    var upcoming = fc.timeline.filter(function(t){return t.year > nowYear;});
     if (upcoming.length > 0) {
-      fcHTML = '<div style="margin-top:12px;padding:10px 12px;border-radius:7px;'
-        + 'background:rgba(90,158,106,0.06);border:1px solid rgba(90,158,106,0.15);">'
-        + '<div style="font-size:10px;color:#5a9e6a;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;">\u2b06 Vapautuva kapasiteetti</div>';
-      upcoming.forEach(function(t) {
-        fcHTML += '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">'
-          + '<span style="color:var(--text3);">' + t.year + ' \u00b7 ' + t.label + ' pois</span>'
-          + '<span style="color:#5a9e6a;font-weight:600;">+' + fmt(t.monthlyEur) + '/kk</span>'
-          + '</div>';
-      });
       var total = upcoming.reduce(function(s,t){return s+t.monthlyEur;},0);
-      if (total > 0) {
-        fcHTML += '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(90,158,106,0.2);'
-          + 'display:flex;justify-content:space-between;font-size:11px;">'
-          + '<span style="color:var(--text3);">Yhteensä vapautuu</span>'
-          + '<span style="color:#5a9e6a;font-weight:700;">+' + fmt(total) + '/kk</span>'
-          + '</div>';
-      }
+      fcHTML = '<div style="margin-top:10px;padding:9px 11px;border-radius:7px;'
+        +'background:rgba(90,158,106,0.06);border:1px solid rgba(90,158,106,0.15);">'
+        +'<div style="font-size:10px;color:#5a9e6a;letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px;">\u2b06 Vapautuva kapasiteetti</div>';
+      upcoming.forEach(function(t) {
+        fcHTML += '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">'
+          +'<span style="color:var(--text3);">'+t.year+' \u00b7 '+t.label+' pois</span>'
+          +'<span style="color:#5a9e6a;font-weight:600;">+'+fmt(t.monthlyEur)+'/kk</span>'
+          +'</div>';
+      });
+      if (total > 0) fcHTML += '<div style="margin-top:5px;border-top:1px solid rgba(90,158,106,0.2);padding-top:5px;'
+        +'display:flex;justify-content:space-between;font-size:11px;">'
+        +'<span style="color:var(--text3);">Yhteensä</span>'
+        +'<span style="color:#5a9e6a;font-weight:700;">+'+fmt(total)+'/kk</span></div>';
       fcHTML += '</div>';
     }
   }
 
-  var totalTip = 'Luottokortit (' + fmt(-creditDebt) + ') + Pitk\u00e4aikaiset lainat (' + fmt(-ltDebt) + ')';
+  var totalTip = 'OP Gold (' + fmt(-creditDebt) + ') + Lainat (' + fmt(-ltDebt) + ')';
 
   return '<div class="card">'
-    + '<div class="card-label" style="color:var(--text3);">Sitoumukset</div>'
-    + '<div class="card-value tip" style="color:var(--red);" data-tip="' + totalTip + '">' + fmt(-(creditDebt + ltDebt)) + '</div>'
-    + opGoldHTML
-    + '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">'
-    + '<div style="font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;">\u25fc Rakenteellinen kuorma</div>'
-    + loanRows
-    + '</div>'
+    + '<div class="card-label" style="color:var(--text3);">Velat</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
+    + '<span style="font-family:var(--mono);font-size:12px;color:var(--gold);">OP Gold</span>'
+    + '<span class="tip" style="font-family:var(--mono);font-size:14px;color:var(--gold);" data-tip="OP Gold luottokortin saldo">'
+    + fmt(-creditDebt) + '</span></div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
+    + '<span style="font-family:var(--mono);font-size:12px;color:#6b7280;">Lainat</span>'
+    + '<span class="tip" style="font-family:var(--mono);font-size:14px;color:#6b7280;" data-tip="' + totalTip + '">'
+    + fmt(-ltDebt) + '</span></div>'
+    + rytmiHTML
+    + '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'
+    + '<div style="font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">\u25fc Aikarakenne · lainat</div>'
+    + loanRows + '</div>'
     + fcHTML
     + '</div>';
 }
@@ -272,7 +267,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
   var grid = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">'
     + tile('Sijoitukset', _fK(inv), 'Nordnet + OP')
     + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 11px;min-width:0;overflow:hidden;">'
-    + '<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">Kuorma</div>'
+    + '<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">Velat</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
     + '<span style="font-size:10px;color:var(--text3);">OP Gold</span>'
     + '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--gold);">'
@@ -286,33 +281,21 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + tile('Nettovarallisuus', _fK(nw), nwSub)
     +'</div>';
 
-  // ── 3. OPERATIIVINEN RYTMI ───────────────────
+  // ── 3. OPERATIIVINEN RYTMI: Tulotili − OP Gold ─
   var rytmiBlock = '';
   if (latest.op_gold !== undefined) {
-    const cur  = Math.abs(latest.op_gold);
-    const base = tempo ? tempo.paceAvg : null;
-    const diff = base ? (base - cur) : null;
-    const dev  = base ? Math.round(((cur - base) / base) * 100) : null;
+    const tulotili = latest.tulotili ?? 0;
+    const opGold   = Math.abs(latest.op_gold ?? 0);
+    const curNetto = tulotili - opGold;
+    const baseline = tempo ? tempo.paceAvg : null;
+    const diffEur  = baseline !== null ? curNetto - baseline : null;
+    const devPct   = (baseline !== null && baseline !== 0)
+                     ? Math.round(((curNetto - baseline) / Math.abs(baseline)) * 100) : null;
 
-    var palkki = '';
-    if (base) {
-      const bPct = 50 + Math.max(-50, Math.min(50, dev));
-      const bClr = Math.abs(dev) <= 10 ? '#5a9e6a' : dev > 0 ? '#b8956a' : '#5a9e6a';
-      const lbl  = Math.abs(dev) <= 10 ? 'Normaali sykli'
-                 : dev > 0 ? '+'+dev+' % normaalia korkeampi'
-                 : Math.abs(dev)+' % alle normaalin';
-      palkki = '<div style="margin-top:8px;">'
-        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px;">'
-        +'<span style="font-size:9px;color:var(--text3);">Rytmi vs. normaali</span>'
-        +'<span style="font-size:9px;color:'+bClr+';font-weight:600;">'+lbl+'</span></div>'
-        +'<div style="position:relative;height:14px;background:rgba(0,0,0,0.25);border-radius:4px;overflow:hidden;">'
-        +'<div style="position:absolute;left:40%;width:20%;top:0;bottom:0;background:rgba(90,158,106,0.12);"></div>'
-        +'<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.12);"></div>'
-        +'<div style="position:absolute;left:'+bPct+'%;top:2px;bottom:2px;width:3px;border-radius:2px;transform:translateX(-50%);background:'+bClr+';"></div>'
-        +'<div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 7px;justify-content:space-between;">'
-        +'<span style="font-family:var(--mono);font-size:9px;color:#fff;">'+fmt(-cur)+'</span>'
-        +'<span style="font-size:9px;color:rgba(255,255,255,0.3);">ka. '+fmt(-base)+'</span>'
-        +'</div></div></div>';
+    var devColor = '#5a9e6a', devLabel = 'Normaali sykli';
+    if (devPct !== null) {
+      if (devPct > 10)       { devColor = '#5a9e6a'; devLabel = '+'+devPct+' % parempi kuin normaali'; }
+      else if (devPct < -10) { devColor = '#b8956a'; devLabel = Math.abs(devPct)+' % yli normaalin'; }
     }
 
     const cycLabel = cycle ? (cycle.cycleOk
@@ -321,16 +304,34 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 
     rytmiBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
       +'border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
       +'<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">● Operatiivinen rytmi</span>'
       +cycLabel+'</div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-      +'<span style="font-size:11px;color:var(--text3);">OP Gold</span>'
-      +'<span style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--gold);">'+fmt(-cur)+'</span>'
+      // Tulotili
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+      +'<span style="font-size:11px;color:var(--text3);">Tulotili</span>'
+      +'<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili)+'</span>'
       +'</div>'
-      +(diff !== null ? '<div style="font-size:11px;font-weight:600;color:'+(diff>0?'#5a9e6a':'#b8956a')+';margin-top:2px;">'
-        +(diff>0?'+':'')+fmt(diff)+' vs normaali</div>' : '')
-      + palkki
+      // OP Gold
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+      +'<span style="font-size:11px;color:var(--text3);">OP Gold</span>'
+      +'<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold)+'</span>'
+      +'</div>'
+      // Viiva
+      +'<div style="height:1px;background:rgba(255,255,255,0.08);margin:5px 0;"></div>'
+      // Nettorytmi
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">'
+      +'<span style="font-size:12px;font-weight:600;color:var(--text);">Nettorytmi</span>'
+      +'<span style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text);">'+fmt(curNetto)+'</span>'
+      +'</div>'
+      // Normaali + poikkeama
+      +(baseline !== null ? (
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px;">'
+        +'<span style="font-size:10px;color:var(--text3);">Normaali (5 kk ka.)</span>'
+        +'<span style="font-family:var(--mono);font-size:10px;color:var(--text3);">'+fmt(baseline)+'</span>'
+        +'</div>'
+        +'<div style="font-size:12px;font-weight:600;color:'+devColor+';">'+devLabel+'</div>'
+      ) : '')
       +'</div>';
   }
 

@@ -22,12 +22,17 @@ function _daysUntilDue(isoDate) {
 // ═══════════════════════════════════════════════
 function computeConsumptionTempo(snaps, latest) {
   if (!latest || !latest.op_gold) return null;
-  const today    = latest.date || new Date().toISOString().slice(0, 10);
-  const dayNum   = parseInt(today.slice(8, 10));
-  const yr       = parseInt(today.slice(0, 4));
-  const mo       = parseInt(today.slice(5, 7));
-  const curSpend = Math.abs(latest.op_gold ?? 0);
-  const paceVals = [];
+  const today  = latest.date || new Date().toISOString().slice(0, 10);
+  const dayNum = parseInt(today.slice(8, 10));
+  const yr     = parseInt(today.slice(0, 4));
+  const mo     = parseInt(today.slice(5, 7));
+
+  // Nettorytmi = tulotili − |op_gold|
+  const tulotili = latest.tulotili ?? 0;
+  const opGold   = Math.abs(latest.op_gold ?? 0);
+  const curNetto = tulotili - opGold;
+
+  const nettoVals = [];
   for (let i = 1; i <= 5; i++) {
     let m = mo - i, y = yr;
     if (m <= 0) { m += 12; y -= 1; }
@@ -38,17 +43,17 @@ function computeConsumptionTempo(snaps, latest) {
       const d = Math.abs(parseInt(s.date.slice(8,10)) - dayNum);
       if (d < bestDiff) { bestDiff = d; best = s; }
     }
-    if (best && bestDiff <= 3) paceVals.push(Math.abs(best.op_gold));
+    if (best && bestDiff <= 3) {
+      const hTulo = best.tulotili ?? 0;
+      const hGold = Math.abs(best.op_gold ?? 0);
+      nettoVals.push(hTulo - hGold);
+    }
   }
-  if (paceVals.length < 2) return null;
-  const paceAvg = paceVals.reduce((a,b)=>a+b,0) / paceVals.length;
-  if (paceAvg <= 0) return null;
-  return {
-    tempo:    Math.round((curSpend / paceAvg) * 100),
-    paceAvg, curSpend,
-    diffEur:  curSpend - paceAvg,
-    dayNum,
-  };
+  if (nettoVals.length < 2) return null;
+  const paceAvg = nettoVals.reduce((a,b)=>a+b,0) / nettoVals.length;
+  const tempo   = paceAvg !== 0 ? Math.round((curNetto / paceAvg) * 100) : null;
+
+  return { tulotili, opGold, curNetto, paceAvg, diffEur: curNetto - paceAvg, tempo, dayNum };
 }
 
 // ═══════════════════════════════════════════════
