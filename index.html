@@ -287,11 +287,13 @@
     }
     .kpi-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 2fr 2fr 1fr;
       gap: 12px;
       margin-bottom: 28px;
+      align-items: start;
     }
-    .kpi-wide { grid-column: span 2; }
+    .kpi-wide  { grid-column: 1 / -1; }
+    .kpi-compact { align-self: start; }
 
     /* ── TOOLTIP ── */
     .tip {
