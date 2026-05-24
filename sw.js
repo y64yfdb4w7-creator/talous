@@ -1,10 +1,8 @@
-// Finance OS — Service Worker v11
-// Välimuistittaa kaikki JS-tiedostot → nopea lataus, offline-tuki
+// Finance OS — Service Worker v22
+// index.html haetaan AINA verkosta → JS-tiedostot päivittyvät heti
 
-const CACHE_NAME = 'finance-os-v21';
-const ASSETS = [
-  '/talous/',
-  '/talous/index.html',
+const CACHE_NAME = 'finance-os-v22';
+const JS_ASSETS = [
   '/talous/js/db.js',
   '/talous/js/calculations.js',
   '/talous/js/signals.js',
@@ -15,33 +13,26 @@ const ASSETS = [
   '/talous/manifest.json',
 ];
 
-// Asennus — välimuistita kaikki tiedostot
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('SW v11: Välimuistitetaan tiedostot...');
-      return cache.addAll(ASSETS);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(JS_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Aktivointi — poista vanhat välimuistit
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch — Cache First strategia app-tiedostoille
-// Network First API-kutsuille (Supabase, Finnhub)
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // API-kutsut: aina verkosta, ei välimuistista
+  // API-kutsut: aina verkosta
   if (url.hostname.includes('supabase.co') ||
       url.hostname.includes('finnhub.io') ||
       url.hostname.includes('frankfurter.dev') ||
@@ -51,7 +42,15 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App-tiedostot: välimuistista ensin, verkosta jos ei löydy
+  // index.html: AINA verkosta — näin JS-päivitykset tulevat heti
+  if (url.pathname === '/talous/' || url.pathname === '/talous/index.html') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/talous/index.html'))
+    );
+    return;
+  }
+
+  // JS-tiedostot: välimuistista ensin, verkosta jos ei löydy
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
