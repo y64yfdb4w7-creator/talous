@@ -353,8 +353,6 @@ async function renderDashboard() {
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
 
-    ${renderHeartbeatCard(sig)}
-
     <div class="kpi-grid">
 
       <!-- 1. SIJOITUKSET -->
@@ -443,6 +441,8 @@ async function renderDashboard() {
       </div>
 
     </div>
+
+    ${renderHeartbeatCard(sig)}
 
     <!-- Historia -->
     <div class="sec">Historia</div>
