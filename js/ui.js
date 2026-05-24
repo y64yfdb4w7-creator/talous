@@ -265,9 +265,22 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 
   const nwSub = d1y !== null ? (d1y>=0?'+':'−')+_fK(Math.abs(d1y))+' / 1v' : null;
 
+  const ltDebtMobile = calc.longTermDebt;
+  const stDebtMobile = calc.shortTermDebt;
+
   var grid = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">'
     + tile('Sijoitukset', _fK(inv), 'Nordnet + OP')
-    + tile('Kuorma', _fK(-debt), 'kortit + lainat', '#6b7280')
+    + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 11px;min-width:0;overflow:hidden;">'
+    + '<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">Kuorma</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
+    + '<span style="font-size:10px;color:var(--text3);">OP Gold</span>'
+    + '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--gold);">'
+    + _fK(-stDebtMobile) + '</span></div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+    + '<span style="font-size:10px;color:var(--text3);">Lainat</span>'
+    + '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:#6b7280;">'
+    + _fK(-ltDebtMobile) + '</span></div>'
+    + '</div>'
     + tile('Käyttötilit', _fK(cash), 'netto '+_fK(liquid), 'var(--text2)')
     + tile('Nettovarallisuus', _fK(nw), nwSub)
     +'</div>';
@@ -336,17 +349,17 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     const yLeft = ld.endsYear - nowYear;
     const yClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
     if (ld.endsYear > nowYear) totalFree += ld.monthly;
-    // Päättymisvuosi iso, saldo pienempänä alla
+    // Saldo näkyvästi, päättymisvuosi kontekstina
     loanRows += '<div style="display:flex;justify-content:space-between;align-items:flex-start;'
       +'padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
       +'<div>'
-      +'<div style="font-size:13px;font-weight:600;color:var(--text2);">'+ld.label+'</div>'
-      +'<div style="font-size:12px;color:'+yClr+';margin-top:2px;font-weight:500;">→ '+ld.endsYear+'</div>'
-      +'<div style="font-size:10px;color:var(--text3);margin-top:1px;">'+fmt(bal)+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-bottom:2px;">'+ld.label+'</div>'
+      +'<div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text2);">'+fmt(bal)+'</div>'
+      +'<div style="font-size:11px;color:'+yClr+';margin-top:2px;">→ päättyy '+ld.endsYear+'</div>'
       +'</div>'
-      +'<div style="text-align:right;flex-shrink:0;">'
+      +'<div style="text-align:right;flex-shrink:0;padding-top:14px;">'
       +'<div style="font-size:12px;color:#5a9e6a;font-weight:600;">+'+fmt(ld.monthly)+'/kk</div>'
-      +'<div style="font-size:10px;color:var(--text3);margin-top:1px;">vapautuu</div>'
+      +'<div style="font-size:10px;color:var(--text3);">vapautuu</div>'
       +'</div></div>';
   });
 
