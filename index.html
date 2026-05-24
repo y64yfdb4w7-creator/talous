@@ -700,6 +700,7 @@
 <!-- NAV -->
 <nav id="nav">
   <span class="nav-logo">Finance OS</span>
+  <button class="nav-btn" id="btn-syota" onclick="showView('syota')" style="font-weight:600;color:var(--gold);">+ Päivitä</button>
   <button class="nav-btn" id="btn-dashboard" onclick="showView('dashboard')">Dashboard</button>
   <button class="nav-btn" id="btn-salkku" onclick="showView('salkku')">Salkku</button>
   <button class="nav-btn" id="btn-likviditeetti" onclick="showView('likviditeetti')">Kassavirta</button>
@@ -776,6 +777,11 @@
       <div class="empty-title">Ladataan...</div>
     </div>
   </div>
+</div>
+
+<!-- SYOTA VIEW -->
+<div id="view-syota" class="view">
+  <div id="syota-content"></div>
 </div>
 
 <!-- IMPORT VIEW -->
@@ -917,13 +923,13 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + '</div>';
 }
 </script>
-<script src="js/db.js?v=22"></script>
-<script src="js/calculations.js?v=22"></script>
-<script src="js/signals.js?v=22"></script>
-<script src="js/import.js?v=22"></script>
-<script src="js/ui.js?v=22"></script>
-<script src="js/sync.js?v=22"></script>
-<script src="js/app.js?v=22"></script>
+<script src="js/db.js?v=23"></script>
+<script src="js/calculations.js?v=23"></script>
+<script src="js/signals.js?v=23"></script>
+<script src="js/import.js?v=23"></script>
+<script src="js/ui.js?v=23"></script>
+<script src="js/sync.js?v=23"></script>
+<script src="js/app.js?v=23"></script>
 
 <div id="chart-tooltip"></div>
 

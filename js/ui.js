@@ -2418,7 +2418,7 @@ function showView(name) {
   document.getElementById(`view-${name}`).classList.add('active');
   const btn = document.getElementById(`btn-${name}`);
   if (btn) btn.classList.add('active');
-  if (name === 'events')        requestAnimationFrame(() => renderEvents());
+  if (name === 'syota')        requestAnimationFrame(() => renderEntryView());
   if (name === 'historia')      requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku')        requestAnimationFrame(() => renderSalkku());
   if (name === 'likviditeetti') requestAnimationFrame(() => renderLikviditeetti());
@@ -2834,4 +2834,291 @@ async function myyntiDelete(id) {
   if (!confirm('Poistetaanko myyntimerkintä? Kappalemäärää ei palauteta automaattisesti.')) return;
   await DB.deleteSale(id);
   await renderMyynnit();
+}
+
+// ═══════════════════════════════════════════════
+// SYÖTTÖNÄKYMÄ — kolmitasoinen snapshot-syöttö
+// ═══════════════════════════════════════════════
+async function renderEntryView() {
+  const el = document.getElementById('syota-content');
+  if (!el) return;
+
+  // Hae viimeisin snapshot esitäyttöä varten
+  const snaps = (await DB.getAll('snapshots')).sort((a,b) => b.date.localeCompare(a.date));
+  const latest = snaps[0] || {};
+  const today  = new Date().toISOString().slice(0,10);
+  const todayFi = new Date().toLocaleDateString('fi-FI');
+  const alreadySaved = snaps.length > 0 && snaps[0].date === today;
+
+  function v(key, fallback) {
+    const val = latest[key];
+    return (val !== undefined && val !== null && val !== 0) ? val : (fallback || 0);
+  }
+
+  el.innerHTML = `
+<div style="max-width:480px;margin:0 auto;padding:16px;">
+
+  ${alreadySaved ? `<div style="padding:8px 12px;border-radius:8px;background:rgba(90,158,106,0.1);
+    border:1px solid rgba(90,158,106,0.3);color:#5a9e6a;font-size:12px;margin-bottom:12px;">
+    ✓ Tänään (${todayFi}) on jo tallennettu — päivittäminen korvaa vanhan snapshottia.</div>` : ''}
+
+  <!-- ── TASO 1: PÄIVITTÄINEN ── -->
+  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:8px;">1 · Päivittäinen — käyttötilit &amp; OP Gold</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
+    overflow:hidden;margin-bottom:12px;">
+
+    <div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Käyttötilit</div>
+      ${entryRow('Tulotili', 'tulotili', v('tulotili'), '€')}
+      ${entryRow('S-Pankki', 's_pankki', v('s_pankki'), '€')}
+      ${entryRow('Tavoitetili', 'tavoitetili', v('tavoitetili'), '€')}
+    </div>
+
+    <div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">OP Gold · luottokortti</div>
+      ${entryRow('Kuukauden saldo', 'op_gold', v('op_gold'), '€', 'kertynyt tähän mennessä')}
+    </div>
+
+    <div style="padding:8px 14px;" id="nettorytmi-block">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;
+        background:rgba(0,200,255,0.04);border-radius:7px;padding:8px 10px;">
+        <span style="font-size:11px;color:var(--text3);">Nettorytmi (tulotili − OP Gold)</span>
+        <span style="font-family:var(--mono);font-size:15px;font-weight:700;" id="nettorytmi-val">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TASO 2: SIJOITUKSET ── -->
+  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:8px;">2 · Sijoitukset — päivitä jos muuttunut</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
+    overflow:hidden;margin-bottom:12px;">
+    <div style="padding:8px 14px 4px;">
+      ${entryRow('Nordnet', 'nordnet', v('nordnet'), '€')}
+      ${entryRow('OP Osakkeet', 'op_osakkeet', v('op_osakkeet'), '€')}
+      ${entryRow('Tapiola / S-sijoitus', 'tapiola', v('tapiola'), '€')}
+    </div>
+  </div>
+
+  <!-- ── TASO 3: LAINAT ── -->
+  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:8px;">3 · Lainat — päivitä lyhennyksen jälkeen</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
+    overflow:hidden;margin-bottom:12px;">
+    <div style="padding:8px 14px 4px;">
+      ${entryLoan('Asuntolaina', 'asuntolaina', v('asuntolaina'), 2029, 200)}
+      ${entryLoan('Autolaina', 'autolaina', v('autolaina'), 2027, 255)}
+      ${entryLoan('Remonttilaina', 'asuntolaina_remontti', v('asuntolaina_remontti'), 2026, 170)}
+    </div>
+    <div style="padding:6px 14px 10px;">
+      <div id="laina-total" style="display:flex;justify-content:space-between;align-items:baseline;
+        background:rgba(0,0,0,0.12);border-radius:7px;padding:7px 10px;font-size:12px;">
+        <span style="color:var(--text3);">Yhteensä lainat</span>
+        <span style="font-family:var(--mono);color:var(--text2);">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MERKITTÄVÄ TAPAHTUMA ── -->
+  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:8px;">4 · Merkittävä tapahtuma — vapaaehtoinen</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
+    overflow:hidden;margin-bottom:16px;">
+    <div style="padding:10px 14px;">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;" id="tag-bar">
+        ${['Autohuolto','Matka','Bonus','Palkka+','Isohankinta','Laskuerä','Muu'].map(t =>
+          `<button onclick="toggleTag(this)" data-tag="${t}" style="font-size:11px;padding:3px 10px;
+            border-radius:20px;border:1px solid var(--border);background:transparent;
+            color:var(--text3);cursor:pointer;transition:all .15s;">${t}</button>`
+        ).join('')}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+        <label style="font-size:12px;color:var(--text3);white-space:nowrap;">Summa</label>
+        <input id="event-amount" type="number" placeholder="0"
+          style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:7px;
+          background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);font-size:14px;">
+        <span style="font-size:12px;color:var(--text3);">€</span>
+      </div>
+      <textarea id="event-note" placeholder="Lisätieto — selitys poikkeamalle (vapaaehtoinen)"
+        rows="2" style="width:100%;border:1px solid var(--border);border-radius:7px;
+        background:rgba(0,200,255,0.04);color:var(--text);font-size:12px;padding:7px 10px;
+        font-family:var(--sans);resize:none;"></textarea>
+    </div>
+  </div>
+
+  <!-- ── TALLENNA ── -->
+  <button onclick="saveEntrySnapshot()" id="btn-entry-save"
+    style="width:100%;padding:14px;border-radius:11px;font-size:15px;font-weight:700;
+    background:linear-gradient(135deg,rgba(90,158,106,0.2),rgba(0,200,255,0.1));
+    border:1px solid rgba(90,158,106,0.4);color:#5a9e6a;cursor:pointer;letter-spacing:.03em;">
+    Tallenna snapshot · ${todayFi}
+  </button>
+  <div id="entry-msg" style="margin-top:10px;font-size:12px;text-align:center;"></div>
+
+</div>`;
+
+  // Lasketaan nettorytmi reaaliajassa
+  function updateDerived() {
+    const tulotili = parseFloat(document.getElementById('inp-tulotili')?.value) || 0;
+    const opGold   = Math.abs(parseFloat(document.getElementById('inp-op_gold')?.value) || 0);
+    const netto    = tulotili - opGold;
+    const el2      = document.getElementById('nettorytmi-val');
+    if (el2) {
+      el2.textContent = fmt(netto);
+      el2.style.color = netto >= 0 ? '#5a9e6a' : 'var(--text)';
+    }
+    // Lainat yhteensä
+    const al = Math.abs(parseFloat(document.getElementById('inp-asuntolaina')?.value) || 0);
+    const au = Math.abs(parseFloat(document.getElementById('inp-autolaina')?.value) || 0);
+    const re = Math.abs(parseFloat(document.getElementById('inp-asuntolaina_remontti')?.value) || 0);
+    const tot = al + au + re;
+    const lt = document.querySelector('#laina-total span:last-child');
+    if (lt) lt.textContent = tot > 0 ? fmt(-tot) : '—';
+  }
+
+  document.querySelectorAll('[id^="inp-"]').forEach(inp => inp.addEventListener('input', updateDerived));
+  updateDerived();
+}
+
+function entryRow(label, id, val, unit, sub) {
+  const display = val ? Math.abs(val) : '';
+  return `<div style="display:flex;justify-content:space-between;align-items:center;
+    padding:7px 0;border-bottom:1px solid rgba(0,200,255,0.05);">
+    <div>
+      <div style="font-size:13px;color:var(--text2);">${label}</div>
+      ${sub ? `<div style="font-size:10px;color:var(--text3);">${sub}</div>` : ''}
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;">
+      <input id="inp-${id}" type="number" value="${display}" placeholder="0"
+        style="width:110px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;
+        background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);
+        font-size:14px;text-align:right;">
+      <span style="font-size:12px;color:var(--text3);">${unit}</span>
+    </div>
+  </div>`;
+}
+
+function entryLoan(label, id, val, endsYear, monthly) {
+  const display = val ? Math.abs(val) : '';
+  const yLeft = endsYear - new Date().getFullYear();
+  const yClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
+  return `<div style="padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+      <div style="font-size:13px;color:var(--text2);">${label}</div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <input id="inp-${id}" type="number" value="${display}" placeholder="0"
+          style="width:110px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;
+          background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);
+          font-size:14px;text-align:right;">
+        <span style="font-size:12px;color:var(--text3);">€</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;">
+      <span style="color:${yClr};">→ päättyy ${endsYear}</span>
+      <span style="color:#5a9e6a;">+${fmt(monthly)}/kk vapautuu</span>
+    </div>
+  </div>`;
+}
+
+var _entryTags = new Set();
+function toggleTag(btn) {
+  const tag = btn.dataset.tag;
+  if (_entryTags.has(tag)) {
+    _entryTags.delete(tag);
+    btn.style.background = 'transparent';
+    btn.style.color = 'var(--text3)';
+    btn.style.borderColor = 'var(--border)';
+  } else {
+    _entryTags.add(tag);
+    btn.style.background = 'rgba(90,158,106,0.15)';
+    btn.style.color = '#5a9e6a';
+    btn.style.borderColor = 'rgba(90,158,106,0.4)';
+  }
+}
+
+async function saveEntrySnapshot() {
+  const btn = document.getElementById('btn-entry-save');
+  const msg = document.getElementById('entry-msg');
+  if (btn) { btn.disabled = true; btn.textContent = 'Tallennetaan...'; }
+
+  function val(id) {
+    const v = parseFloat(document.getElementById('inp-'+id)?.value);
+    return isNaN(v) ? null : v;
+  }
+
+  const tulotili  = val('tulotili')   || 0;
+  const s_pankki  = val('s_pankki')   || 0;
+  const tavoite   = val('tavoitetili') || 0;
+  const op_gold   = -(Math.abs(val('op_gold') || 0));  // aina negatiivinen
+  const nordnet   = val('nordnet')    || 0;
+  const op_os     = val('op_osakkeet') || 0;
+  const tapiola   = val('tapiola')    || 0;
+  const asunto    = -(Math.abs(val('asuntolaina') || 0));
+  const auto      = -(Math.abs(val('autolaina') || 0));
+  const remontti  = -(Math.abs(val('asuntolaina_remontti') || 0));
+
+  const eventAmt  = parseFloat(document.getElementById('event-amount')?.value) || 0;
+  const eventNote = document.getElementById('event-note')?.value?.trim() || '';
+  const tags      = [..._entryTags];
+
+  // Rakenna note
+  let note = '';
+  if (tags.length > 0) note += tags.join(', ');
+  if (eventAmt) note += (note ? ' ' : '') + fmt(eventAmt) + '€';
+  if (eventNote) note += (note ? ' — ' : '') + eventNote;
+
+  const today = new Date().toISOString().slice(0,10);
+  const todayFi = new Date().toLocaleDateString('fi-FI');
+
+  // Hae aiempi snapshot tänään jotta saldot joita ei muutettu säilyvät
+  const snaps = (await DB.getAll('snapshots')).sort((a,b) => b.date.localeCompare(a.date));
+  const prev  = snaps[0] || {};
+
+  // Yhdistä: uudet arvot ylikirjoittavat vanhat, nollat eivät ylikirjoita
+  const snap = {
+    date:    today,
+    dateFi:  todayFi,
+    // tilit
+    tulotili:  tulotili  || prev.tulotili   || 0,
+    s_pankki:  s_pankki  || prev.s_pankki   || 0,
+    tavoitetili: tavoite || prev.tavoitetili || 0,
+    elatustili: prev.elatustili || 0,
+    // kortit
+    op_gold:   op_gold !== 0 ? op_gold : (prev.op_gold || 0),
+    // sijoitukset
+    nordnet:   nordnet  || prev.nordnet  || 0,
+    op_osakkeet: op_os  || prev.op_osakkeet || 0,
+    tapiola:   tapiola  || prev.tapiola  || 0,
+    s_sijoitus: prev.s_sijoitus || 0,
+    rahastot:   prev.rahastot   || 0,
+    // lainat
+    asuntolaina: asunto !== 0 ? asunto : (prev.asuntolaina || 0),
+    autolaina:   auto   !== 0 ? auto   : (prev.autolaina   || 0),
+    asuntolaina_remontti: remontti !== 0 ? remontti : (prev.asuntolaina_remontti || 0),
+    // lasten
+    lasten_sijoitus: prev.lasten_sijoitus || 0,
+    note,
+  };
+
+  await DB.putSnapshot(snap);
+
+  // Synkronoi Supabaseen
+  try { await syncToSupabase([snap]); } catch(e) {}
+
+  _entryTags.clear();
+
+  if (msg) {
+    msg.style.color = '#5a9e6a';
+    msg.textContent = '✓ Tallennettu · ' + todayFi;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Tallenna snapshot · ' + todayFi; }
+
+  // Päivitä dashboard
+  await updateNavCount();
+  setTimeout(() => showView('dashboard'), 800);
 }
