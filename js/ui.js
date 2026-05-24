@@ -2863,8 +2863,10 @@ async function renderEntryView() {
     ✓ Tänään (${todayFi}) on jo tallennettu — päivittäminen korvaa vanhan snapshottia.</div>` : ''}
 
   <!-- ── TASO 1: PÄIVITTÄINEN ── -->
-  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;">1 · Päivittäinen — käyttötilit &amp; OP Gold</div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">1 · Päivittäinen — käyttötilit &amp; OP Gold</div>
+    <div style="font-size:10px;color:rgba(0,200,255,0.5);">napauta muuttaaksesi ✎</div>
+  </div>
 
   <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
     overflow:hidden;margin-bottom:12px;">
@@ -2997,16 +2999,16 @@ function entryRow(label, id, val, unit, sub) {
     padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);cursor:pointer;
     border-radius:6px;transition:background .12s;margin:0 -8px;padding-left:8px;padding-right:8px;"
     onclick="entryActivate(this,'${id}')"
-    onmouseenter="this.style.background='rgba(0,200,255,0.04)';this.querySelector('.edit-hint').style.opacity='1'"
-    onmouseleave="this.style.background='transparent';this.querySelector('.edit-hint').style.opacity='0'">
+    onmouseenter="this.style.background='rgba(0,200,255,0.06)'"
+    onmouseleave="this.style.background='transparent'">
     <div>
       <div style="font-size:13px;color:var(--text2);">${label}</div>
       ${sub ? `<div style="font-size:10px;color:var(--text3);">${sub}</div>` : ''}
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
-      <span class="edit-hint" style="font-size:10px;color:var(--text3);opacity:0;transition:opacity .15s;">✎</span>
       <span id="disp-${id}" style="font-family:var(--mono);font-size:15px;font-weight:600;
-        color:var(--text);">${fmtVal}</span>
+        color:var(--text);border-bottom:1px dashed rgba(0,200,255,0.35);padding-bottom:1px;">${fmtVal}</span>
+      <span style="font-size:11px;color:rgba(0,200,255,0.4);">✎</span>
       <input id="inp-${id}" type="number" value="${display}" placeholder="0"
         style="width:110px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
         background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
@@ -3027,13 +3029,13 @@ function entryLoan(label, id, val, endsYear, monthly) {
       cursor:pointer;border-radius:6px;transition:background .12s;margin:0 -8px 3px;
       padding:4px 8px;"
       onclick="entryActivate(this.parentElement,'${id}')"
-      onmouseenter="this.style.background='rgba(0,200,255,0.04)';this.querySelector('.edit-hint').style.opacity='1'"
-      onmouseleave="this.style.background='transparent';this.querySelector('.edit-hint').style.opacity='0'">
+      onmouseenter="this.style.background='rgba(0,200,255,0.06)'"
+      onmouseleave="this.style.background='transparent'">
       <div style="font-size:13px;color:var(--text2);">${label}</div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <span class="edit-hint" style="font-size:10px;color:var(--text3);opacity:0;transition:opacity .15s;">✎</span>
         <span id="disp-${id}" style="font-family:var(--mono);font-size:15px;font-weight:600;
-          color:var(--text2);">${fmtVal}</span>
+          color:var(--text2);border-bottom:1px dashed rgba(0,200,255,0.35);padding-bottom:1px;">${fmtVal}</span>
+        <span style="font-size:11px;color:rgba(0,200,255,0.4);">✎</span>
         <input id="inp-${id}" type="number" value="${display}" placeholder="0"
           style="width:110px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
           background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
