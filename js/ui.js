@@ -59,7 +59,7 @@ function renderHeartbeatCard(sig) {
   }
 
   var dirBlock = direction
-    ? '<div style="font-size:10px;color:' + direction.color + ';text-align:right;max-width:45%;line-height:1.4;margin-top:2px;">' + direction.label + '</div>'
+    ? '<div style="font-size:10px;color:' + direction.color + ';text-align:right;max-width:140px;line-height:1.4;margin-top:2px;">' + direction.label + '</div>'
     : '';
 
   return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 16px 14px;margin-bottom:14px;position:relative;overflow:hidden;">'
@@ -170,6 +170,161 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
     + '</div>';
 }
 
+// ═══════════════════════════════════════════════
+// MOBIILI-DASHBOARD  (alle 580px)
+// Status-näkymä — nopea tilannekuva, ei analyysiä
+// ═══════════════════════════════════════════════
+function fmtK(n) {
+  if (n == null) return '—';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '−' : '';
+  if (abs >= 1000) return sign + (abs / 1000).toFixed(1).replace('.', ',') + 'k';
+  return sign + Math.round(abs);
+}
+
+function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
+  const nw       = calc.netWorth;
+  const inv      = calc.investments;
+  const cash     = calc.cash;
+  const debt     = calc.shortTermDebt + calc.longTermDebt;
+  const liquid   = cash - calc.shortTermDebt;
+  const hb       = sig ? sig.heartbeat : null;
+  const tempo    = sig ? sig.tempo : null;
+  const runway   = sig ? sig.runway : null;
+  const cycle    = sig ? sig.cycle : null;
+
+  // Sparkline: viimeiset 90 päivää
+  const recent   = snaps.slice(-90);
+  const nwVals   = recent.map(s => calculateNetWorth(s).netWorth);
+  const minNW    = Math.min(...nwVals), maxNW = Math.max(...nwVals);
+  const sparkW   = 300, sparkH = 40;
+  const sparkPts = nwVals.map((v, i) => {
+    const x = (i / Math.max(nwVals.length - 1, 1)) * sparkW;
+    const y = sparkH - ((v - minNW) / Math.max(maxNW - minNW, 1)) * sparkH;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+
+  // Nettovarallisuus 1v muutos
+  const snap1y = snaps.length > 1 ? snaps[Math.max(0, snaps.length - 366)] : null;
+  const delta1y = snap1y ? nw - calculateNetWorth(snap1y).netWorth : null;
+
+  var hbHTML = '';
+  if (hb) {
+    var tempoLine = tempo
+      ? '<span style="font-size:11px;color:var(--text3);margin-left:8px;">' + tempo.tempo + ' % normaalista</span>'
+      : '';
+    hbHTML = '<div style="display:flex;align-items:center;justify-content:space-between;'
+      + 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);'
+      + 'border-radius:10px;margin-bottom:10px;">'
+      + '<div style="display:flex;align-items:center;gap:8px;">'
+      + '<span style="font-size:14px;color:' + hb.color + ';">' + hb.dot + '</span>'
+      + '<span style="font-size:13px;font-weight:600;color:var(--text);">' + hb.label + '</span>'
+      + tempoLine + '</div>'
+      + (cycle ? '<span style="font-size:10px;color:var(--text3);">Eräp. ' + cycle.daysUntilDue + ' pv</span>' : '')
+      + '</div>';
+  }
+
+  var cycleNote = cycle ? (cycle.cycleOk
+    ? '<span style="color:#5a9e6a;font-size:10px;">● Koroton sykli</span>'
+    : '<span style="color:#b8956a;font-size:10px;">○ Seuraa eräpäivää</span>') : '';
+
+  var tempoBar = '';
+  if (tempo) {
+    var pct = Math.min(tempo.tempo, 200);
+    var bPct = Math.round(pct / 2);
+    var bClr = pct > 130 ? '#c05a5a' : pct > 105 ? '#b8956a' : '#5a9e6a';
+    tempoBar = '<div style="margin-top:8px;">'
+      + '<div style="position:relative;height:16px;background:rgba(0,0,0,0.3);border-radius:4px;overflow:hidden;">'
+      + '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.1);"></div>'
+      + '<div style="position:absolute;left:0;top:0;bottom:0;width:' + bPct + '%;background:' + bClr + ';opacity:0.7;border-radius:4px;"></div>'
+      + '<div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 7px;justify-content:space-between;">'
+      + '<span style="font-size:10px;color:#fff;font-family:var(--mono);">' + fmtK(-tempo.curSpend) + '</span>'
+      + '<span style="font-size:9px;color:rgba(255,255,255,0.4);">ka. ' + fmtK(-tempo.paceAvg) + '</span>'
+      + '</div></div></div>';
+  }
+
+  return '<div style="padding:0;">'
+    // Status bar
+    + '<div style="display:flex;justify-content:space-between;align-items:center;'
+    + 'font-size:10px;color:var(--text3);margin-bottom:10px;font-family:var(--mono);">'
+    + '<span>' + fmtDate(latest.date) + ' · ' + cnt.toLocaleString('fi-FI') + ' snapshotia</span>'
+    + backupStatusBadge() + syncStatusBadge()
+    + '</div>'
+
+    // Heartbeat
+    + hbHTML
+
+    // Kolme päälukua — kompakti rivi
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">'
+
+    // Sijoitukset
+    + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 10px;">'
+    + '<div style="font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;">Sijoitukset</div>'
+    + '<div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text);">' + fmtK(inv) + '</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:2px;">Nordnet + OP</div>'
+    + '</div>'
+
+    // Sitoumukset
+    + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 10px;">'
+    + '<div style="font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;">Sitoumukset</div>'
+    + '<div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--red);">' + fmtK(-debt) + '</div>'
+    + (tempo ? '<div style="font-size:10px;color:' + (tempo.tempo < 90 ? '#5a9e6a' : tempo.tempo > 110 ? '#b8956a' : 'var(--text3)') + ';margin-top:2px;">' + tempo.tempo + '% norm.</div>' : '<div style="font-size:10px;color:var(--text3);margin-top:2px;">OP Gold + lainat</div>')
+    + '</div>'
+
+    // Käyttötilit
+    + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 10px;">'
+    + '<div style="font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;">Tilit</div>'
+    + '<div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text2);">' + fmtK(cash) + '</div>'
+    + '<div style="font-size:10px;color:' + (liquid >= 0 ? 'var(--text3)' : '#b8956a') + ';margin-top:2px;">netto ' + fmtK(liquid) + '</div>'
+    + '</div>'
+    + '</div>'
+
+    // Netto + sparkline
+    + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;'
+    + 'padding:12px 14px;margin-bottom:10px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
+    + '<div>'
+    + '<div style="font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px;">Nettovarallisuus</div>'
+    + '<div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);">' + fmtK(nw) + '</div>'
+    + '</div>'
+    + (delta1y !== null ? '<div style="text-align:right;">'
+      + '<div style="font-size:9px;color:var(--text3);margin-bottom:2px;">1 vuosi</div>'
+      + '<div style="font-family:var(--mono);font-size:13px;font-weight:600;color:' + (delta1y >= 0 ? '#5a9e6a' : '#c05a5a') + ';">'
+      + (delta1y >= 0 ? '+' : '−') + fmtK(Math.abs(delta1y)) + '</div>'
+      + '</div>' : '')
+    + '</div>'
+    + '<svg viewBox="0 0 ' + sparkW + ' ' + sparkH + '" style="display:block;width:100%;height:36px;">'
+    + '<polyline points="' + sparkPts + '" fill="none" stroke="#5a9e6a" stroke-width="1.5" stroke-linejoin="round" opacity="0.7"/>'
+    + '</svg>'
+    + '</div>'
+
+    // OP Gold rytmi (kompakti)
+    + (latest.op_gold !== undefined ? '<div style="background:var(--surface);border:1px solid var(--border);'
+    + 'border-radius:10px;padding:10px 14px;margin-bottom:10px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+    + '<span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">OP Gold · kk-sykli</span>'
+    + cycleNote + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;">'
+    + '<span style="font-family:var(--mono);font-size:17px;font-weight:700;color:var(--gold);">' + fmt(-(latest.op_gold || 0)) + '</span>'
+    + (tempo && tempo.paceAvg ? '<span style="font-size:10px;color:' + (tempo.tempo < 90 ? '#5a9e6a' : tempo.tempo > 110 ? '#b8956a' : 'var(--text3)') + ';">'
+      + (tempo.tempo < 100 ? '+' : '') + fmtK(tempo.paceAvg - Math.abs(latest.op_gold || 0)) + ' vs normaali</span>' : '')
+    + '</div>'
+    + tempoBar
+    + '</div>' : '')
+
+    // Reservi (yksirivi)
+    + (runway ? '<div style="display:flex;justify-content:space-between;align-items:center;'
+    + 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);'
+    + 'border-radius:10px;margin-bottom:10px;">'
+    + '<span style="font-size:11px;color:var(--text3);">Strateginen reservi</span>'
+    + '<span style="font-family:var(--mono);font-size:15px;font-weight:700;color:'
+    + (runway.months < 3 ? '#c05a5a' : runway.months < 8 ? '#b8956a' : '#5a9e6a') + ';">'
+    + runway.months + ' kk</span>'
+    + '</div>' : '')
+
+    + '</div>';
+}
+
 async function renderDashboard() {
   const c = document.getElementById('db-content');
   const cnt = await DB.count('snapshots');
@@ -193,6 +348,12 @@ async function renderDashboard() {
   const calc     = calculateNetWorth(latest);
   const calcPrev = prev ? calculateNetWorth(prev) : null;
   const sig      = computeAllSignals(snaps, latest, calc);
+
+  // ── MOBIILI: oma minimalistinen näkymä ──
+  if (window.innerWidth < 580) {
+    c.innerHTML = renderMobileDashboard(snaps, latest, calc, sig, cnt);
+    return;
+  }
 
   const nw       = calc.netWorth;
   const prevNw   = calcPrev ? calcPrev.netWorth : null;
@@ -328,17 +489,28 @@ async function renderDashboard() {
   c.innerHTML = `
     <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <span>${fmtDate(latest.date)} &nbsp;·&nbsp; ${cnt.toLocaleString('fi-FI')} snapshottia &nbsp;·&nbsp; ${snaps[0].date.slice(0,4)}–${latest.date.slice(0,4)}</span>
-      <span style="display:flex;gap:8px;align-items:center;">
-        ${backupStatusBadge()}
-        ${syncStatusBadge()}
-        <button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
-          background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);
-          border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);"
-          title="Palauta edellinen snapshot">↩ rollback</button>
-      </span>
+      ${backupStatusBadge()}
+      ${syncStatusBadge()}
     </div>
-    <div id="freeze-status" style="display:none;margin:8px 0 12px;padding:8px 12px;
-      border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;
+
+    <!-- ── SE SUURI NAPPI ── -->
+    <button onclick="rollbackLatestSnapshot()" style="font-size:11px;padding:6px 12px;
+      background:rgba(255,100,100,0.08);border:1px solid rgba(255,100,100,0.2);
+      border-radius:7px;color:#c07070;cursor:pointer;font-family:var(--mono);"
+      title="Palauta edellinen snapshot">↩ Rollback</button>
+    <button id="btn-freeze" onclick="refreshAndFreeze()"
+      style="width:100%;margin-bottom:20px;padding:14px 20px;
+             background:linear-gradient(135deg,#1a2818,#1a1d1b);
+             border:1px solid #3a5535;border-radius:12px;
+             color:#5a9e6a;font-family:'Syne',sans-serif;
+             font-weight:800;font-size:15px;letter-spacing:.04em;
+             cursor:pointer;transition:all .2s;display:flex;
+             align-items:center;justify-content:center;gap:10px;">
+      <span id="btn-freeze-icon" style="font-size:20px;">↻</span>
+      <span id="btn-freeze-label">Päivitä kurssit &amp; Jäädytä snapshot</span>
+    </button>
+    <div id="freeze-status" style="display:none;margin:-12px 0 16px;padding:10px 14px;
+      border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
 

@@ -57,8 +57,6 @@
       font-size: 14px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-      max-width: 100vw;
     }
 
     /* ── NAV ── */
@@ -317,7 +315,7 @@
       font-family: var(--mono);
       color: var(--text2);
       white-space: normal;
-      max-width: min(240px, 80vw);
+      max-width: 240px;
       line-height: 1.6;
       opacity: 0;
       pointer-events: none;
@@ -573,36 +571,15 @@
     @media (max-width: 580px) {
       .kpi-grid { grid-template-columns: 1fr; }
       .kpi-wide { grid-column: span 1; }
-      .kpi-compact { align-self: auto; }
       .map-row { grid-template-columns: 28px 1fr 16px 130px 55px; }
-      .view { padding: 10px 10px; }
-      .card { padding: 12px 12px; }
-      .card-value { font-size: 24px; }
-      .card-label { font-size: 10px; }
-      .sub-row { font-size: 12px; }
-      /* Estä ylivuoto */
-      .view, .card, #db-content { max-width: 100%; overflow-x: hidden; }
-      /* Period chips pienenee */
-      .period-row { gap: 4px; }
-      .period-chip { min-width: 44px; padding: 4px 6px; }
-      .period-label { font-size: 8px; }
-      .period-val { font-size: 11px; }
-      /* Comp bar */
-      .comp-legend { gap: 8px; }
-      .comp-leg-item { font-size: 10px; }
-      /* Changes */
-      .change-row { flex-wrap: wrap; gap: 4px; }
-      .change-name { font-size: 12px; }
-      .change-cur { font-size: 12px; }
-      /* Holding table */
+      .view { padding: 16px 14px; }
       .holding-hd, .holding-row {
         grid-template-columns: 65px 1fr 55px 75px 85px;
       }
       .holding-hd div:nth-child(6),
       .holding-row div:nth-child(6) { display: none; }
-      /* Nav Päivitä-nappi pienenee mobiilissa */
-      #btn-freeze-nav span:last-child { display: none; }
-      #btn-freeze-nav { padding: 5px 9px; }
+      .period-chip { min-width: 50px; padding: 4px 7px; }
+      .change-row { flex-wrap: wrap; gap: 4px; }
     }
 
     /* ── COMPOSITION BAR ── */
@@ -732,17 +709,7 @@
   <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
   <span class="nav-count" id="nav-count"></span>
-  <button id="btn-freeze-nav" onclick="refreshAndFreeze()" title="Päivitä kurssit &amp; tallenna snapshot"
-    style="margin-left:8px;padding:6px 14px;font-size:13px;font-weight:700;
-           background:rgba(90,158,106,0.15);border:1px solid rgba(90,158,106,0.4);
-           border-radius:8px;color:#5a9e6a;cursor:pointer;transition:all .2s;
-           display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;"
-    onmouseover="this.style.background='rgba(90,158,106,0.25)'"
-    onmouseout="this.style.background='rgba(90,158,106,0.15)'">
-    <span id="btn-freeze-icon-nav" style="font-size:15px;">↻</span>
-    <span style="font-size:12px;letter-spacing:.04em;">Päivitä</span>
-  </button>
-  <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:4px;">↑ Tuo data</button>
+  <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:8px;">↑ Tuo data</button>
   <button class="nav-btn" onclick="toggleSettings()" style="margin-left:4px;" title="Asetukset">⚙</button>
 </nav>
 
