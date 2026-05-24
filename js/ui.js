@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════
-// FINANCIAL HEARTBEAT CARD  (Sprint 5)
+// FINANCIAL HEARTBEAT CARD  (Sprint 5 v2)
+// Kolme kerrosta: signaali · kassasykli · strateginen reservi
 // ═══════════════════════════════════════════════
 function renderHeartbeatCard(sig) {
   if (!sig) return '';
@@ -7,31 +8,33 @@ function renderHeartbeatCard(sig) {
   const hb     = sig.heartbeat;
   const tempo  = sig.tempo;
   const runway = sig.runway;
-  const liquid = sig.liquid;
+  const cycle  = sig.cycle;
 
+  // ── Kulutustempo-palkki ──────────────────────
   const tempoBar = tempo ? (() => {
     const pct      = Math.min(tempo.tempo, 200);
     const barPct   = Math.round(pct / 2);
     const barColor = pct > 130 ? '#c05a5a' : pct > 105 ? '#b8956a' : '#5a9e6a';
     return `
-      <div style="margin-top:14px;">
+      <div style="margin-top:16px;">
         <div style="display:flex;justify-content:space-between;font-size:10px;
-                    color:var(--text3);letter-spacing:.07em;margin-bottom:5px;">
-          <span>KULUTUSTEMPO · PV ${tempo.dayNum}</span>
+                    color:var(--text3);letter-spacing:.07em;text-transform:uppercase;
+                    margin-bottom:5px;">
+          <span>Kulutustempo · pv ${tempo.dayNum}</span>
           <span style="color:${barColor};font-weight:700;">${tempo.tempo} % normaalista</span>
         </div>
-        <div style="position:relative;height:24px;background:var(--surface2);
-                    border-radius:6px;overflow:hidden;">
+        <div style="position:relative;height:22px;background:rgba(0,0,0,0.2);
+                    border-radius:5px;overflow:hidden;">
           <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;
-                      background:rgba(255,255,255,0.15);"></div>
+                      background:rgba(255,255,255,0.12);"></div>
           <div style="position:absolute;left:0;top:0;bottom:0;width:${barPct}%;
-                      background:${barColor};opacity:0.75;border-radius:6px;
+                      background:${barColor};opacity:0.7;border-radius:5px;
                       transition:width .4s;"></div>
           <div style="position:absolute;inset:0;display:flex;align-items:center;
-                      padding:0 10px;justify-content:space-between;">
+                      padding:0 9px;justify-content:space-between;">
             <span style="font-family:var(--mono);font-size:11px;font-weight:600;
                          color:#fff;">${fmt(-tempo.curSpend)}</span>
-            <span style="font-size:10px;color:rgba(255,255,255,0.45);">
+            <span style="font-size:10px;color:rgba(255,255,255,0.4);">
               ka. ${fmt(-tempo.paceAvg)}
             </span>
           </div>
@@ -42,63 +45,109 @@ function renderHeartbeatCard(sig) {
       </div>`;
   })() : '';
 
-  const runwayBlock = runway ? (() => {
+  // ── KERROS 1: Kassasykli ─────────────────────
+  const cycleBlock = (() => {
+    if (!cycle) return '';
+    const cash    = cycle.cashBalance;
+    const card    = cycle.cardBalance;
+    const net     = cycle.net;
+    const days    = cycle.daysUntilDue;
+    const netClr  = net >= 0 ? 'var(--green)' : 'var(--text2)';
+    const daysClr = days <= 3 ? '#c05a5a' : days <= 7 ? '#b8956a' : 'var(--text3)';
+    const cycleLabel = cycle.cycleOk
+      ? `<span style="color:#5a9e6a;font-size:10px;">● Koroton sykli aktiivinen</span>`
+      : `<span style="color:#b8956a;font-size:10px;">○ Seuraa eräpäivää</span>`;
+
+    return `
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    margin-bottom:8px;">
+          <span style="font-size:10px;letter-spacing:.07em;color:var(--text3);
+                       text-transform:uppercase;">Kassasykli</span>
+          ${cycleLabel}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <div style="background:rgba(0,0,0,0.2);border-radius:7px;padding:8px 10px;">
+            <div style="font-size:9px;color:var(--text3);letter-spacing:.06em;
+                        text-transform:uppercase;margin-bottom:3px;">Tilit</div>
+            <div style="font-family:var(--mono);font-size:13px;font-weight:600;
+                        color:var(--green);">${fmt(cash)}</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.2);border-radius:7px;padding:8px 10px;">
+            <div style="font-size:9px;color:var(--text3);letter-spacing:.06em;
+                        text-transform:uppercase;margin-bottom:3px;">Luottokortit</div>
+            <div style="font-family:var(--mono);font-size:13px;font-weight:600;
+                        color:var(--gold);">${fmt(-card)}</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.2);border-radius:7px;padding:8px 10px;">
+            <div style="font-size:9px;color:var(--text3);letter-spacing:.06em;
+                        text-transform:uppercase;margin-bottom:3px;">Netto</div>
+            <div style="font-family:var(--mono);font-size:13px;font-weight:600;
+                        color:${netClr};">${fmt(net)}</div>
+          </div>
+        </div>
+        <div style="text-align:right;margin-top:5px;font-size:10px;color:${daysClr};">
+          Eräpäivään ${days} pv
+        </div>
+      </div>`;
+  })();
+
+  // ── KERROS 2: Strateginen reservi ───────────
+  const reserviBlock = runway ? (() => {
     const months  = runway.months;
-    const color   = months < 6 ? '#c05a5a' : months < 12 ? '#b8956a' : '#5a9e6a';
+    const color   = months < 3  ? '#c05a5a'
+                  : months < 8  ? '#b8956a'
+                  : '#5a9e6a';
     const barPct  = Math.min(Math.round((months / 36) * 100), 100);
     return `
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
         <div style="display:flex;justify-content:space-between;align-items:baseline;
                     margin-bottom:5px;">
-          <span style="font-size:10px;letter-spacing:.07em;color:var(--text3);
-                       text-transform:uppercase;">Toimintavara</span>
-          <span style="font-family:var(--mono);font-size:18px;font-weight:700;
+          <div>
+            <span style="font-size:10px;letter-spacing:.07em;color:var(--text3);
+                         text-transform:uppercase;">Sijoitusreservi</span>
+            <div style="font-size:10px;color:var(--text3);margin-top:1px;">
+              tarvittaessa käytettävissä
+            </div>
+          </div>
+          <span style="font-family:var(--mono);font-size:20px;font-weight:700;
                        color:${color};">${months} kk</span>
         </div>
-        <div style="position:relative;height:8px;background:var(--surface2);
-                    border-radius:4px;overflow:hidden;">
+        <div style="position:relative;height:6px;background:rgba(0,0,0,0.2);
+                    border-radius:3px;overflow:hidden;">
           <div style="position:absolute;left:0;top:0;bottom:0;width:${barPct}%;
-                      background:${color};opacity:0.6;border-radius:4px;
+                      background:${color};opacity:0.55;border-radius:3px;
                       transition:width .5s;"></div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:10px;
                     color:var(--text3);margin-top:4px;">
           <span>Kuukausikulutus ka. ${fmt(-runway.monthlyBurn)}</span>
-          <span>Kapasiteetti ${fmt(runway.totalCapacity)}</span>
+          <span style="color:var(--text3);">Ei käteistä · sijoituksia × 0,65</span>
         </div>
       </div>`;
   })() : '';
-
-  const liqColor = liquid >= 0 ? 'var(--green)' : 'var(--red)';
-  const liqLabel = liquid >= 0 ? 'Tulotili kattaa luottokortit' : 'Luottokortit ylittävät käteisen';
 
   return `
     <div style="background:var(--surface2);border:1px solid var(--border);
                 border-radius:14px;padding:18px 18px 16px;margin-bottom:16px;
                 position:relative;overflow:hidden;">
       <div style="position:absolute;top:0;left:0;right:0;height:2px;
-                  background:linear-gradient(90deg,transparent,${hb.color}40,transparent);
+                  background:linear-gradient(90deg,transparent,${hb.color}55,transparent);
                   border-radius:14px 14px 0 0;"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-        <span style="font-size:18px;color:${hb.color};line-height:1;">${hb.dot}</span>
+
+      <!-- Pääsignaali -->
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;color:${hb.color};line-height:1;">${hb.dot}</span>
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--text1);
                       letter-spacing:.02em;">${hb.label}</div>
           ${hb.sub ? `<div style="font-size:11px;color:var(--text3);margin-top:1px;">${hb.sub}</div>` : ''}
         </div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;
-                  margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-        <div>
-          <div style="font-size:10px;letter-spacing:.07em;color:var(--text3);
-                      text-transform:uppercase;margin-bottom:3px;">Netto-likviditeetti</div>
-          <div style="font-size:10px;color:var(--text3);">${liqLabel}</div>
-        </div>
-        <div style="font-family:var(--mono);font-size:22px;font-weight:700;
-                    color:${liqColor};">${fmt(liquid)}</div>
-      </div>
+
       ${tempoBar}
-      ${runwayBlock}
+      ${cycleBlock}
+      ${reserviBlock}
     </div>`;
 }
 
