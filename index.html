@@ -885,6 +885,38 @@
 
 </div><!-- /view-import -->
 
+<script>
+// Fallback — jos ui.js latautuu vanhana välimuistista
+window._mobileFallback = true;
+function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
+  var nw   = calc ? calc.netWorth : 0;
+  var inv  = calc ? calc.investments : 0;
+  var cash = calc ? calc.cash : 0;
+  var debt = calc ? (calc.shortTermDebt + calc.longTermDebt) : 0;
+  function k(n) {
+    if (!n && n !== 0) return '—';
+    var a = Math.abs(n), s = n < 0 ? '−' : '';
+    return a >= 1000 ? s + (a/1000).toFixed(1).replace('.',',') + 'k' : s + Math.round(a);
+  }
+  return '<div style="padding:10px;font-family:monospace;">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'
+    + '<div style="background:#1a1d1b;border:1px solid #2c3130;border-radius:9px;padding:10px;">'
+    + '<div style="font-size:9px;color:#6e7470;text-transform:uppercase;margin-bottom:4px;">Sijoitukset</div>'
+    + '<div style="font-size:18px;font-weight:700;">' + k(inv) + '</div></div>'
+    + '<div style="background:#1a1d1b;border:1px solid #2c3130;border-radius:9px;padding:10px;">'
+    + '<div style="font-size:9px;color:#6e7470;text-transform:uppercase;margin-bottom:4px;">Sitoumukset</div>'
+    + '<div style="font-size:18px;font-weight:700;color:#c05a5a;">' + k(-debt) + '</div></div>'
+    + '<div style="background:#1a1d1b;border:1px solid #2c3130;border-radius:9px;padding:10px;">'
+    + '<div style="font-size:9px;color:#6e7470;text-transform:uppercase;margin-bottom:4px;">Käyttötilit</div>'
+    + '<div style="font-size:18px;font-weight:700;color:#8a9490;">' + k(cash) + '</div></div>'
+    + '<div style="background:#1a1d1b;border:1px solid #2c3130;border-radius:9px;padding:10px;">'
+    + '<div style="font-size:9px;color:#6e7470;text-transform:uppercase;margin-bottom:4px;">Nettovarallisuus</div>'
+    + '<div style="font-size:18px;font-weight:700;">' + k(nw) + '</div></div>'
+    + '</div>'
+    + '<div style="font-size:10px;color:#6e7470;text-align:center;padding:8px;">↻ Lataa uudelleen päivitystä varten</div>'
+    + '</div>';
+}
+</script>
 <script src="js/db.js?v=20"></script>
 <script src="js/calculations.js?v=20"></script>
 <script src="js/signals.js?v=20"></script>
