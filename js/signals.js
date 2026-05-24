@@ -212,20 +212,65 @@ function computeHeartbeat(snaps, latest, calc, cycle, tempo) {
 }
 
 // ═══════════════════════════════════════════════
+// LAINAKALENTERI — muokkaa tähän omat lainasi
+// kuukausierä = arvioitu lyhennys €/kk
+// ═══════════════════════════════════════════════
+const LOAN_SCHEDULE = [
+  { key: 'asuntolaina',          label: 'Asuntolaina',    endsYear: 2029, monthlyEur: 200 },
+  { key: 'autolaina',            label: 'Autolaina',      endsYear: 2027, monthlyEur: 255 },
+  { key: 'asuntolaina_remontti', label: 'Remonttilaina',  endsYear: 2026, monthlyEur: 170 },
+];
+
+function computeFutureCapacity(latest) {
+  if (!latest) return null;
+  const now = new Date().getFullYear();
+  const events = [];
+  LOAN_SCHEDULE.forEach(loan => {
+    const balance = latest[loan.key];
+    if (!balance || Math.abs(balance) < 10) return;
+    events.push({
+      label:      loan.label,
+      endsYear:   loan.endsYear,
+      balance:    Math.abs(balance),
+      monthlyEur: loan.monthlyEur,
+      yearsLeft:  loan.endsYear - now,
+    });
+  });
+  events.sort((a, b) => a.endsYear - b.endsYear);
+
+  // Kumulatiivinen vapautuva kapasiteetti vuosittain
+  const timeline = [];
+  let cumulative = 0;
+  events.forEach(e => {
+    cumulative += e.monthlyEur;
+    timeline.push({
+      year:        e.endsYear,
+      label:       e.label,
+      monthlyEur:  e.monthlyEur,
+      cumulative,
+      yearsLeft:   e.yearsLeft,
+    });
+  });
+
+  return { events, timeline };
+}
+
+// ═══════════════════════════════════════════════
 // PÄÄFUNKTIO
 // ═══════════════════════════════════════════════
 function computeAllSignals(snaps, latest, calc) {
   if (!snaps || !latest || !calc) return null;
-  const tempo       = computeConsumptionTempo(snaps, latest);
-  const cycle       = computeCycleState(snaps, latest, tempo);
-  const runway      = computeRunway(snaps, latest, calc);
-  const trend       = computeNetWorthTrend(snaps, latest);
-  const hb          = computeHeartbeat(snaps, latest, calc, cycle, tempo);
-  const direction   = computeDirection(cycle, tempo, runway, trend);
-  const monthlyBurn = computeMonthlyBurn(snaps, latest);
+  const tempo          = computeConsumptionTempo(snaps, latest);
+  const cycle          = computeCycleState(snaps, latest, tempo);
+  const runway         = computeRunway(snaps, latest, calc);
+  const trend          = computeNetWorthTrend(snaps, latest);
+  const hb             = computeHeartbeat(snaps, latest, calc, cycle, tempo);
+  const direction      = computeDirection(cycle, tempo, runway, trend);
+  const futureCapacity = computeFutureCapacity(latest);
+  const monthlyBurn    = computeMonthlyBurn(snaps, latest);
   return {
-    heartbeat:   hb,
-    tempo, cycle, runway, trend, direction,
+    heartbeat: hb, tempo, cycle, runway, trend, direction,
+    futureCapacity,
     liquid:      calc.cash - calc.shortTermDebt,
     monthlyBurn: monthlyBurn ? Math.round(monthlyBurn) : null,
   };
