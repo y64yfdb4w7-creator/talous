@@ -2854,6 +2854,8 @@ async function renderEntryView() {
     const val = latest[key];
     return (val !== undefined && val !== null && val !== 0) ? val : (fallback || 0);
   }
+  // tapiola and s_sijoitus are the same field in different import formats
+  if (!latest.tapiola && latest.s_sijoitus) latest.tapiola = latest.s_sijoitus;
 
   el.innerHTML = `
 <div style="max-width:480px;margin:0 auto;padding:16px;">
@@ -3020,13 +3022,19 @@ function entryRow(label, id, val, unit, sub) {
 }
 
 function entryLoan(label, id, val, endsYear, monthly) {
-  const display = val ? Math.abs(val) : '';
-  const fmtVal  = val ? fmt(Math.abs(val)) : '—';
-  const yLeft = endsYear - new Date().getFullYear();
+  const display  = val ? Math.abs(val) : '';
+  const fmtVal   = val ? fmt(Math.abs(val)) : '—';
+  // Load saved loan config from localStorage
+  const cfgKey   = 'loan_cfg_' + id;
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(cfgKey) || '{}'); } catch(e) {}
+  const ey  = cfg.endsYear || endsYear;
+  const mon = cfg.monthly  || monthly;
+  const yLeft = ey - new Date().getFullYear();
   const yClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
   return `<div style="padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;
-      cursor:pointer;border-radius:6px;transition:background .12s;margin:0 -8px 3px;
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;
+      cursor:pointer;border-radius:6px;transition:background .12s;margin:0 -8px 6px;
       padding:4px 8px;"
       onclick="entryActivate(this.parentElement,'${id}')"
       onmouseenter="this.style.background='rgba(0,200,255,0.06)'"
@@ -3037,16 +3045,27 @@ function entryLoan(label, id, val, endsYear, monthly) {
           color:var(--text2);border-bottom:1px dashed rgba(0,200,255,0.35);padding-bottom:1px;">${fmtVal}</span>
         <span style="font-size:11px;color:rgba(0,200,255,0.4);">✎</span>
         <input id="inp-${id}" type="number" value="${display}" placeholder="0"
-          style="width:110px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
+          style="width:100px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
           background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
           font-size:14px;text-align:right;display:none;"
           onblur="entryDeactivate(this,'${id}')" oninput="updateEntryDerived()">
         <span style="font-size:12px;color:var(--text3);">€</span>
       </div>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;padding:0 0 4px;">
-      <span style="color:${yClr};">→ päättyy ${endsYear}</span>
-      <span style="color:#5a9e6a;">+${fmt(monthly)}/kk vapautuu</span>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:10px;color:${yClr};white-space:nowrap;">→ päättyy</span>
+      <input type="number" value="${ey}" min="2024" max="2060" step="1"
+        style="width:68px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;
+        background:rgba(0,200,255,0.04);color:${yClr};font-family:var(--mono);font-size:12px;text-align:center;"
+        onchange="saveLoanCfg('${id}','endsYear',parseInt(this.value));this.style.color='#5a9e6a'">
+      <span style="font-size:10px;color:var(--text3);margin-left:4px;">lyhennys</span>
+      <div style="display:flex;align-items:center;gap:3px;">
+        <input type="number" value="${mon}" min="0" step="10"
+          style="width:68px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;
+          background:rgba(0,200,255,0.04);color:#5a9e6a;font-family:var(--mono);font-size:12px;text-align:right;"
+          onchange="saveLoanCfg('${id}','monthly',parseInt(this.value))">
+        <span style="font-size:10px;color:var(--text3);">€/kk</span>
+      </div>
     </div>
   </div>`;
 }
@@ -3159,8 +3178,8 @@ async function saveEntrySnapshot() {
     // sijoitukset
     nordnet:   nordnet  || prev.nordnet  || 0,
     op_osakkeet: op_os  || prev.op_osakkeet || 0,
-    tapiola:   tapiola  || prev.tapiola  || 0,
-    s_sijoitus: prev.s_sijoitus || 0,
+    tapiola:   tapiola  || prev.tapiola || prev.s_sijoitus || 0,
+    s_sijoitus: 0,
     rahastot:   prev.rahastot   || 0,
     // lainat
     asuntolaina: asunto !== 0 ? asunto : (prev.asuntolaina || 0),
@@ -3187,4 +3206,27 @@ async function saveEntrySnapshot() {
   // Päivitä dashboard
   await updateNavCount();
   setTimeout(() => showView('dashboard'), 800);
+}
+
+// Tallenna lainan konfiguraatio localStorageen
+function saveLoanCfg(id, field, value) {
+  const key = 'loan_cfg_' + id;
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) {}
+  cfg[field] = value;
+  localStorage.setItem(key, JSON.stringify(cfg));
+  // Päivitä signals.js LOAN_SCHEDULE cache
+  updateLoanScheduleFromStorage();
+}
+
+function updateLoanScheduleFromStorage() {
+  if (typeof LOAN_SCHEDULE === 'undefined') return;
+  LOAN_SCHEDULE.forEach(function(loan) {
+    const key = 'loan_cfg_' + loan.key;
+    try {
+      const cfg = JSON.parse(localStorage.getItem(key) || '{}');
+      if (cfg.endsYear) loan.endsYear = cfg.endsYear;
+      if (cfg.monthly)  loan.monthlyEur = cfg.monthly;
+    } catch(e) {}
+  });
 }

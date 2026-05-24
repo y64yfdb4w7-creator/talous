@@ -226,6 +226,16 @@ const LOAN_SCHEDULE = [
   { key: 'asuntolaina_remontti', label: 'Remonttilaina',  endsYear: 2026, monthlyEur: 170 },
 ];
 
+function getLoanConfig(key, defaults) {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('loan_cfg_' + key) || '{}');
+    return {
+      endsYear:   cfg.endsYear   || defaults.endsYear,
+      monthlyEur: cfg.monthly    || defaults.monthlyEur,
+    };
+  } catch(e) { return defaults; }
+}
+
 function computeFutureCapacity(latest) {
   if (!latest) return null;
   const now = new Date().getFullYear();
@@ -233,12 +243,13 @@ function computeFutureCapacity(latest) {
   LOAN_SCHEDULE.forEach(loan => {
     const balance = latest[loan.key];
     if (!balance || Math.abs(balance) < 10) return;
+    const cfg = getLoanConfig(loan.key, loan);
     events.push({
       label:      loan.label,
-      endsYear:   loan.endsYear,
+      endsYear:   cfg.endsYear,
       balance:    Math.abs(balance),
-      monthlyEur: loan.monthlyEur,
-      yearsLeft:  loan.endsYear - now,
+      monthlyEur: cfg.monthlyEur,
+      yearsLeft:  cfg.endsYear - now,
     });
   });
   events.sort((a, b) => a.endsYear - b.endsYear);
