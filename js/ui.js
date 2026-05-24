@@ -207,9 +207,12 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
 }
 
 // ═══════════════════════════════════════════════
-// MOBIILI-DASHBOARD v2 — hierarkkinen cockpit
-// 1. Heartbeat  2. Operatiivinen rytmi
-// 3. Rakenteellinen kuorma  4. Reservi
+// MOBIILI-DASHBOARD v3 — Wealth Cockpit
+// Rakenne:
+//   1. Heartbeat (signaali)
+//   2. 2x2 orientaatiokerros (nopea tilannekuva)
+//   3. Operatiivinen rytmi (OP Gold + mittari)
+//   4. Aikarakenne (lainat + vapautuva kapasiteetti)
 // ═══════════════════════════════════════════════
 function _fK(n) {
   if (n == null) return '—';
@@ -219,185 +222,171 @@ function _fK(n) {
 }
 
 function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
-  const nw     = calc.netWorth;
-  const inv    = calc.investments;
-  const cash   = calc.cash;
-  const hb     = sig && sig.heartbeat;
-  const tempo  = sig && sig.tempo;
-  const runway = sig && sig.runway;
-  const cycle  = sig && sig.cycle;
-  const fc     = sig && sig.futureCapacity;
+  const nw    = calc.netWorth;
+  const inv   = calc.investments;
+  const cash  = calc.cash;
+  const debt  = calc.shortTermDebt + calc.longTermDebt;
+  const hb    = sig && sig.heartbeat;
+  const tempo = sig && sig.tempo;
+  const cycle = sig && sig.cycle;
+  const runway= sig && sig.runway;
 
-  // 1v muutos
+  // 1v nettokehitys
   const snap1y = snaps.length > 1 ? snaps[Math.max(0, snaps.length-366)] : null;
   const d1y    = snap1y ? nw - calculateNetWorth(snap1y).netWorth : null;
 
-  // Sparkline
-  const rec = snaps.slice(-60);
-  const vs  = rec.map(s => calculateNetWorth(s).netWorth);
-  const mn  = Math.min(...vs), mx = Math.max(...vs);
-  const pts = vs.map((v,i) => {
-    const x = (i/Math.max(vs.length-1,1))*300;
-    const y = 28 - ((v-mn)/Math.max(mx-mn,1))*28;
-    return x.toFixed(1)+','+y.toFixed(1);
-  }).join(' ');
-
-  // ── 1. HEARTBEAT ─────────────────────────────
-  const hbBlock = hb ? (
-    '<div style="display:flex;align-items:center;justify-content:space-between;'
-    +'padding:10px 14px;background:var(--surface);border:1px solid var(--border);'
-    +'border-radius:11px;margin-bottom:8px;">'
-    +'<div style="display:flex;align-items:center;gap:8px;">'
-    +'<span style="font-size:14px;color:'+hb.color+';">'+hb.dot+'</span>'
-    +'<div>'
-    +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+hb.label+'</div>'
-    +(hb.sub ? '<div style="font-size:10px;color:var(--text3);margin-top:1px;">'+hb.sub+'</div>' : '')
-    +'</div></div>'
-    +(cycle ? '<span style="font-size:10px;color:var(--text3);flex-shrink:0;">Eräp. '+cycle.daysUntilDue+' pv</span>' : '')
-    +'</div>'
-  ) : '';
-
-  // ── 2. OPERATIIVINEN RYTMI ───────────────────
-  var rytmiBlock = '';
-  if (latest.op_gold !== undefined) {
-    const curSpend = Math.abs(latest.op_gold);
-    const baseline = tempo ? tempo.paceAvg : null;
-    const diffEur  = baseline ? (baseline - curSpend) : null;
-    const devPct   = baseline ? Math.round(((curSpend - baseline) / baseline) * 100) : null;
-
-    // Rytmipalkki
-    var palkki = '';
-    if (baseline) {
-      const pct   = Math.min(Math.abs(devPct||0), 100);
-      const bPct  = 50 + Math.max(-50, Math.min(50, devPct||0));
-      const bClr  = Math.abs(devPct||0) <= 10 ? '#5a9e6a' : (devPct||0) > 0 ? '#b8956a' : '#5a9e6a';
-      const label = Math.abs(devPct||0) <= 10 ? 'Normaali sykli'
-                  : (devPct||0) > 0 ? '+'+(devPct||0)+' % normaalia korkeampi'
-                  : Math.abs(devPct||0)+' % alle normaalin';
-      palkki = '<div style="margin-top:10px;">'
-        +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
-        +'<span style="font-size:10px;color:var(--text3);">Rytmi vs. oma normaali</span>'
-        +'<span style="font-size:10px;color:'+bClr+';font-weight:600;">'+label+'</span></div>'
-        +'<div style="position:relative;height:16px;background:rgba(0,0,0,0.25);border-radius:4px;overflow:hidden;">'
-        +'<div style="position:absolute;left:40%;width:20%;top:0;bottom:0;background:rgba(90,158,106,0.15);"></div>'
-        +'<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.15);"></div>'
-        +'<div style="position:absolute;left:'+bPct+'%;top:3px;bottom:3px;width:3px;'
-        +'border-radius:2px;transform:translateX(-50%);background:'+bClr+';transition:left .4s;"></div>'
-        +'<div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 8px;justify-content:space-between;">'
-        +'<span style="font-family:var(--mono);font-size:10px;color:#fff;">'+fmt(-curSpend)+'</span>'
-        +(baseline ? '<span style="font-size:9px;color:rgba(255,255,255,0.35);">ka. '+fmt(-baseline)+'</span>' : '')
-        +'</div></div>'
-        +'<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px;">'
-        +'<span>−50 %</span><span>0 = normaali</span><span>+50 %</span></div></div>';
-    }
-
-    const cycBadge = cycle ? (cycle.cycleOk
-      ? '<span style="font-size:10px;color:#5a9e6a;">● Koroton sykli · eräp. '+cycle.daysUntilDue+' pv</span>'
-      : '<span style="font-size:10px;color:#b8956a;">○ Seuraa eräpäivää · '+cycle.daysUntilDue+' pv</span>') : '';
-
-    rytmiBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
-      +'border-radius:11px;padding:12px 14px;margin-bottom:8px;">'
-      +'<div style="font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">● Operatiivinen rytmi</div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-      +'<span style="font-size:12px;color:var(--text3);">OP Gold · kk-sykli</span>'
-      +'<span style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--gold);">'+fmt(-curSpend)+'</span>'
+  // ── 1. HEARTBEAT ──────────────────────────────
+  var hbRow = '';
+  if (hb) {
+    hbRow = '<div style="display:flex;align-items:center;justify-content:space-between;'
+      +'padding:9px 13px;background:var(--surface);border:1px solid var(--border);'
+      +'border-radius:10px;margin-bottom:8px;gap:8px;">'
+      +'<div style="display:flex;align-items:center;gap:7px;min-width:0;">'
+      +'<span style="font-size:13px;color:'+hb.color+';flex-shrink:0;">'+hb.dot+'</span>'
+      +'<span style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+hb.label+'</span>'
+      +(tempo ? '<span style="font-size:10px;color:var(--text3);flex-shrink:0;">'+tempo.tempo+'%</span>' : '')
       +'</div>'
-      +(diffEur !== null ? '<div style="margin-top:3px;">'
-        +(diffEur > 0
-          ? '<span style="font-size:11px;color:#5a9e6a;font-weight:600;">+'+fmt(diffEur)+' alle normaalin</span>'
-          : '<span style="font-size:11px;color:#b8956a;font-weight:600;">'+fmt(Math.abs(diffEur))+' yli normaalin</span>')
-        +'</div>' : '')
-      + palkki
-      +'<div style="margin-top:8px;">'+cycBadge+'</div>'
+      +(cycle ? '<span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap;">Eräp. '+cycle.daysUntilDue+' pv</span>' : '')
       +'</div>';
   }
 
-  // ── 3. RAKENTEELLINEN KUORMA ─────────────────
+  // ── 2. 2x2 ORIENTAATIOKERROS ─────────────────
+  function tile(label, value, sub, vc) {
+    return '<div style="background:var(--surface);border:1px solid var(--border);'
+      +'border-radius:10px;padding:10px 11px;min-width:0;">'
+      +'<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;'
+      +'text-transform:uppercase;margin-bottom:4px;white-space:nowrap;">'
+      +label+'</div>'
+      +'<div style="font-family:var(--mono);font-size:18px;font-weight:700;'
+      +'color:'+(vc||'var(--text)')+';line-height:1.1;white-space:nowrap;">'
+      +value+'</div>'
+      +(sub ? '<div style="font-size:10px;color:var(--text3);margin-top:3px;'
+        +'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+        +sub+'</div>' : '')
+      +'</div>';
+  }
+
+  const liquid = cash - calc.shortTermDebt;
+  const nwSub  = d1y !== null ? (d1y>=0?'+':'−')+_fK(Math.abs(d1y))+' / 1v' : null;
+
+  var grid = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">'
+    + tile('Sijoitukset', _fK(inv), 'Nordnet + OP')
+    + tile('Kuorma', _fK(-debt), 'kortit + lainat', 'var(--red)')
+    + tile('Käyttötilit', _fK(cash), 'netto '+_fK(liquid), 'var(--text2)')
+    + tile('Nettovarallisuus', _fK(nw), nwSub)
+    +'</div>';
+
+  // ── 3. OPERATIIVINEN RYTMI ───────────────────
+  var rytmiBlock = '';
+  if (latest.op_gold !== undefined) {
+    const cur  = Math.abs(latest.op_gold);
+    const base = tempo ? tempo.paceAvg : null;
+    const diff = base ? (base - cur) : null;
+    const dev  = base ? Math.round(((cur - base) / base) * 100) : null;
+
+    var palkki = '';
+    if (base) {
+      const bPct = 50 + Math.max(-50, Math.min(50, dev));
+      const bClr = Math.abs(dev) <= 10 ? '#5a9e6a' : dev > 0 ? '#b8956a' : '#5a9e6a';
+      const lbl  = Math.abs(dev) <= 10 ? 'Normaali sykli'
+                 : dev > 0 ? '+'+dev+' % normaalia korkeampi'
+                 : Math.abs(dev)+' % alle normaalin';
+      palkki = '<div style="margin-top:8px;">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px;">'
+        +'<span style="font-size:9px;color:var(--text3);">Rytmi vs. normaali</span>'
+        +'<span style="font-size:9px;color:'+bClr+';font-weight:600;">'+lbl+'</span></div>'
+        +'<div style="position:relative;height:14px;background:rgba(0,0,0,0.25);border-radius:4px;overflow:hidden;">'
+        +'<div style="position:absolute;left:40%;width:20%;top:0;bottom:0;background:rgba(90,158,106,0.12);"></div>'
+        +'<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.12);"></div>'
+        +'<div style="position:absolute;left:'+bPct+'%;top:2px;bottom:2px;width:3px;'
+        +'border-radius:2px;transform:translateX(-50%);background:'+bClr+';"></div>'
+        +'<div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 7px;justify-content:space-between;">'
+        +'<span style="font-family:var(--mono);font-size:9px;color:#fff;">'+fmt(-cur)+'</span>'
+        +'<span style="font-size:9px;color:rgba(255,255,255,0.3);">ka. '+fmt(-base)+'</span>'
+        +'</div></div></div>';
+    }
+
+    const cycLabel = cycle ? (cycle.cycleOk
+      ? '<span style="color:#5a9e6a;font-size:10px;">● Koroton · eräp. '+cycle.daysUntilDue+' pv</span>'
+      : '<span style="color:#b8956a;font-size:10px;">○ Eräp. '+cycle.daysUntilDue+' pv</span>') : '';
+
+    rytmiBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
+      +'border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+      +'<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">● Operatiivinen rytmi · OP Gold</span>'
+      +cycLabel+'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;">'
+      +'<span style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--gold);">'+fmt(-cur)+'</span>'
+      +(diff !== null ? '<span style="font-size:11px;font-weight:600;color:'+(diff>0?'#5a9e6a':'#b8956a')+'">'
+        +(diff>0?'+':'')+_fK(diff)+' vs normaali</span>' : '')
+      +'</div>'
+      + palkki
+      +'</div>';
+  }
+
+  // ── 4. AIKARAKENNE ───────────────────────────
   const nowYear = new Date().getFullYear();
   const loanDefs = [
-    { key: 'asuntolaina',          label: 'Asuntolaina',   endsYear: 2029, monthly: 200 },
-    { key: 'autolaina',            label: 'Autolaina',     endsYear: 2027, monthly: 255 },
-    { key: 'asuntolaina_remontti', label: 'Remonttilaina', endsYear: 2026, monthly: 170 },
+    { key:'asuntolaina',          label:'Asuntolaina',   endsYear:2029, monthly:200 },
+    { key:'autolaina',            label:'Autolaina',     endsYear:2027, monthly:255 },
+    { key:'asuntolaina_remontti', label:'Remonttilaina', endsYear:2026, monthly:170 },
   ];
   var loanRows = '';
-  var totalFrees = [];
+  var totalFree = 0;
   loanDefs.forEach(function(ld) {
     const bal = latest[ld.key];
     if (!bal || Math.abs(bal) < 10) return;
-    const yearsLeft = ld.endsYear - nowYear;
-    const pClr = yearsLeft <= 1 ? '#5a9e6a' : yearsLeft <= 3 ? '#b8956a' : '#6b7280';
-    if (ld.endsYear > nowYear) totalFrees.push(ld.monthly);
+    const yLeft = ld.endsYear - nowYear;
+    const pClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : '#6b7280';
+    if (ld.endsYear > nowYear) totalFree += ld.monthly;
     loanRows += '<div style="display:flex;justify-content:space-between;align-items:center;'
-      +'padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+      +'padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
       +'<div>'
-      +'<div style="font-size:12px;color:var(--text2);">'+ld.label+'</div>'
-      +'<div style="font-size:10px;color:'+pClr+';margin-top:1px;">→ päättyy '+ld.endsYear+(yearsLeft <= 0 ? ' ✓' : '')+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);">'+ld.label+'</div>'
+      +'<div style="font-size:10px;color:'+pClr+';margin-top:1px;">'
+      +'→ päättyy '+ld.endsYear+'</div>'
       +'</div>'
       +'<div style="text-align:right;">'
-      +'<div style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(bal)+'</div>'
-      +'<div style="font-size:10px;color:#5a9e6a;margin-top:1px;">+'+fmt(ld.monthly)+'/kk vapautuu</div>'
+      +'<div style="font-family:var(--mono);font-size:12px;color:var(--text2);">'+fmt(bal)+'</div>'
+      +'<div style="font-size:10px;color:#5a9e6a;margin-top:1px;">+'+fmt(ld.monthly)+'/kk</div>'
       +'</div></div>';
   });
 
-  const totalFree = totalFrees.reduce((a,b)=>a+b,0);
-  var kuormaBlock = loanRows ? (
-    '<div style="background:var(--surface);border:1px solid var(--border);'
-    +'border-radius:11px;padding:12px 14px;margin-bottom:8px;">'
-    +'<div style="font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">◼ Rakenteellinen kuorma</div>'
-    + loanRows
-    +(totalFree > 0 ? '<div style="margin-top:10px;padding:8px 10px;border-radius:7px;'
-      +'background:rgba(90,158,106,0.06);border:1px solid rgba(90,158,106,0.15);">'
-      +'<div style="font-size:10px;color:#5a9e6a;letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px;">⬆ Vapautuva kapasiteetti</div>'
-      +'<div style="font-size:12px;color:#5a9e6a;font-weight:600;">+'+fmt(totalFree)+' /kk kun lainat päättyvät</div>'
-      +'</div>' : '')
+  var aikaBlock = '';
+  if (loanRows) {
+    aikaBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
+      +'border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
+      +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;'
+      +'letter-spacing:.05em;margin-bottom:8px;">◼ Aikarakenne · pitkät velat</div>'
+      + loanRows
+      +(totalFree > 0
+        ? '<div style="margin-top:8px;padding:7px 9px;border-radius:6px;'
+          +'background:rgba(90,158,106,0.07);border:1px solid rgba(90,158,106,0.15);">'
+          +'<span style="font-size:10px;color:#5a9e6a;">⬆ Vapautuu yhteensä +'+fmt(totalFree)+'/kk</span>'
+          +'</div>' : '')
+      +'</div>';
+  }
+
+  // ── Reservi (kompakti) ────────────────────────
+  const rClr = runway ? (runway.months < 3 ? '#c05a5a' : runway.months < 8 ? '#b8956a' : '#5a9e6a') : 'var(--text3)';
+  var reserviRow = runway ? (
+    '<div style="display:flex;justify-content:space-between;align-items:center;'
+    +'padding:9px 13px;background:var(--surface);border:1px solid var(--border);'
+    +'border-radius:10px;">'
+    +'<span style="font-size:11px;color:var(--text3);">Strateginen reservi · sijoitukset × 0,65</span>'
+    +'<span style="font-family:var(--mono);font-size:15px;font-weight:700;color:'+rClr+';">'+runway.months+' kk</span>'
     +'</div>'
   ) : '';
 
-  // ── 4. RESERVI + NETTO ───────────────────────
-  const liquid = cash - calc.shortTermDebt;
-  const rColor = runway ? (runway.months < 3 ? '#c05a5a' : runway.months < 8 ? '#b8956a' : '#5a9e6a') : 'var(--text3)';
-
-  const reserviBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
-    +'border-radius:11px;padding:12px 14px;margin-bottom:8px;">'
-    +'<div style="font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">▲ Reservi</div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">'
-    +'<span style="font-size:12px;color:var(--text3);">Sijoitukset</span>'
-    +'<span style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text);">'+_fK(inv)+'</span>'
-    +'</div>'
-    +(runway ? '<div style="display:flex;justify-content:space-between;align-items:baseline;'
-      +'padding-top:6px;border-top:1px solid var(--border);">'
-      +'<span style="font-size:11px;color:var(--text3);">Strateginen reservi</span>'
-      +'<span style="font-family:var(--mono);font-size:15px;font-weight:700;color:'+rColor+';">'+runway.months+' kk</span>'
-      +'</div>' : '')
-    +'</div>'
-
-  // Netto + sparkline
-  +'<div style="background:var(--surface);border:1px solid var(--border);'
-    +'border-radius:11px;padding:12px 14px;margin-bottom:8px;">'
-    +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-    +'<div>'
-    +'<div style="font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px;">Nettovarallisuus</div>'
-    +'<div style="font-family:var(--mono);font-size:22px;font-weight:700;">'+_fK(nw)+'</div>'
-    +'</div>'
-    +(d1y !== null ? '<div style="text-align:right;">'
-      +'<div style="font-size:9px;color:var(--text3);margin-bottom:2px;">1 vuosi</div>'
-      +'<div style="font-family:var(--mono);font-size:13px;font-weight:600;color:'+(d1y>=0?'#5a9e6a':'#c05a5a')+';">'+(d1y>=0?'+':'−')+_fK(Math.abs(d1y))+'</div>'
-      +'</div>' : '')
-    +'</div>'
-    +'<svg viewBox="0 0 300 28" style="display:block;width:100%;height:24px;">'
-    +'<polyline points="'+pts+'" fill="none" stroke="#5a9e6a" stroke-width="1.5" stroke-linejoin="round" opacity="0.6"/>'
-    +'</svg>'
-    +'</div>';
-
   return '<div style="max-width:100%;overflow:hidden;">'
-    +'<div style="display:flex;justify-content:space-between;font-size:10px;'
-    +'color:var(--text3);margin-bottom:8px;font-family:var(--mono);">'
-    +'<span>'+fmtDate(latest.date)+' · '+cnt.toLocaleString('fi-FI')+' snapshotia</span>'
+    +'<div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-family:var(--mono);">'
+    +fmtDate(latest.date)+' · '+cnt.toLocaleString('fi-FI')+' snapshotia'
     +'</div>'
-    + hbBlock
+    + hbRow
+    + grid
     + rytmiBlock
-    + kuormaBlock
-    + reserviBlock
+    + aikaBlock
+    + reserviRow
     +'</div>';
 }
 
