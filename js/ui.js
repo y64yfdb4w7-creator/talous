@@ -381,7 +381,7 @@ async function renderDashboard() {
       </div>
 
       <!-- 3. KÄYTTÖTILIT — hetkellinen käyttöenergia, hillitymmin -->
-      <div class="card">
+      <div class="card kpi-compact">
         <div class="card-label" style="color:var(--text3);">Käyttötilit</div>
         <div class="card-value" style="font-size:28px;color:var(--text2);">${fmt(cash)}</div>
         <div class="sub-rows">

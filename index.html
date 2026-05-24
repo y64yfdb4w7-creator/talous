@@ -287,11 +287,15 @@
     }
     .kpi-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 2fr 2fr 1fr;
       gap: 12px;
       margin-bottom: 28px;
+      align-items: start;
     }
-    .kpi-wide { grid-column: span 2; }
+    /* Nettovarallisuus spans full width — always last */
+    .kpi-wide { grid-column: 1 / -1; }
+    /* Käyttötilit — kompakti, ei veny täyteen korkeuteen */
+    .kpi-compact { align-self: start; }
 
     .card {
       background: var(--surface);
@@ -538,6 +542,7 @@
     @media (max-width: 580px) {
       .kpi-grid { grid-template-columns: 1fr; }
       .kpi-wide { grid-column: span 1; }
+      .kpi-compact { align-self: auto; }
       .map-row { grid-template-columns: 28px 1fr 16px 130px 55px; }
       .view { padding: 16px 14px; }
       .holding-hd, .holding-row {
