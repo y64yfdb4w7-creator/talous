@@ -1575,6 +1575,7 @@ async function saveDayFromHoldings() {
     s_pankki:             latest?.s_pankki,
     nordnet_cash:         latest?.nordnet_cash,
     tulot_kk:             latest?.tulot_kk,
+    tulot_pvm:            latest?.tulot_pvm,
     muut_tulot:           latest?.muut_tulot,
     menot_kk:             latest?.menot_kk,
     op_gold:              latest?.op_gold,
@@ -2900,9 +2901,19 @@ async function renderEntryView() {
 
   <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
     overflow:hidden;margin-bottom:16px;">
-    <div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);">
-      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;
-        letter-spacing:.05em;margin-bottom:6px;">Tulot</div>
+    <div style="padding:8px 14px 6px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Tulot</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:10px;color:var(--text3);">Palkanmaksupäivä</span>
+          <input type="date" id="inp-tulot_pvm"
+            value="${v('tulot_pvm') || ''}"
+            style="font-family:var(--mono);font-size:13px;padding:4px 8px;
+            background:rgba(0,200,255,0.06);border:1px solid var(--border);
+            border-radius:6px;color:var(--text2);cursor:pointer;"
+            oninput="window._entryKvPvm=this.value;">
+        </div>
+      </div>
       ${entryRow('Palkka / päätulot', 'tulot_kk', v('tulot_kk'), '€', 'kuukauden brutto tai netto')}
       ${entryRow('Muut tulot', 'muut_tulot', v('muut_tulot'), '€', 'osingot, vuokrat, sivutulot')}
     </div>
@@ -3253,6 +3264,12 @@ async function saveEntrySnapshot() {
     asuntolaina_remontti: remontti !== 0 ? remontti : (prev.asuntolaina_remontti || 0),
     // lasten
     lasten_sijoitus: prev.lasten_sijoitus || 0,
+    // kassavirta
+    tulot_kk:  val('tulot_kk')   || prev.tulot_kk   || null,
+    muut_tulot: val('muut_tulot') || prev.muut_tulot || null,
+    menot_kk:  val('menot_kk')   || prev.menot_kk   || null,
+    tulot_pvm: document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
+    nordnet_cash: val('nordnet_cash') || prev.nordnet_cash || null,
     note,
   };
 
