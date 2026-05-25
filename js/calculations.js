@@ -78,6 +78,9 @@ function calculateNetWorth(snap) {
     longTermDebt,
     liabilities,
     netWorth: assets - liabilities,
+    // Semanttiset aliakset — psykologisesti eri asioita
+    operationalDebt: shortTermDebt,   // OP Gold, luottokortit — kassavirran osa
+    structuralDebt:  longTermDebt,    // Asuntolaina, autolaina — pitkä infrastruktuuri
     // Broker-taso (uusi — UI käyttää tarvittaessa)
     brokers: {
       nordnet: { investments: nordnetInv, cash: nordnetCash, total: nordnetTotal },

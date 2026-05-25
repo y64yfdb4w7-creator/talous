@@ -91,53 +91,8 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
   var tempo   = sig && sig.tempo;
   var fc      = sig && sig.futureCapacity;
   var nowYear = new Date().getFullYear();
-
-  // ── Operatiivinen rytmi: Tulotili − OP Gold ──
+  // Rytmi siirretty käyttötilit-korttiin — tässä vain pitkät velat
   var rytmiHTML = '';
-  if (latest.op_gold !== undefined) {
-    var tulotili = latest.tulotili ?? 0;
-    var opGold   = Math.abs(latest.op_gold ?? 0);
-    var curNetto = tulotili - opGold;
-    var baseline = tempo ? tempo.paceAvg : null;
-    var diffEur  = baseline !== null ? curNetto - baseline : null;
-    var devPct   = (baseline !== null && baseline !== 0)
-                   ? Math.round(((curNetto - baseline) / Math.abs(baseline)) * 100) : null;
-
-    var devColor = '#5a9e6a', devLabel = 'Normaali sykli';
-    if (devPct !== null) {
-      if (devPct > 10)       { devColor = '#5a9e6a'; devLabel = '+'+devPct+' % parempi kuin normaali'; }
-      else if (devPct < -10) { devColor = '#b8956a'; devLabel = Math.abs(devPct)+' % yli normaalin'; }
-    }
-
-    rytmiHTML = '<div style="padding:11px 12px;border-radius:8px;background:rgba(0,0,0,0.12);margin-top:10px;">'
-      + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">● Operatiivinen rytmi</div>'
-      // Tulotili rivi
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
-      + '<span style="font-size:11px;color:var(--text3);">Tulotili</span>'
-      + '<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili)+'</span>'
-      + '</div>'
-      // OP Gold rivi
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
-      + '<span style="font-size:11px;color:var(--text3);">OP Gold</span>'
-      + '<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold)+'</span>'
-      + '</div>'
-      // Viiva
-      + '<div style="height:1px;background:rgba(255,255,255,0.08);margin:6px 0;"></div>'
-      // Nettorytmi
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-      + '<span style="font-size:11px;font-weight:600;color:var(--text);">Nettorytmi</span>'
-      + '<span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text);">'+fmt(curNetto)+'</span>'
-      + '</div>'
-      // Baseline + poikkeama
-      + (baseline !== null ? (
-        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
-        + '<span style="font-size:10px;color:var(--text3);">Normaali (5 kk ka.)</span>'
-        + '<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+fmt(baseline)+'</span>'
-        + '</div>'
-        + '<div style="font-size:12px;font-weight:600;color:'+devColor+';">'+devLabel+'</div>'
-      ) : '')
-      + '</div>';
-  }
 
   // ── Rakenteellinen kuorma (lainat) ────────────
   var loanDefs = [
@@ -191,27 +146,18 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
 
   var totalTip = 'OP Gold (' + fmt(-creditDebt) + ') + Lainat (' + fmt(-ltDebt) + ')';
 
-  // Laske % muutos vs edellinen kuukausi — tuodaan ulkopuolelta jos saatavilla
-  var opGoldPct  = (typeof _opGoldPrevPct  !== 'undefined') ? _opGoldPrevPct  : null;
-  var lainatPct  = (typeof _lainatPrevPct  !== 'undefined') ? _lainatPrevPct  : null;
-
-  function pctBadge(pct, invert) {
-    if (pct === null) return '';
-    var good = invert ? pct <= 0 : pct >= 0;
-    var color = good ? 'var(--green)' : 'var(--red)';
-    return ' <span style="font-size:10px;color:'+color+';">'+(pct>=0?'+':'')+pct.toFixed(1)+'% vs ed. kk</span>';
-  }
+  // Velat-kortti = vain pitkät rakenteelliset velat, rauhallinen esitys
+  var lainatPct = (typeof _lainatPrevPct !== 'undefined') ? _lainatPrevPct : null;
+  var lainatBadge = lainatPct !== null
+    ? ' <span style="font-size:10px;color:'+(lainatPct<=0?'var(--green)':'var(--text3)')+';">'
+      +(lainatPct>=0?'+':'')+lainatPct.toFixed(1)+'% vs ed. kk</span>'
+    : '';
 
   return '<div class="card">'
-    + '<div class="card-label" style="color:var(--text3);">Velat</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
-    + '<span style="font-family:var(--mono);font-size:12px;color:var(--gold);">OP Gold</span>'
-    + '<span class="tip" style="font-family:var(--mono);font-size:14px;color:var(--gold);" data-tip="OP Gold luottokortin saldo">'
-    + fmt(-creditDebt) + pctBadge(opGoldPct, true) + '</span></div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-    + '<span style="font-family:var(--mono);font-size:12px;color:#6b7280;">Lainat</span>'
-    + '<span class="tip" style="font-family:var(--mono);font-size:14px;color:#6b7280;" data-tip="' + totalTip + '">'
-    + fmt(-ltDebt) + pctBadge(lainatPct, true) + '</span></div>'
+    + '<div class="card-label" style="color:var(--text3);letter-spacing:.06em;">Pitkät velat</div>'
+    + '<div style="font-family:var(--mono);font-size:26px;font-weight:700;color:#6b7280;margin-bottom:4px;">'
+    + fmt(-ltDebt) + lainatBadge + '</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:10px;">rakenteellinen infrastruktuuri</div>'
     + rytmiHTML
     + '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'
     + '<div style="font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">\u25fc Aikarakenne · lainat</div>'
@@ -660,9 +606,9 @@ async function renderDashboard() {
         return renderSitoumusCard(sig, latest, creditDebt, ltDebt);
       })()}
 
-      <!-- 3. KÄYTTÖTILIT -->
+      <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
       <div class="card kpi-compact">
-        <div class="card-label" style="color:var(--text3);">Käyttötilit</div>
+        <div class="card-label" style="color:var(--text3);">Käyttötilit &amp; rytmi</div>
         <div class="card-value" style="font-size:28px;color:var(--text2);">${fmt(cash)}</div>
         <div class="sub-rows">
           ${latest.tulotili !== undefined ? '<div class="sub-row"><span>Tulotili</span><span>' + fmt(latest.tulotili) + '</span></div>' : ''}
@@ -670,14 +616,41 @@ async function renderDashboard() {
           ${latest.tavoitetili !== undefined ? '<div class="sub-row"><span>Tavoitetili</span><span>' + fmt(latest.tavoitetili) + '</span></div>' : ''}
           ${latest.elatustili !== undefined ? '<div class="sub-row"><span>Elatustili</span><span>' + fmt(latest.elatustili) + '</span></div>' : ''}
         </div>
-        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
-          <div class="sub-row" style="font-size:11px;">
-            <span style="color:var(--text3);">Netto-likviditeetti</span>
-            <span class="tip" style="font-family:var(--mono);color:${trueLiquid >= 0 ? 'var(--green)' : 'var(--text2)'};"
-              data-tip="Tulotili − Luottokortit = netto-likviditeetti">${fmt(trueLiquid)}</span>
-          </div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px;">käteinen − luottokortit</div>
-        </div>
+        ${(()=>{
+          if (latest.op_gold === undefined) return '';
+          const opGold   = Math.abs(latest.op_gold ?? 0);
+          const tulotili = latest.tulotili ?? 0;
+          const nettorytmi = tulotili - opGold;
+          const tempo2 = sig && sig.tempo;
+          const baseline = tempo2 ? tempo2.paceAvg : null;
+          const devPct = (baseline && baseline !== 0)
+            ? Math.round(((nettorytmi - baseline) / Math.abs(baseline)) * 100) : null;
+          const devColor = devPct === null ? 'var(--text3)'
+            : devPct > 10 ? 'var(--green)' : devPct < -10 ? '#b8956a' : 'var(--text3)';
+          const devLabel = devPct === null ? ''
+            : devPct > 10 ? '+'+devPct+'% parempi kuin normaali'
+            : devPct < -10 ? Math.abs(devPct)+'% yli normaalin' : 'Normaali sykli';
+          return \`<div style="margin-top:10px;padding:10px 12px;border-radius:8px;
+            background:rgba(0,0,0,0.14);border-top:1px solid var(--border);">
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;
+              letter-spacing:.06em;margin-bottom:8px;">● Operatiivinen rytmi</div>
+            <div class="sub-row" style="font-size:12px;margin-bottom:4px;">
+              <span style="color:var(--text3);">OP Gold</span>
+              <span style="font-family:var(--mono);color:var(--gold);">\${fmt(-opGold)}</span>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,0.06);margin:6px 0;"></div>
+            <div class="sub-row" style="margin-bottom:4px;">
+              <span style="font-size:12px;font-weight:600;">Nettorytmi</span>
+              <span style="font-family:var(--mono);font-size:16px;font-weight:700;
+                color:\${nettorytmi >= 0 ? 'var(--green)' : 'var(--text2)'};">\${fmt(nettorytmi)}</span>
+            </div>
+            \${baseline !== null ? \`<div class="sub-row" style="font-size:10px;">
+              <span style="color:var(--text3);">Normaali (5kk ka.)</span>
+              <span style="font-family:var(--mono);color:var(--text3);">\${fmt(baseline)}</span>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:\${devColor};margin-top:4px;">\${devLabel}</div>\` : ''}
+          </div>\`;
+        })()}
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
@@ -3359,6 +3332,12 @@ function renderRightPanel(snaps, latest, calc) {
   function signCls(n) { return n==null?'':n>0?'pos':'neg'; }
   function signPfx(n) { return n>0?'+':''; }
 
+  // Kassavirta-ankkuri (tulot)
+  var tulot_kk = latest.tulot_kk ?? null;
+  var opGold_p = Math.abs(latest.op_gold ?? 0);
+  var tulotili_p = latest.tulotili ?? 0;
+  var nettorytmi_p = tulotili_p - opGold_p;
+
   var html = '';
 
   // Kuukausikatsaus
@@ -3400,6 +3379,26 @@ function renderRightPanel(snaps, latest, calc) {
     html += '<div class="loan-capacity">↑ Vapautuu yhteensä +' + totalMonthly.toLocaleString('fi-FI') + ' €/kk</div>';
     html += '</div>';
   }
+
+  // Kassavirta-ankkuri
+  html += '<div class="panel-section">';
+  html += '<div class="panel-label">Kassavirta-ankkuri</div>';
+  if (tulot_kk) {
+    html += '<div class="panel-row"><span class="panel-row-lbl">Tulot / kk</span>'
+      + '<span class="panel-row-val pos">+' + fmtP(tulot_kk) + '</span></div>';
+    html += '<div class="panel-row"><span class="panel-row-lbl">OP Gold</span>'
+      + '<span class="panel-row-val" style="color:var(--gold);">' + fmtP(-opGold_p) + '</span></div>';
+    html += '<div style="height:1px;background:var(--border);margin:6px 0;"></div>';
+    html += '<div class="panel-row"><span class="panel-row-lbl" style="font-weight:600;">Nettorytmi</span>'
+      + '<span class="panel-row-val ' + signCls(nettorytmi_p) + '">' + fmtP(nettorytmi_p) + '</span></div>';
+  } else {
+    html += '<div class="panel-row"><span class="panel-row-lbl">OP Gold</span>'
+      + '<span class="panel-row-val" style="color:var(--gold);">' + fmtP(-opGold_p) + '</span></div>';
+    html += '<div class="panel-row"><span class="panel-row-lbl">Nettorytmi</span>'
+      + '<span class="panel-row-val ' + signCls(nettorytmi_p) + '">' + fmtP(nettorytmi_p) + '</span></div>';
+    html += '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Lisää kuukausitulot +Päivitä-näkymässä tarkkaa kassavirta-analyysiä varten.</div>';
+  }
+  html += '</div>';
 
   // Broker-snapshot
   if (calc.brokers) {
