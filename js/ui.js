@@ -91,9 +91,9 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
   var nowYear = new Date().getFullYear();
 
   var loanDefs = [
-    Object.assign({ key:'asuntolaina',          label:'Asuntolaina'   }, _loanCfg('asuntolaina',          2029, 200)),
-    Object.assign({ key:'autolaina',            label:'Autolaina'     }, _loanCfg('autolaina',            2027, 255)),
-    Object.assign({ key:'asuntolaina_remontti', label:'Remonttilaina' }, _loanCfg('asuntolaina_remontti', 2026, 170)),
+    Object.assign({ key:'asuntolaina',          label:'As.laina'    }, _loanCfg('asuntolaina',          2029, 200)),
+    Object.assign({ key:'autolaina',            label:'Autolaina'   }, _loanCfg('autolaina',            2027, 255)),
+    Object.assign({ key:'asuntolaina_remontti', label:'As.remontti' }, _loanCfg('asuntolaina_remontti', 2026, 170)),
   ];
 
   // % muutos vs ed. kk
@@ -3590,7 +3590,7 @@ function renderRightPanel(snaps, latest, calc) {
       html += '<div class="loan-bar-track"><div class="loan-bar-fill'+(near?' near':'')+'" style="width:'+pct.toFixed(0)+'%"></div></div>';
       html += '</div>';
     });
-    html += '<div class="loan-capacity">↑ Vapautuu yhteensä +' + totalMonthly.toLocaleString('fi-FI') + ' €/kk</div>';
+    html += '<div class="loan-capacity">↑ Vapautuu yht. +' + totalMonthly.toLocaleString('fi-FI') + ' €/kk</div>';
     html += '</div>';
   }
 
