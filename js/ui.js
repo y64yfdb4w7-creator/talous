@@ -2870,6 +2870,157 @@ async function myyntiDelete(id) {
 // ═══════════════════════════════════════════════
 // SYÖTTÖNÄKYMÄ — kolmitasoinen snapshot-syöttö
 // ═══════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════════
+// KASSAVIRTA — dynaamiset tulot & operatiivinen rytmi
+// ══════════════════════════════════════════════════════════════════════
+
+const TULOT_TYYPIT = [
+  { value: 'palkka',    label: 'Palkka' },
+  { value: 'sivutyo',   label: 'Sivutyö' },
+  { value: 'elake',     label: 'Eläke' },
+  { value: 'osingot',   label: 'Osingot' },
+  { value: 'vuokra',    label: 'Vuokratulo' },
+  { value: 'freelance', label: 'Freelance' },
+  { value: 'muu',       label: 'Muu' },
+];
+
+// State — alustetaan latauksen yhteydessä
+if (!window._tulotItems) window._tulotItems = [];
+if (!window._rytmiItems) window._rytmiItems = [];
+
+function initKassavirtaState(latest) {
+  // Lataa tallennettu data tai tee esimerkkidata
+  window._tulotItems = (latest && latest.tulot_items && latest.tulot_items.length > 0)
+    ? JSON.parse(JSON.stringify(latest.tulot_items))
+    : [{ id: Date.now(), type: 'palkka', label: '', amount: '' }];
+  window._rytmiItems = (latest && latest.rytmi_items && latest.rytmi_items.length > 0)
+    ? JSON.parse(JSON.stringify(latest.rytmi_items))
+    : [];
+}
+
+function _typeOpts(sel) {
+  return TULOT_TYYPIT.map(t =>
+    '<option value="'+t.value+'"'+(t.value===sel?' selected':'')+'>'+t.label+'</option>'
+  ).join('');
+}
+
+function renderTulotItems() {
+  if (!window._tulotItems || !window._tulotItems.length) {
+    window._tulotItems = [{ id: Date.now(), type: 'palkka', label: '', amount: '' }];
+  }
+  return window._tulotItems.map(function(item, i) {
+    return '<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;'
+      +'align-items:center;margin-bottom:7px;">'
+      +'<select onchange="window._tulotItems['+i+'].type=this.value" '
+      +'style="font-size:12px;padding:5px 7px;background:var(--surface2);'
+      +'border:1px solid var(--border);border-radius:6px;color:var(--text2);">'
+      +_typeOpts(item.type)+'</select>'
+      +'<input type="text" value="'+(item.label||'')+'" placeholder="Nimi (vapaaehtoinen)"'
+      +' oninput="window._tulotItems['+i+'].label=this.value"'
+      +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
+      +'border-radius:6px;color:var(--text);font-size:14px;">'
+      +'<input type="number" value="'+(item.amount||'')+'" placeholder="0"'
+      +' oninput="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
+      +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
+      +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
+      +'font-family:var(--mono);font-size:16px;text-align:right;">'
+      +'<span style="font-size:11px;color:var(--text3);">€</span>'
+      +(window._tulotItems.length > 1
+        ? '<button onclick="removeTulotItem('+i+')" style="background:transparent;border:none;'
+          +'color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;">×</button>'
+        : '<span style="width:18px;"></span>')
+      +'</div>';
+  }).join('');
+}
+
+function renderRytmiItems() {
+  if (!window._rytmiItems || !window._rytmiItems.length) return '';
+  return window._rytmiItems.map(function(item, i) {
+    return '<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;'
+      +'align-items:center;margin-bottom:7px;">'
+      +'<input type="text" value="'+(item.label||'')+'" placeholder="Rakennerivi (OP Gold, puhelin…)"'
+      +' oninput="window._rytmiItems['+i+'].label=this.value"'
+      +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
+      +'border-radius:6px;color:var(--text);font-size:14px;">'
+      +'<input type="number" value="'+(item.amount||'')+'" placeholder="0"'
+      +' oninput="window._rytmiItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
+      +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
+      +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
+      +'font-family:var(--mono);font-size:16px;text-align:right;">'
+      +'<span style="font-size:11px;color:var(--text3);">€</span>'
+      +'<button onclick="removeRytmiItem('+i+')" style="background:transparent;border:none;'
+      +'color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;">×</button>'
+      +'</div>';
+  }).join('');
+}
+
+function renderRytmiYhteenveto() {
+  var tulot = (window._tulotItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+  var rytmi = (window._rytmiItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+  var netto  = tulot - rytmi;
+  if (!tulot && !rytmi) return '<div style="font-size:11px;color:var(--text3);">Lisää tuloja ja rakennerivejä nähdäksesi yhteenveto.</div>';
+  var parts = [];
+  if (tulot > 0) parts.push('<span style="color:var(--green);font-family:var(--mono);">+'
+    +tulot.toLocaleString("fi-FI")+'€</span> tulot');
+  if (rytmi > 0) parts.push('<span style="color:var(--red);font-family:var(--mono);">−'
+    +rytmi.toLocaleString("fi-FI")+'€</span> rakenteet');
+  var netColor = netto >= 0 ? "var(--green)" : "var(--red)";
+  return '<div style="font-size:12px;color:var(--text3);margin-bottom:6px;">'
+    +parts.join(' &nbsp;·&nbsp; ')+'</div>'
+    +'<div style="display:flex;justify-content:space-between;background:rgba(0,0,0,0.1);'
+    +'border-radius:7px;padding:7px 10px;">'
+    +'<span style="font-size:12px;font-weight:600;">Kassavirta-rytmi</span>'
+    +'<span style="font-family:var(--mono);font-size:15px;font-weight:700;color:'+netColor+';">'
+    +(netto>=0?"+":"")+netto.toLocaleString("fi-FI")+'€</span></div>';
+}
+
+function refreshRytmiYhteenveto() {
+  var el = document.getElementById("rytmi-yhteenveto");
+  if (el) el.innerHTML = renderRytmiYhteenveto();
+}
+
+function refreshTulotList() {
+  var el = document.getElementById("tulot-items-list");
+  if (el) el.innerHTML = renderTulotItems();
+  refreshRytmiYhteenveto();
+}
+
+function refreshRytmiList() {
+  var el = document.getElementById("rytmi-items-list");
+  if (el) el.innerHTML = renderRytmiItems();
+  refreshRytmiYhteenveto();
+}
+
+function addTulotItem() {
+  window._tulotItems.push({ id: Date.now(), type: 'palkka', label: '', amount: '' });
+  refreshTulotList();
+}
+
+function removeTulotItem(i) {
+  window._tulotItems.splice(i, 1);
+  refreshTulotList();
+}
+
+function addRytmiItem() {
+  window._rytmiItems.push({ id: Date.now(), label: '', amount: '' });
+  refreshRytmiList();
+}
+
+function removeRytmiItem(i) {
+  window._rytmiItems.splice(i, 1);
+  refreshRytmiList();
+}
+
+// Laske yhteistulot kassavirta-paneelia varten
+function getTulotYhteensa() {
+  return (window._tulotItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+}
+function getRytmiYhteensa() {
+  return (window._rytmiItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+}
+
+
 async function renderEntryView() {
   const el = document.getElementById('syota-content');
   if (!el) return;
@@ -2879,6 +3030,10 @@ async function renderEntryView() {
   const latest = snaps[0] || {};
   const today  = new Date().toISOString().slice(0,10);
   const todayFi = new Date().toLocaleDateString('fi-FI');
+  // Alusta kassavirta-state viimeisimmästä snapista
+  const _allSnapsForEntry = await DB.getAll('snapshots');
+  const _latestForEntry = _allSnapsForEntry.sort((a,b)=>b.date.localeCompare(a.date))[0] || {};
+  initKassavirtaState(_latestForEntry);
   const alreadySaved = snaps.length > 0 && snaps[0].date === today;
 
   function v(key, fallback) {
@@ -2895,49 +3050,65 @@ async function renderEntryView() {
     border:1px solid rgba(90,158,106,0.3);color:#5a9e6a;font-size:12px;margin-bottom:12px;">
     ✓ Tänään (${todayFi}) on jo tallennettu — päivittäminen korvaa vanhan snapshottia.</div>` : ''}
 
-  <!-- ── KASSAVIRTA (kuukauden rytmi) ── -->
+  <!-- ── KASSAVIRTA: TULOT (dynaamiset rivit) ── -->
   <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;">Kuukauden kassavirta — tulot &amp; menot</div>
+    margin-bottom:8px;">Kuukauden kassavirta</div>
 
+  <!-- TULOT -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
+    overflow:hidden;margin-bottom:10px;">
+    <div style="padding:8px 14px;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">
+        Tulot
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:10px;color:var(--text3);">Palkanmaksupäivä</span>
+        <input type="date" id="inp-tulot_pvm"
+          value="${v('tulot_pvm') || ''}"
+          style="font-family:var(--mono);font-size:12px;padding:3px 7px;
+          background:rgba(0,200,255,0.06);border:1px solid var(--border);
+          border-radius:6px;color:var(--text2);cursor:pointer;font-size:16px;"
+          onchange="window._entryKvPvm=this.value;">
+      </div>
+    </div>
+    <div id="tulot-items-list" style="padding:6px 14px 4px;">
+      ${renderTulotItems()}
+    </div>
+    <div style="padding:4px 14px 10px;">
+      <button onclick="addTulotItem()"
+        style="font-size:11px;padding:5px 12px;border-radius:6px;
+        background:transparent;border:1px dashed rgba(0,200,255,0.2);
+        color:var(--text3);cursor:pointer;width:100%;text-align:left;">
+        + Lisää tulolähde
+      </button>
+    </div>
+  </div>
+
+  <!-- OPERATIIVINEN RYTMI -->
   <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
     overflow:hidden;margin-bottom:16px;">
-    <div style="padding:8px 14px 6px;border-bottom:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Tulot</div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:10px;color:var(--text3);">Palkanmaksupäivä</span>
-          <input type="date" id="inp-tulot_pvm"
-            value="${v('tulot_pvm') || ''}"
-            style="font-family:var(--mono);font-size:13px;padding:4px 8px;
-            background:rgba(0,200,255,0.06);border:1px solid var(--border);
-            border-radius:6px;color:var(--text2);cursor:pointer;"
-            oninput="window._entryKvPvm=this.value;">
-        </div>
+    <div style="padding:8px 14px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">
+        Operatiivinen rytmi — jatkuvat rakenteet
       </div>
-      ${entryRow('Palkka / päätulot', 'tulot_kk', v('tulot_kk'), '€', 'kuukauden brutto tai netto')}
-      ${entryRow('Muut tulot', 'muut_tulot', v('muut_tulot'), '€', 'osingot, vuokrat, sivutulot')}
+      <div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic;">
+        OP Gold, pankkimaksut, puhelin, vakuutukset — ei yksittäisiä ostoksia
+      </div>
     </div>
-    <div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);">
-      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;
-        letter-spacing:.05em;margin-bottom:6px;">Menot (arvio)</div>
-      ${entryRow('Menot yhteensä', 'menot_kk', v('menot_kk'), '€', 'kuukauden kokonaismenot')}
+    <div id="rytmi-items-list" style="padding:6px 14px 4px;">
+      ${renderRytmiItems()}
     </div>
-    <div style="padding:8px 14px;" id="kassavirta-block">
-      ${(()=>{
-        var tulot = (parseFloat(v('tulot_kk'))||0) + (parseFloat(v('muut_tulot'))||0);
-        var menot = Math.abs(parseFloat(v('menot_kk'))||0);
-        var opGold2 = Math.abs(parseFloat(v('op_gold'))||0);
-        var tulotili2 = parseFloat(v('tulotili'))||0;
-        var nettorytmi2 = tulotili2 - opGold2;
-        if (!tulot && !menot) return '<div style="font-size:11px;color:var(--text3);padding:4px 0;">Syötä tulot nähdäksesi kassavirta-analyysi.</div>';
-        var virta = tulot - menot;
-        var virtaCls = virta >= 0 ? 'color:var(--green)' : 'color:var(--red)';
-        return '<div style="display:flex;gap:12px;flex-wrap:wrap;background:rgba(0,0,0,0.1);border-radius:7px;padding:8px 10px;">'
-          + (tulot > 0 ? '<div style="font-size:11px;"><span style="color:var(--text3);">Tulot </span><span style="font-family:var(--mono);color:var(--green);">+'+tulot.toLocaleString('fi-FI')+'€</span></div>' : '')
-          + (menot > 0 ? '<div style="font-size:11px;"><span style="color:var(--text3);">Menot </span><span style="font-family:var(--mono);color:var(--red);">−'+menot.toLocaleString('fi-FI')+'€</span></div>' : '')
-          + (tulot > 0 && menot > 0 ? '<div style="font-size:11px;font-weight:700;"><span style="color:var(--text3);">Jää </span><span style="font-family:var(--mono);'+virtaCls+';">'+(virta>=0?'+':'−')+Math.abs(virta).toLocaleString('fi-FI')+'€</span></div>' : '')
-          + '</div>';
-      })()}
+    <div style="padding:4px 14px 10px;">
+      <button onclick="addRytmiItem()"
+        style="font-size:11px;padding:5px 12px;border-radius:6px;
+        background:transparent;border:1px dashed rgba(0,200,255,0.2);
+        color:var(--text3);cursor:pointer;width:100%;text-align:left;">
+        + Lisää rakennerivi
+      </button>
+    </div>
+    <div style="padding:6px 14px 10px;border-top:1px solid var(--border);" id="rytmi-yhteenveto">
+      ${renderRytmiYhteenveto()}
     </div>
   </div>
 
@@ -3236,6 +3407,10 @@ async function saveEntrySnapshot() {
 
   const today = new Date().toISOString().slice(0,10);
   const todayFi = new Date().toLocaleDateString('fi-FI');
+  // Alusta kassavirta-state viimeisimmästä snapista
+  const _allSnapsForEntry = await DB.getAll('snapshots');
+  const _latestForEntry = _allSnapsForEntry.sort((a,b)=>b.date.localeCompare(a.date))[0] || {};
+  initKassavirtaState(_latestForEntry);
 
   // Hae aiempi snapshot tänään jotta saldot joita ei muutettu säilyvät
   const snaps = (await DB.getAll('snapshots')).sort((a,b) => b.date.localeCompare(a.date));
@@ -3264,11 +3439,12 @@ async function saveEntrySnapshot() {
     asuntolaina_remontti: remontti !== 0 ? remontti : (prev.asuntolaina_remontti || 0),
     // lasten
     lasten_sijoitus: prev.lasten_sijoitus || 0,
-    // kassavirta
-    tulot_kk:  val('tulot_kk')   || prev.tulot_kk   || null,
-    muut_tulot: val('muut_tulot') || prev.muut_tulot || null,
-    menot_kk:  val('menot_kk')   || prev.menot_kk   || null,
-    tulot_pvm: document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
+    // kassavirta — dynaamiset listat
+    tulot_items: (window._tulotItems||[]).filter(function(i){return parseFloat(i.amount)>0;}),
+    rytmi_items: (window._rytmiItems||[]).filter(function(i){return parseFloat(i.amount)>0;}),
+    tulot_kk:    getTulotYhteensa() || prev.tulot_kk || null,
+    menot_kk:    getRytmiYhteensa() || prev.menot_kk || null,
+    tulot_pvm:   document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
     nordnet_cash: val('nordnet_cash') || prev.nordnet_cash || null,
     note,
   };
@@ -3453,14 +3629,37 @@ function renderRightPanel(snaps, latest, calc) {
   html += '<div class="panel-section">';
   html += '<div class="panel-label">Kuukauden kassavirta</div>';
 
-  if (tulot_kk || menot_kk_p > 0) {
-    // Tulot-rivi
-    if (tulot_yht > 0) {
+  // Käytä tulot_items-listaa jos saatavilla
+  var tulot_items_p = latest.tulot_items || [];
+  var rytmi_items_p = latest.rytmi_items || [];
+
+  if (tulot_items_p.length > 0 || rytmi_items_p.length > 0 || tulot_kk || menot_kk_p > 0) {
+    // Tulot eriteltynä
+    if (tulot_items_p.length > 0) {
+      tulot_items_p.forEach(function(t) {
+        var amt = parseFloat(t.amount) || 0;
+        if (!amt) return;
+        var typeLabel = t.type === 'palkka' ? 'Palkka' : t.type === 'sivutyo' ? 'Sivutyö'
+          : t.type === 'elake' ? 'Eläke' : t.type === 'osingot' ? 'Osingot'
+          : t.type === 'vuokra' ? 'Vuokra' : t.type === 'freelance' ? 'Freelance' : 'Muu';
+        var label = t.label ? t.label : typeLabel;
+        html += '<div class="panel-row"><span class="panel-row-lbl" style="font-size:11px;">'
+          +label+'</span><span class="panel-row-val pos">+'+fmtP(amt)+'</span></div>';
+      });
+    } else if (tulot_yht > 0) {
       html += '<div class="panel-row"><span class="panel-row-lbl">Tulot</span>'
         + '<span class="panel-row-val pos">+' + fmtP(tulot_yht) + '</span></div>';
     }
-    // Menot-rivi
-    if (menot_kk_p > 0) {
+    // Rakenteet eriteltynä
+    if (rytmi_items_p.length > 0) {
+      html += '<div style="height:1px;background:var(--border);margin:5px 0;"></div>';
+      rytmi_items_p.forEach(function(r) {
+        var amt = parseFloat(r.amount) || 0;
+        if (!amt) return;
+        html += '<div class="panel-row"><span class="panel-row-lbl" style="font-size:11px;color:var(--text3);">'
+          +(r.label||'Rakennerivi')+'</span><span class="panel-row-val neg">−'+fmtP(amt)+'</span></div>';
+      });
+    } else if (menot_kk_p > 0) {
       html += '<div class="panel-row"><span class="panel-row-lbl">Menot</span>'
         + '<span class="panel-row-val neg">−' + fmtP(menot_kk_p) + '</span></div>';
     }
