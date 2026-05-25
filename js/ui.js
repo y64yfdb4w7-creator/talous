@@ -3196,7 +3196,7 @@ async function renderEntryView() {
   </div>
 
   <!-- ── TALLENNA ── -->
-  <button onclick="saveEntrySnapshot()" id="btn-entry-save"
+  <button onclick="collectKassavirtaBeforeSave();saveEntrySnapshot()" id="btn-entry-save"
     style="width:100%;padding:14px;border-radius:11px;font-size:15px;font-weight:700;
     background:linear-gradient(135deg,rgba(90,158,106,0.2),rgba(0,200,255,0.1));
     border:1px solid rgba(90,158,106,0.4);color:#5a9e6a;cursor:pointer;letter-spacing:.03em;">
@@ -3360,6 +3360,44 @@ function toggleKonteksti() {
   if (btn) btn.textContent = open ? '+ Lisää konteksti' : '− Sulje';
 }
 
+
+// Kerää kassavirta-arvot DOM:sta ennen snapshotin tallennusta
+function collectKassavirtaBeforeSave() {
+  var tulotItems = []; var i = 0;
+  while (true) {
+    var amtEl  = document.getElementById('tulot-amt-' + i);
+    if (!amtEl) break;
+    var typeEl = document.getElementById('tulot-type-' + i);
+    var lblEl  = document.getElementById('tulot-lbl-' + i);
+    var amt    = parseFloat(amtEl.value) || 0;
+    if (amt > 0) tulotItems.push({
+      type:   typeEl ? typeEl.value : 'palkka',
+      label:  lblEl  ? lblEl.value.trim() : '',
+      amount: amt
+    });
+    i++;
+  }
+  var rytmiItems = []; i = 0;
+  while (true) {
+    var amtEl = document.getElementById('rytmi-amt-' + i);
+    if (!amtEl) break;
+    var lblEl = document.getElementById('rytmi-lbl-' + i);
+    var amt   = parseFloat(amtEl.value) || 0;
+    if (amt > 0) rytmiItems.push({
+      label:  lblEl ? lblEl.value.trim() : '',
+      amount: amt
+    });
+    i++;
+  }
+  var pvmEl = document.getElementById('inp-tulot_pvm');
+  window._savedTulotItems = tulotItems;
+  window._savedRytmiItems = rytmiItems;
+  window._savedTulotKk    = tulotItems.reduce(function(s,t){return s+t.amount;}, 0) || null;
+  window._savedMenotKk    = rytmiItems.reduce(function(s,r){return s+r.amount;}, 0) || null;
+  window._savedTulotPvm   = pvmEl ? pvmEl.value : null;
+  console.log('Kassavirta kerätty:', JSON.stringify(window._savedTulotItems));
+}
+
 async function saveEntrySnapshot() {
   const btn = document.getElementById('btn-entry-save');
   const msg = document.getElementById('entry-msg');
@@ -3425,51 +3463,13 @@ async function saveEntrySnapshot() {
     asuntolaina_remontti: remontti !== 0 ? remontti : (prev.asuntolaina_remontti || 0),
     // lasten
     lasten_sijoitus: prev.lasten_sijoitus || 0,
-    // kassavirta — lue suoraan ID-pohjaisesti (varmin tapa)
-    tulot_items: (function() {
-      var items = []; var i = 0;
-      while (true) {
-        var amtEl  = document.getElementById('tulot-amt-'+i);
-        if (!amtEl) break;
-        var typeEl = document.getElementById('tulot-type-'+i);
-        var lblEl  = document.getElementById('tulot-lbl-'+i);
-        var amt    = parseFloat(amtEl.value) || 0;
-        if (amt > 0) items.push({
-          type:   typeEl ? typeEl.value : 'palkka',
-          label:  lblEl  ? lblEl.value  : '',
-          amount: amt
-        });
-        i++;
-      }
-      return items;
-    })(),
-    rytmi_items: (function() {
-      var items = []; var i = 0;
-      while (true) {
-        var amtEl = document.getElementById('rytmi-amt-'+i);
-        if (!amtEl) break;
-        var lblEl = document.getElementById('rytmi-lbl-'+i);
-        var amt   = parseFloat(amtEl.value) || 0;
-        if (amt > 0) items.push({
-          label:  lblEl ? lblEl.value : '',
-          amount: amt
-        });
-        i++;
-      }
-      return items;
-    })(),
-    tulot_kk: (function() {
-      var total = 0; var i = 0;
-      while (true) {
-        var el = document.getElementById('tulot-amt-'+i);
-        if (!el) break;
-        total += parseFloat(el.value) || 0;
-        i++;
-      }
-      return total > 0 ? total : (prev.tulot_kk || null);
-    })(),
+    // kassavirta — käytetään collectKassavirtaBeforeSave()-funktionkeräimiä
+    tulot_items: window._savedTulotItems || prev.tulot_items || [],
+    rytmi_items: window._savedRytmiItems || prev.rytmi_items || [],
+    tulot_kk:    window._savedTulotKk    || prev.tulot_kk    || null,
+    menot_kk:    window._savedMenotKk    || prev.menot_kk    || null,
     menot_kk:    getRytmiYhteensa() || prev.menot_kk || null,
-    tulot_pvm:   document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
+    tulot_pvm:   window._savedTulotPvm || document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
     nordnet_cash: val('nordnet_cash') || prev.nordnet_cash || null,
     note,
   };
