@@ -28,24 +28,31 @@ function dcls(n) {
 // CALCULATION ENGINE  v1  (assets − liabilities)
 // ═══════════════════════════════════════════════
 function calculateNetWorth(snap) {
-  // Assets
-  const investments =
-    (snap.nordnet          ?? 0) +
-    (snap.op_osakkeet      ?? 0) +
-    (snap.tapiola          ?? 0) +
-    (snap.s_sijoitus       ?? 0) +
-    (snap.rahastot         ?? 0) +
-    0; // lasten_sijoitus excluded — tracked separately
+  // ── Broker-tason rakenne ─────────────────────────────────
+  // Nordnet: sijoitukset + erillinen käteinen (nordnet_cash)
+  const nordnetInv   = snap.nordnet       ?? 0;
+  const nordnetCash  = snap.nordnet_cash  ?? 0;   // uusi kenttä
+  const nordnetTotal = nordnetInv + nordnetCash;
+
+  // OP: sijoitukset (ei erillistä käteistä toistaiseksi)
+  const opInv        = snap.op_osakkeet   ?? 0;
+
+  // S-Pankki / Tapiola: sijoitukset
+  const spankki_inv  = (snap.tapiola ?? 0) + (snap.s_sijoitus ?? 0) + (snap.rahastot ?? 0);
+
+  // ── Aggregaatit ──────────────────────────────────────────
+  const investments = nordnetInv + opInv + spankki_inv;
+  const brokerCash  = nordnetCash;   // laajennettavissa myöhemmin
 
   const cash =
-    (snap.tulotili   ?? 0) +
-    (snap.s_pankki   ?? 0) +
+    (snap.tulotili    ?? 0) +
+    (snap.s_pankki    ?? 0) +
     (snap.tavoitetili ?? 0) +
     (snap.elatustili  ?? 0);
 
-  const assets = investments + cash;
+  const assets = investments + brokerCash + cash;
 
-  // Short-term liabilities (credit cards, monthly cycle)
+  // Short-term liabilities
   const shortTermDebt = Math.abs(
     (snap.op_gold    ?? 0) +
     (snap.visa       ?? 0) +
@@ -63,6 +70,7 @@ function calculateNetWorth(snap) {
   const liabilities = shortTermDebt + longTermDebt;
 
   return {
+    // Aggregaatit (taaksepäin yhteensopivat)
     investments,
     cash,
     assets,
@@ -70,6 +78,13 @@ function calculateNetWorth(snap) {
     longTermDebt,
     liabilities,
     netWorth: assets - liabilities,
+    // Broker-taso (uusi — UI käyttää tarvittaessa)
+    brokers: {
+      nordnet: { investments: nordnetInv, cash: nordnetCash, total: nordnetTotal },
+      op:      { investments: opInv,      cash: 0,           total: opInv },
+      spankki: { investments: spankki_inv,cash: 0,           total: spankki_inv },
+    },
+    brokerCash,
   };
 }
 

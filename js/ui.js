@@ -273,7 +273,38 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
   const stDebtMobile = calc.shortTermDebt;
 
   var grid = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">'
-    + tile('Sijoitukset', _fK(inv), 'Nordnet + OP')
+    + (function() {
+      const bk = calc.brokers || {};
+      const nn  = (bk.nordnet?.total  ?? latest.nordnet    ?? 0);
+      const op  = (bk.op?.total       ?? latest.op_osakkeet?? 0);
+      const sp  = (bk.spankki?.total  ?? latest.tapiola    ?? 0);
+      const nnC = bk.nordnet?.cash ?? 0;
+      // Broker-rivit: näytä jos arvo > 0
+      var brokerRows = '';
+      if (nn > 0) brokerRows += '<div style="display:flex;justify-content:space-between;'
+        +'align-items:baseline;margin-top:4px;">'
+        +'<span style="font-size:10px;color:var(--text3);">Nordnet</span>'
+        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text2);">'
+        +_fK(nn)+(nnC>0?'<span style="font-size:9px;color:var(--text3);margin-left:3px;">+'
+        +_fK(nnC)+' kät.</span>':'')+'</span></div>';
+      if (op > 0) brokerRows += '<div style="display:flex;justify-content:space-between;'
+        +'align-items:baseline;margin-top:2px;">'
+        +'<span style="font-size:10px;color:var(--text3);">OP</span>'
+        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text2);">'
+        +_fK(op)+'</span></div>';
+      if (sp > 0) brokerRows += '<div style="display:flex;justify-content:space-between;'
+        +'align-items:baseline;margin-top:2px;">'
+        +'<span style="font-size:10px;color:var(--text3);">S-Pankki</span>'
+        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text2);">'
+        +_fK(sp)+'</span></div>';
+      return '<div style="background:var(--surface);border:1px solid var(--border);'
+        +'border-radius:10px;padding:10px 11px;min-width:0;overflow:hidden;">'
+        +'<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;'
+        +'text-transform:uppercase;margin-bottom:4px;">Sijoitukset</div>'
+        +'<div style="font-family:var(--mono);font-size:18px;font-weight:700;'
+        +'color:var(--text);line-height:1.1;">'+_fK(inv)+'</div>'
+        +brokerRows+'</div>';
+    })()
     + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 11px;min-width:0;overflow:hidden;">'
     + '<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">Velat</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
@@ -1564,6 +1595,7 @@ async function saveDayFromHoldings() {
     elatustili:           latest?.elatustili,
     tavoitetili:          latest?.tavoitetili,
     s_pankki:             latest?.s_pankki,
+    nordnet_cash:         latest?.nordnet_cash,
     op_gold:              latest?.op_gold,
     visa:                 latest?.visa,
     luottotili:           latest?.luottotili,
@@ -1585,7 +1617,7 @@ async function saveDayFromHoldings() {
 
   // Compute osakkeet_yht
   snap.osakkeet_yht = Object.entries(acctTotals)
-    .filter(([k]) => ['nordnet','op_osakkeet','tapiola','s_sijoitus','rahastot','lasten_sijoitus'].includes(k))
+    .filter(([k]) => ['nordnet','nordnet_cash','op_osakkeet','tapiola','s_sijoitus','rahastot','lasten_sijoitus'].includes(k))
     .reduce((s, [,v]) => s + v, 0);
 
   await DB.putSnapshot(snap);
@@ -2909,7 +2941,8 @@ async function renderEntryView() {
   <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
     overflow:hidden;margin-bottom:12px;">
     <div style="padding:8px 14px 4px;">
-      ${entryRow('Nordnet', 'nordnet', v('nordnet'), '€')}
+      ${entryRow('Nordnet (sijoitukset)', 'nordnet', v('nordnet'), '€')}
+      ${entryRow('Nordnet käteinen', 'nordnet_cash', v('nordnet_cash'), '€', 'odottaa sijoittamista')}
       ${entryRow('OP Osakkeet', 'op_osakkeet', v('op_osakkeet'), '€')}
       ${entryRow('Tapiola / S-sijoitus', 'tapiola', v('tapiola'), '€')}
     </div>
