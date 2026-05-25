@@ -1,8 +1,7 @@
-// Finance OS — Service Worker v23
+// Finance OS — Service Worker v24
 // Passiivinen: ei välimuistia, kaikki suoraan verkosta
-// Tämä purkaa vanhan cachen ja poistuu tieltä
 
-const CACHE_NAME = 'finance-os-v23';
+const CACHE_NAME = 'finance-os-v24';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
@@ -16,8 +15,28 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Kaikki pyynnöt suoraan verkosta — ei välimuistia
+// Kaikki pyynnöt suoraan verkosta — ei välimuistia, pakota tuore versio
 self.addEventListener('fetch', event => {
+  // JS-tiedostot: aina verkosta, ei HTTP-välimuistia
+  const url = event.request.url;
+  const isScript = url.includes('/js/') && url.endsWith('.js');
+  const isHtml   = url.endsWith('/talous/') || url.endsWith('/talous/index.html');
+
+  if (isScript || isHtml) {
+    const req = new Request(event.request.url, {
+      method: event.request.method,
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+      mode: 'cors',
+      credentials: event.request.credentials,
+    });
+    event.respondWith(
+      fetch(req).catch(() =>
+        new Response('Offline — avaa verkkoyhteydellä', { status: 503 })
+      )
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request).catch(() =>
       new Response('Offline — avaa verkkoyhteydellä', { status: 503 })
