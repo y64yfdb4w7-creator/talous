@@ -136,13 +136,17 @@ async function refreshAndFreeze() {
     return;
   }
 
-  const btn   = document.getElementById('btn-freeze-nav');
-  const icon  = document.getElementById('btn-freeze-icon-nav');
-  const label = null;  // ei erillistä label-elementtiä
-  const status = document.getElementById('freeze-status');
+  const btn        = document.getElementById('btn-freeze-nav');
+  const btnFloat   = document.getElementById('btn-freeze-float');
+  const icon       = document.getElementById('btn-freeze-icon-nav');
+  const iconFloat  = document.getElementById('btn-freeze-icon-float');
+  const label      = null;
+  const status     = document.getElementById('freeze-status');
 
-  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
-  if (icon)  icon.textContent = '⟳';
+  if (btn)       { btn.disabled = true; btn.style.opacity = '0.5'; }
+  if (btnFloat)  { btnFloat.disabled = true; btnFloat.style.opacity = '0.7'; }
+  if (icon)       icon.textContent = '⟳';
+  if (iconFloat)  iconFloat.textContent = '⟳';
 
   try {
     // Vaihe 1: Hae kurssit
@@ -153,8 +157,10 @@ async function refreshAndFreeze() {
     // Vaihe 2: Laske ja jäädytä snapshot
     const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false && h.last_price);
     if (holdings.length === 0) {
-      if (icon)  icon.textContent = '↻';
-      if (btn)   { btn.disabled = false; btn.style.opacity = ''; }
+      if (icon)       icon.textContent = '↻';
+      if (iconFloat)  iconFloat.textContent = '↻';
+      if (btn)       { btn.disabled = false; btn.style.opacity = ''; }
+      if (btnFloat)  { btnFloat.disabled = false; btnFloat.style.opacity = ''; }
       if (status) {
         status.style.display = 'block';
         status.style.background = 'rgba(192,90,90,.08)';
@@ -226,14 +232,18 @@ async function refreshAndFreeze() {
     }
 
     setTimeout(() => {
-      if (icon)  icon.textContent = '↻';
-      if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+      if (icon)       icon.textContent = '↻';
+      if (iconFloat)  iconFloat.textContent = '↻';
+      if (btn)       { btn.disabled = false; btn.style.opacity = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+      if (btnFloat)  { btnFloat.disabled = false; btnFloat.style.opacity = ''; }
       renderDashboard();
     }, 2500);
 
   } catch(e) {
-    if (icon)  icon.textContent = '↻';
-    if (btn)   { btn.disabled = false; btn.style.opacity = ''; }
+    if (icon)       icon.textContent = '↻';
+    if (iconFloat)  iconFloat.textContent = '↻';
+    if (btn)       { btn.disabled = false; btn.style.opacity = ''; }
+    if (btnFloat)  { btnFloat.disabled = false; btnFloat.style.opacity = ''; }
     alert('Virhe: ' + e.message);
   }
 }

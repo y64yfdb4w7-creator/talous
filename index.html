@@ -115,6 +115,16 @@
       flex-shrink: 0;
     }
 
+
+    /* ── PÄIVITÄ-NAPPI: desktop vasemmalla, mobile kelluva ── */
+    @media (max-width: 580px) {
+      .btn-freeze-nav-el { display: none !important; }
+      #btn-freeze-float  { display: flex !important; }
+    }
+    @media (min-width: 581px) {
+      #btn-freeze-float  { display: none !important; }
+    }
+
     /* ── VIEWS ── */
     .view {
       display: none;
@@ -700,6 +710,15 @@
 <!-- NAV -->
 <nav id="nav">
   <span class="nav-logo">Finance OS</span>
+  <button id="btn-freeze-nav" onclick="refreshAndFreeze()" title="Päivitä kurssit &amp; tallenna snapshot"
+    class="btn-freeze-nav-el"
+    style="margin-left:4px;padding:6px 14px;font-size:13px;font-weight:700;
+           background:rgba(90,158,106,0.15);border:1px solid rgba(90,158,106,0.4);
+           border-radius:8px;color:#5a9e6a;cursor:pointer;transition:all .2s;
+           display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;">
+    <span id="btn-freeze-icon-nav" style="font-size:15px;">↻</span>
+    <span style="font-size:12px;letter-spacing:.04em;">Päivitä</span>
+  </button>
   <button class="nav-btn" id="btn-syota" onclick="showView('syota')" style="font-weight:600;color:var(--gold);">+ Päivitä</button>
   <button class="nav-btn" id="btn-dashboard" onclick="showView('dashboard')">Dashboard</button>
   <button class="nav-btn" id="btn-salkku" onclick="showView('salkku')">Salkku</button>
@@ -710,14 +729,7 @@
   <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
   <span class="nav-count" id="nav-count"></span>
-  <button id="btn-freeze-nav" onclick="refreshAndFreeze()" title="Päivitä kurssit &amp; tallenna snapshot"
-    style="margin-left:8px;padding:6px 14px;font-size:13px;font-weight:700;
-           background:rgba(90,158,106,0.15);border:1px solid rgba(90,158,106,0.4);
-           border-radius:8px;color:#5a9e6a;cursor:pointer;transition:all .2s;
-           display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;">
-    <span id="btn-freeze-icon-nav" style="font-size:15px;">↻</span>
-    <span style="font-size:12px;letter-spacing:.04em;">Päivitä</span>
-  </button>
+
   <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:4px;">↑ Tuo data</button>
   <button class="nav-btn" onclick="toggleSettings()" style="margin-left:4px;" title="Asetukset">⚙</button>
 </nav>
@@ -1028,5 +1040,18 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
+
+<!-- Kelluva Päivitä-nappi mobiilille -->
+<button id="btn-freeze-float"
+  onclick="refreshAndFreeze()"
+  style="display:none;position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));
+    right:20px;z-index:200;padding:14px 20px;font-size:15px;font-weight:700;
+    background:#5a9e6a;border:none;border-radius:50px;color:#fff;
+    cursor:pointer;box-shadow:0 4px 20px rgba(90,158,106,0.5);
+    align-items:center;gap:8px;white-space:nowrap;
+    transition:transform .15s,box-shadow .15s;">
+  <span id="btn-freeze-icon-float" style="font-size:18px;line-height:1">↻</span>
+  <span>Päivitä</span>
+</button>
 </body>
 </html>
