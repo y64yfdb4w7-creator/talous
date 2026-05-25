@@ -3740,7 +3740,7 @@ async function updateRightPanel() {
   try {
     const snaps  = (await DB.getAll('snapshots')).sort((a,b)=>a.date.localeCompare(b.date));
     if (!snaps.length) return;
-    const latest = snaps[0];  // uusin ensin
+    const latest = snaps[snaps.length - 1];  // nouseva järjestys → viimeinen = uusin
     const calc   = calculateNetWorth(latest);
     // runway from signals if available
     if (window._lastSig) calc.runway = window._lastSig.runway?.months ?? null;
