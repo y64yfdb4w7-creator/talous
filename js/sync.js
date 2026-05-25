@@ -172,6 +172,10 @@ async function refreshAndFreeze() {
       acctTotals[h.account] = (acctTotals[h.account] || 0) + val;
     }
 
+    // Hae ensin Supabasesta — varmistaa että carry-forward käyttää
+    // uusinta dataa (esim. iPhonella päivitetty tulotili tulee mukaan)
+    await syncFromSupabase().catch(() => {});
+
     // Hae viimeisin snapshot baseline-arvoksi (tilit, lainat)
     const allSnaps = (await DB.getAll('snapshots')).sort((a,b)=>a.date.localeCompare(b.date));
     const latest   = allSnaps[allSnaps.length - 1];
