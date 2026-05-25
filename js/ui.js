@@ -3022,7 +3022,7 @@ function entryRow(label, id, val, unit, sub) {
       <input id="inp-${id}" type="number" value="${display}" placeholder="0"
         style="width:110px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
         background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
-        font-size:14px;text-align:right;display:none;"
+        font-size:16px;text-align:right;display:none;"
         onblur="entryDeactivate(this,'${id}')" oninput="updateEntryDerived()">
       <span style="font-size:12px;color:var(--text3);">${unit}</span>
     </div>
@@ -3055,7 +3055,7 @@ function entryLoan(label, id, val, endsYear, monthly) {
         <input id="inp-${id}" type="number" value="${display}" placeholder="0"
           style="width:100px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
           background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
-          font-size:14px;text-align:right;display:none;"
+          font-size:16px;text-align:right;display:none;"
           onblur="entryDeactivate(this,'${id}')" oninput="updateEntryDerived()">
         <span style="font-size:12px;color:var(--text3);">€</span>
       </div>
@@ -3064,13 +3064,13 @@ function entryLoan(label, id, val, endsYear, monthly) {
       <span style="font-size:10px;color:${yClr};white-space:nowrap;">→ päättyy</span>
       <input type="number" value="${ey}" min="2024" max="2060" step="1"
         style="width:68px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;
-        background:rgba(0,200,255,0.04);color:${yClr};font-family:var(--mono);font-size:12px;text-align:center;"
+        background:rgba(0,200,255,0.04);color:${yClr};font-family:var(--mono);font-size:16px;text-align:center;"
         onchange="saveLoanCfg('${id}','endsYear',parseInt(this.value));this.style.color='#5a9e6a'">
       <span style="font-size:10px;color:var(--text3);margin-left:4px;">lyhennys</span>
       <div style="display:flex;align-items:center;gap:3px;">
         <input type="number" value="${mon}" min="0" step="10"
           style="width:68px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;
-          background:rgba(0,200,255,0.04);color:#5a9e6a;font-family:var(--mono);font-size:12px;text-align:right;"
+          background:rgba(0,200,255,0.04);color:#5a9e6a;font-family:var(--mono);font-size:16px;text-align:right;"
           onchange="saveLoanCfg('${id}','monthly',parseInt(this.value))">
         <span style="font-size:10px;color:var(--text3);">€/kk</span>
       </div>
@@ -3237,10 +3237,7 @@ async function saveEntrySnapshot() {
 
   // Päivitä dashboard
   await updateNavCount();
-  setTimeout(async () => {
-    showView('dashboard');
-    await renderDashboard();
-  }, 800);
+  setTimeout(() => showView('dashboard'), 800);
 }
 
 // Tallenna lainan konfiguraatio localStorageen
