@@ -2885,16 +2885,15 @@ function renderTulotItems() {
   return window._tulotItems.map(function(item, i) {
     return '<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;'
       +'align-items:center;margin-bottom:7px;">'
-      +'<select onchange="window._tulotItems['+i+'].type=this.value" '
+      +'<select id="tulot-type-'+i+'" '
       +'style="font-size:12px;padding:5px 7px;background:var(--surface2);'
       +'border:1px solid var(--border);border-radius:6px;color:var(--text2);">'
       +_typeOpts(item.type)+'</select>'
-      +'<input type="text" value="'+(item.label||'')+'" placeholder="Nimi (vapaaehtoinen)"'
-      +' oninput="window._tulotItems['+i+'].label=this.value"'
+      +'<input type="text" id="tulot-lbl-'+i+'" value="'+(item.label||'')+'" placeholder="Nimi (vapaaehtoinen)"'
       +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
       +'border-radius:6px;color:var(--text);font-size:14px;">'
-      +'<input type="number" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
-      +' oninput="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
+      +'<input type="number" id="tulot-amt-'+i+'" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
+      +' onchange="refreshRytmiYhteenveto()" oninput="refreshRytmiYhteenveto()"'
       +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
       +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
       +'font-family:var(--mono);font-size:16px;text-align:right;">'
@@ -2912,12 +2911,11 @@ function renderRytmiItems() {
   return window._rytmiItems.map(function(item, i) {
     return '<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;'
       +'align-items:center;margin-bottom:7px;">'
-      +'<input type="text" value="'+(item.label||'')+'" placeholder="Rakennerivi (OP Gold, puhelin…)"'
-      +' oninput="window._rytmiItems['+i+'].label=this.value"'
+      +'<input type="text" id="rytmi-lbl-'+i+'" value="'+(item.label||'')+'" placeholder="OP Gold, puhelin…"'
       +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
       +'border-radius:6px;color:var(--text);font-size:14px;">'
-      +'<input type="number" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
-      +' oninput="window._rytmiItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
+      +'<input type="number" id="rytmi-amt-'+i+'" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
+      +' onchange="refreshRytmiYhteenveto()" oninput="refreshRytmiYhteenveto()"'
       +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
       +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
       +'font-family:var(--mono);font-size:16px;text-align:right;">'
@@ -3420,48 +3418,48 @@ async function saveEntrySnapshot() {
     asuntolaina_remontti: remontti !== 0 ? remontti : (prev.asuntolaina_remontti || 0),
     // lasten
     lasten_sijoitus: prev.lasten_sijoitus || 0,
-    // kassavirta — lue arvot suoraan DOM:sta (luotettavampi kuin state)
+    // kassavirta — lue suoraan ID-pohjaisesti (varmin tapa)
     tulot_items: (function() {
-      var items = [];
-      var list = document.getElementById('tulot-items-list');
-      if (!list) return (window._tulotItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
-      var rows = list.querySelectorAll('div[style*="display:flex"]');
-      // Fallback: käytä _tulotItems statea jos DOM ei löydy
-      if (!rows || rows.length === 0) return (window._tulotItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
-      (window._tulotItems||[]).forEach(function(item, i) {
-        // Lue amount suoraan input-kentästä
-        var inputs = list.querySelectorAll('input[type="number"]');
-        var selects = list.querySelectorAll('select');
-        var textInputs = list.querySelectorAll('input[type="text"]');
-        var amt = inputs[i] ? parseFloat(inputs[i].value) : parseFloat(item.amount);
-        var type = selects[i] ? selects[i].value : (item.type || 'palkka');
-        var label = textInputs[i] ? textInputs[i].value : (item.label || '');
-        if (amt > 0) items.push({ type: type, label: label, amount: amt });
-      });
-      return items.length > 0 ? items : (window._tulotItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
+      var items = []; var i = 0;
+      while (true) {
+        var amtEl  = document.getElementById('tulot-amt-'+i);
+        if (!amtEl) break;
+        var typeEl = document.getElementById('tulot-type-'+i);
+        var lblEl  = document.getElementById('tulot-lbl-'+i);
+        var amt    = parseFloat(amtEl.value) || 0;
+        if (amt > 0) items.push({
+          type:   typeEl ? typeEl.value : 'palkka',
+          label:  lblEl  ? lblEl.value  : '',
+          amount: amt
+        });
+        i++;
+      }
+      return items;
     })(),
     rytmi_items: (function() {
-      var items = [];
-      var list = document.getElementById('rytmi-items-list');
-      if (!list) return (window._rytmiItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
-      (window._rytmiItems||[]).forEach(function(item, i) {
-        var inputs = list.querySelectorAll('input[type="number"]');
-        var textInputs = list.querySelectorAll('input[type="text"]');
-        var amt = inputs[i] ? parseFloat(inputs[i].value) : parseFloat(item.amount);
-        var label = textInputs[i] ? textInputs[i].value : (item.label || '');
-        if (amt > 0) items.push({ label: label, amount: amt });
-      });
-      return items.length > 0 ? items : (window._rytmiItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
+      var items = []; var i = 0;
+      while (true) {
+        var amtEl = document.getElementById('rytmi-amt-'+i);
+        if (!amtEl) break;
+        var lblEl = document.getElementById('rytmi-lbl-'+i);
+        var amt   = parseFloat(amtEl.value) || 0;
+        if (amt > 0) items.push({
+          label:  lblEl ? lblEl.value : '',
+          amount: amt
+        });
+        i++;
+      }
+      return items;
     })(),
     tulot_kk: (function() {
-      var list = document.getElementById('tulot-items-list');
-      if (list) {
-        var inputs = list.querySelectorAll('input[type="number"]');
-        var total = 0;
-        inputs.forEach(function(inp) { total += parseFloat(inp.value)||0; });
-        if (total > 0) return total;
+      var total = 0; var i = 0;
+      while (true) {
+        var el = document.getElementById('tulot-amt-'+i);
+        if (!el) break;
+        total += parseFloat(el.value) || 0;
+        i++;
       }
-      return getTulotYhteensa() || prev.tulot_kk || null;
+      return total > 0 ? total : (prev.tulot_kk || null);
     })(),
     menot_kk:    getRytmiYhteensa() || prev.menot_kk || null,
     tulot_pvm:   document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
