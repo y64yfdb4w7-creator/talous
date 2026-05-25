@@ -287,7 +287,7 @@
     }
     .kpi-grid {
       display: grid;
-      grid-template-columns: 2fr 2fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
       margin-bottom: 28px;
       align-items: start;
@@ -693,207 +693,11 @@
     .compare-val { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--text); }
     .compare-delta { font-family: var(--mono); font-size: 12px; margin-top: 2px; }
 
-
-    /* ══ DESKTOP 3-KOLUMNI LAYOUT ══════════════════════════════════════════ */
-    #os-layout {
-      display: block;   /* mobile default */
-    }
-    #os-sidebar { display: none; }
-    #os-panel   { display: none; }
-
-    @media (min-width: 900px) {
-      #nav { display: none; }   /* piilota mobiili-nav desktopissa */
-      #btn-freeze-float { display: none !important; }
-
-      #os-layout {
-        display: grid;
-        grid-template-columns: 210px 1fr 260px;
-        grid-template-rows: 100vh;
-        overflow: hidden;
-      }
-
-      #os-sidebar {
-        display: flex;
-        flex-direction: column;
-        background: var(--surface);
-        border-right: 1px solid var(--border);
-        overflow-y: auto;
-        position: sticky;
-        top: 0;
-        height: 100vh;
-        flex-shrink: 0;
-      }
-
-      #os-main {
-        overflow-y: auto;
-        height: 100vh;
-      }
-
-      #os-panel {
-        display: block;
-        background: var(--surface);
-        border-left: 1px solid var(--border);
-        overflow-y: auto;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-      }
-
-      .view {
-        max-width: none;
-        padding: 28px 32px;
-      }
-    }
-
-    /* ── SIDEBAR STYLES ──────────────────────────────────────────────────── */
-    .sb-logo {
-      padding: 20px 20px 12px;
-      font-family: var(--sans);
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: var(--gold);
-    }
-
-    .sb-section-label {
-      padding: 12px 20px 4px;
-      font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--text3);
-    }
-
-    .sb-btn {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      width: calc(100% - 16px);
-      margin: 1px 8px;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 7px;
-      background: transparent;
-      color: var(--text3);
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: left;
-      transition: background .12s, color .12s;
-    }
-    .sb-btn:hover { background: var(--surface2); color: var(--text2); }
-    .sb-btn.active { background: var(--surface2); color: var(--text); }
-    .sb-btn.active .sb-icon { color: var(--gold); }
-    .sb-icon { font-size: 14px; flex-shrink: 0; width: 16px; text-align: center; }
-
-    .sb-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 10px 16px;
-    }
-
-    .sb-freeze {
-      margin: 8px;
-      padding: 9px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(90,158,106,0.4);
-      background: rgba(90,158,106,0.1);
-      color: #6ab87a;
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      transition: all .15s;
-    }
-    .sb-freeze:hover { background: rgba(90,158,106,0.18); }
-
-    .sb-meta {
-      padding: 16px 20px;
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text3);
-      margin-top: auto;
-      border-top: 1px solid var(--border);
-      line-height: 1.8;
-    }
-
-    /* ── OIKEA PANEELI ───────────────────────────────────────────────────── */
-    #os-panel {
-      padding: 0;
-    }
-    .panel-section {
-      padding: 20px 18px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .panel-section:last-child { border-bottom: none; }
-    .panel-label {
-      font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--text3);
-      margin-bottom: 12px;
-    }
-    .panel-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 7px;
-      font-size: 12px;
-    }
-    .panel-row-lbl { color: var(--text3); }
-    .panel-row-val { font-family: var(--mono); font-weight: 700; color: var(--text2); }
-    .panel-row-val.pos { color: var(--green); }
-    .panel-row-val.neg { color: var(--red); }
-    .panel-month-title {
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 14px;
-    }
-    .loan-bar-wrap { margin-bottom: 10px; }
-    .loan-bar-hdr {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      margin-bottom: 4px;
-    }
-    .loan-bar-name { color: var(--text2); }
-    .loan-bar-year { font-family: var(--mono); color: var(--text3); font-size: 10px; }
-    .loan-bar-track {
-      height: 3px;
-      background: var(--surface2);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .loan-bar-fill {
-      height: 100%;
-      border-radius: 2px;
-      background: var(--text3);
-    }
-    .loan-bar-fill.near { background: var(--gold); }
-    .loan-capacity {
-      margin-top: 10px;
-      padding: 8px 10px;
-      background: rgba(106,184,122,0.08);
-      border: 1px solid rgba(106,184,122,0.2);
-      border-radius: 7px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--green);
-    }
-
     </style>
 </head>
 <body>
 
-<!-- MOBIILI NAV -->
+<!-- NAV -->
 <nav id="nav">
   <span class="nav-logo">Finance OS</span>
   <button class="nav-btn" id="btn-syota" onclick="showView('syota')" style="font-weight:600;color:var(--gold);">+ Päivitä</button>
@@ -901,7 +705,7 @@
   <button class="nav-btn" id="btn-salkku" onclick="showView('salkku')">Salkku</button>
   <button class="nav-btn" id="btn-likviditeetti" onclick="showView('likviditeetti')">Kassavirta</button>
   <button class="nav-btn" id="btn-historia" onclick="showView('historia')">Historia</button>
-  <button class="nav-btn" id="btn-ledger" onclick="showView('ledger')">Päiväkirja</button>
+  <button class="nav-btn" id="btn-ledger" onclick="showView('ledger')">Ledger</button>
   <button class="nav-btn" id="btn-events" onclick="showView('events')">Tapahtumat</button>
   <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
@@ -917,69 +721,6 @@
   <button class="nav-btn" id="btn-import" onclick="showView('import')" style="margin-left:4px;">↑ Tuo data</button>
   <button class="nav-btn" onclick="toggleSettings()" style="margin-left:4px;" title="Asetukset">⚙</button>
 </nav>
-
-<div id="os-layout">
-
-<!-- ── SIDEBAR (desktop) ────────────────────────────────── -->
-<aside id="os-sidebar">
-  <div class="sb-logo">Finance OS</div>
-
-  <button class="sb-freeze" id="btn-freeze-nav"
-    onclick="refreshAndFreeze()"
-    title="Päivitä kurssit & tallenna snapshot">
-    <span id="btn-freeze-icon-nav" style="font-size:16px;">↻</span>
-    <span>Päivitä</span>
-  </button>
-
-  <div style="margin-top:8px;">
-    <button class="sb-btn active" id="sb-dashboard" onclick="showView('dashboard',this)">
-      <span class="sb-icon">◈</span> Yleiskuva
-    </button>
-    <button class="sb-btn" id="sb-syota" onclick="showView('syota',this)">
-      <span class="sb-icon">+</span> Päivän tila
-    </button>
-    <button class="sb-btn" id="sb-salkku" onclick="showView('salkku',this)">
-      <span class="sb-icon">◎</span> Salkku
-    </button>
-    <button class="sb-btn" id="sb-likviditeetti" onclick="showView('likviditeetti',this)">
-      <span class="sb-icon">↔</span> Kassavirta
-    </button>
-    <button class="sb-btn" id="sb-historia" onclick="showView('historia',this)">
-      <span class="sb-icon">≋</span> Historia
-    </button>
-    <button class="sb-btn" id="sb-myynnit" onclick="showView('myynnit',this)">
-      <span class="sb-icon">↗</span> Realisoinnit
-    </button>
-  </div>
-
-  <div class="sb-divider"></div>
-  <div class="sb-section-label">Analyysi</div>
-
-  <button class="sb-btn" id="sb-verotarkastelu" onclick="showView('verotarkastelu',this)">
-    <span class="sb-icon">§</span> Verotarkastelu
-  </button>
-
-  <div class="sb-divider"></div>
-  <div class="sb-section-label">Muut</div>
-
-  <button class="sb-btn" id="sb-ledger" onclick="showView('ledger',this)">
-    <span class="sb-icon">≡</span> Päiväkirja
-  </button>
-  <button class="sb-btn" id="sb-events" onclick="showView('events',this)">
-    <span class="sb-icon">◷</span> Tapahtumat
-  </button>
-  <button class="sb-btn" id="sb-import" onclick="showView('import',this)">
-    <span class="sb-icon">↑</span> Tuo data
-  </button>
-  <button class="sb-btn" onclick="toggleSettings()">
-    <span class="sb-icon">⚙</span> Asetukset
-  </button>
-
-  <div class="sb-meta" id="sb-meta"></div>
-</aside>
-
-<!-- ── PÄÄSISÄLTÖ ───────────────────────────────────────── -->
-<main id="os-main">
 
 <!-- DASHBOARD VIEW -->
 <div id="view-dashboard" class="view active">
@@ -1150,20 +891,6 @@
 
 </div><!-- /view-import -->
 
-</main><!-- /os-main -->
-
-<!-- ── OIKEA PANEELI (desktop) ──────────────────────────── -->
-<aside id="os-panel">
-  <div id="panel-content">
-    <div class="panel-section">
-      <div class="panel-label">Kuukausi</div>
-      <div style="font-size:12px;color:var(--text3);">Ladataan...</div>
-    </div>
-  </div>
-</aside>
-
-</div><!-- /os-layout -->
-
 <script>
 // Fallback — jos ui.js latautuu vanhana välimuistista
 window._mobileFallback = true;
@@ -1292,23 +1019,6 @@ function getSupaKey() { return localStorage.getItem('finos_supa_key') || ''; }
 
 
 <script>
-// Päivitä oikea paneeli kun sivu latautuu
-window.addEventListener('load', function() {
-  setTimeout(function() {
-    if (typeof updateRightPanel === 'function') updateRightPanel();
-    // Aseta sidebar active-tila
-    var activeView = document.querySelector('.view.active');
-    if (activeView) {
-      var viewId = activeView.id.replace('view-', '');
-      var sbEl = document.getElementById('sb-' + viewId);
-      if (sbEl) {
-        document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
-        sbEl.classList.add('active');
-      }
-    }
-  }, 1500);
-});
-
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/talous/sw.js')
