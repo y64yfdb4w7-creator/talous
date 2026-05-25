@@ -524,27 +524,34 @@ async function renderDashboard() {
         <div class="sub-rows">
           ${(()=>{
             const invRows = [
-              { f:'nordnet',     l:'Nordnet' },
-              { f:'op_osakkeet', l:'OP Osakkeet' },
-              { f:'tapiola',     l:'Tapiola' },
-              { f:'s_sijoitus',  l:'S-Sijoitus' },
-              { f:'rahastot',    l:'Rahastot' },
+              { f:'nordnet',     l:'Nordnet',  abbr:'NN'  },
+              { f:'op_osakkeet', l:'OP',       abbr:'OP'  },
+              { f:'tapiola',     l:'S-Pankki', abbr:'SP'  },
+              { f:'s_sijoitus',  l:'S-Pankki', abbr:'SP'  },
+              { f:'rahastot',    l:'Rahastot', abbr:'RAH' },
             ];
             const snap1d  = prev;
             const snap1mo = snapBefore(snaps, daysAgoISO(30));
-            return invRows.filter(r => latest[r.f]).map(r => {
+            // Deduploi: näytä vain ensimmäinen löytyvä
+            const shown = new Set();
+            return invRows.filter(r => {
+              if (!latest[r.f] || shown.has(r.l)) return false;
+              shown.add(r.l); return true;
+            }).map(r => {
               const cur  = latest[r.f];
               const v1d  = snap1d  ? snap1d[r.f]  : null;
               const v1mo = snap1mo ? snap1mo[r.f] : null;
               const p1d  = (v1d && v1d !== 0) ? ((cur-v1d)/Math.abs(v1d))*100 : null;
               const p1mo = (v1mo && v1mo !== 0) ? ((cur-v1mo)/Math.abs(v1mo))*100 : null;
-              const ps = (p,l) => p !== null
-                ? '<span style="font-size:10px;color:' + (Math.abs(p)<0.01?'var(--text3)':p>=0?'var(--green)':'var(--red)') + ';">' + l + ' ' + (p>=0?'+':'') + p.toFixed(1) + '%</span>'
-                : '';
-              return '<div class="sub-row"><span>' + r.l + '</span>'
-                + '<span style="display:flex;gap:8px;align-items:center;">'
-                + ps(p1d,'1pv') + ' ' + ps(p1mo,'1kk')
-                + '<span style="font-family:var(--mono);">' + fmt(cur) + '</span></span></div>';
+              const pclr = p => p===null?'var(--text3)':Math.abs(p)<0.01?'var(--text3)':p>=0?'var(--green)':'var(--red)';
+              const pfmt = p => p===null?'':((p>=0?'+':'')+p.toFixed(1)+'%');
+              return '<div style="display:grid;grid-template-columns:auto auto auto 1fr;'
+                +'gap:5px;align-items:baseline;margin-bottom:4px;min-width:0;">'
+                +'<span style="font-size:12px;color:var(--text2);white-space:nowrap;">'+r.l+'</span>'
+                +(p1d!==null?'<span style="font-size:10px;color:'+pclr(p1d)+';white-space:nowrap;">'+pfmt(p1d)+'</span>':'<span></span>')
+                +(p1mo!==null?'<span style="font-size:10px;color:'+pclr(p1mo)+';white-space:nowrap;">'+pfmt(p1mo)+'</span>':'<span></span>')
+                +'<span style="font-family:var(--mono);font-size:12px;text-align:right;white-space:nowrap;">'+fmt(cur)+'</span>'
+                +'</div>';
             }).join('');
           })()}
         </div>
