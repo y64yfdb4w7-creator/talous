@@ -3420,10 +3420,49 @@ async function saveEntrySnapshot() {
     asuntolaina_remontti: remontti !== 0 ? remontti : (prev.asuntolaina_remontti || 0),
     // lasten
     lasten_sijoitus: prev.lasten_sijoitus || 0,
-    // kassavirta — dynaamiset listat
-    tulot_items: (window._tulotItems||[]).filter(function(i){return parseFloat(i.amount)>0;}),
-    rytmi_items: (window._rytmiItems||[]).filter(function(i){return parseFloat(i.amount)>0;}),
-    tulot_kk:    getTulotYhteensa() || prev.tulot_kk || null,
+    // kassavirta — lue arvot suoraan DOM:sta (luotettavampi kuin state)
+    tulot_items: (function() {
+      var items = [];
+      var list = document.getElementById('tulot-items-list');
+      if (!list) return (window._tulotItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
+      var rows = list.querySelectorAll('div[style*="display:flex"]');
+      // Fallback: käytä _tulotItems statea jos DOM ei löydy
+      if (!rows || rows.length === 0) return (window._tulotItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
+      (window._tulotItems||[]).forEach(function(item, i) {
+        // Lue amount suoraan input-kentästä
+        var inputs = list.querySelectorAll('input[type="number"]');
+        var selects = list.querySelectorAll('select');
+        var textInputs = list.querySelectorAll('input[type="text"]');
+        var amt = inputs[i] ? parseFloat(inputs[i].value) : parseFloat(item.amount);
+        var type = selects[i] ? selects[i].value : (item.type || 'palkka');
+        var label = textInputs[i] ? textInputs[i].value : (item.label || '');
+        if (amt > 0) items.push({ type: type, label: label, amount: amt });
+      });
+      return items.length > 0 ? items : (window._tulotItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
+    })(),
+    rytmi_items: (function() {
+      var items = [];
+      var list = document.getElementById('rytmi-items-list');
+      if (!list) return (window._rytmiItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
+      (window._rytmiItems||[]).forEach(function(item, i) {
+        var inputs = list.querySelectorAll('input[type="number"]');
+        var textInputs = list.querySelectorAll('input[type="text"]');
+        var amt = inputs[i] ? parseFloat(inputs[i].value) : parseFloat(item.amount);
+        var label = textInputs[i] ? textInputs[i].value : (item.label || '');
+        if (amt > 0) items.push({ label: label, amount: amt });
+      });
+      return items.length > 0 ? items : (window._rytmiItems||[]).filter(function(i){return parseFloat(i.amount)>0;});
+    })(),
+    tulot_kk: (function() {
+      var list = document.getElementById('tulot-items-list');
+      if (list) {
+        var inputs = list.querySelectorAll('input[type="number"]');
+        var total = 0;
+        inputs.forEach(function(inp) { total += parseFloat(inp.value)||0; });
+        if (total > 0) return total;
+      }
+      return getTulotYhteensa() || prev.tulot_kk || null;
+    })(),
     menot_kk:    getRytmiYhteensa() || prev.menot_kk || null,
     tulot_pvm:   document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
     nordnet_cash: val('nordnet_cash') || prev.nordnet_cash || null,
