@@ -618,38 +618,38 @@ async function renderDashboard() {
         </div>
         ${(()=>{
           if (latest.op_gold === undefined) return '';
-          const opGold   = Math.abs(latest.op_gold ?? 0);
-          const tulotili = latest.tulotili ?? 0;
-          const nettorytmi = tulotili - opGold;
-          const tempo2 = sig && sig.tempo;
-          const baseline = tempo2 ? tempo2.paceAvg : null;
-          const devPct = (baseline && baseline !== 0)
-            ? Math.round(((nettorytmi - baseline) / Math.abs(baseline)) * 100) : null;
-          const devColor = devPct === null ? 'var(--text3)'
-            : devPct > 10 ? 'var(--green)' : devPct < -10 ? '#b8956a' : 'var(--text3)';
-          const devLabel = devPct === null ? ''
-            : devPct > 10 ? '+'+devPct+'% parempi kuin normaali'
-            : devPct < -10 ? Math.abs(devPct)+'% yli normaalin' : 'Normaali sykli';
-          return \`<div style="margin-top:10px;padding:10px 12px;border-radius:8px;
-            background:rgba(0,0,0,0.14);border-top:1px solid var(--border);">
-            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;
-              letter-spacing:.06em;margin-bottom:8px;">● Operatiivinen rytmi</div>
-            <div class="sub-row" style="font-size:12px;margin-bottom:4px;">
-              <span style="color:var(--text3);">OP Gold</span>
-              <span style="font-family:var(--mono);color:var(--gold);">\${fmt(-opGold)}</span>
-            </div>
-            <div style="height:1px;background:rgba(255,255,255,0.06);margin:6px 0;"></div>
-            <div class="sub-row" style="margin-bottom:4px;">
-              <span style="font-size:12px;font-weight:600;">Nettorytmi</span>
-              <span style="font-family:var(--mono);font-size:16px;font-weight:700;
-                color:\${nettorytmi >= 0 ? 'var(--green)' : 'var(--text2)'};">\${fmt(nettorytmi)}</span>
-            </div>
-            \${baseline !== null ? \`<div class="sub-row" style="font-size:10px;">
-              <span style="color:var(--text3);">Normaali (5kk ka.)</span>
-              <span style="font-family:var(--mono);color:var(--text3);">\${fmt(baseline)}</span>
-            </div>
-            <div style="font-size:11px;font-weight:600;color:\${devColor};margin-top:4px;">\${devLabel}</div>\` : ''}
-          </div>\`;
+          var opGold2    = Math.abs(latest.op_gold ?? 0);
+          var tulotili2  = latest.tulotili ?? 0;
+          var nettorytmi2 = tulotili2 - opGold2;
+          var tempo2     = sig && sig.tempo;
+          var baseline2  = tempo2 ? tempo2.paceAvg : null;
+          var devPct2    = (baseline2 && baseline2 !== 0)
+            ? Math.round(((nettorytmi2 - baseline2) / Math.abs(baseline2)) * 100) : null;
+          var devColor2  = devPct2 === null ? 'var(--text3)'
+            : devPct2 > 10 ? 'var(--green)' : devPct2 < -10 ? '#b8956a' : 'var(--text3)';
+          var devLabel2  = devPct2 === null ? ''
+            : devPct2 > 10 ? '+'+devPct2+'% parempi kuin normaali'
+            : devPct2 < -10 ? Math.abs(devPct2)+'% yli normaalin' : 'Normaali sykli';
+          var nr2Color = nettorytmi2 >= 0 ? 'var(--green)' : 'var(--text2)';
+          var html2 = '<div style="margin-top:10px;padding:10px 12px;border-radius:8px;'
+            + 'background:rgba(0,0,0,0.14);border-top:1px solid var(--border);">'
+            + '<div style="font-size:9px;color:var(--text3);text-transform:uppercase;'
+            + 'letter-spacing:.06em;margin-bottom:8px;">● Operatiivinen rytmi</div>'
+            + '<div class="sub-row" style="font-size:12px;margin-bottom:4px;">'
+            + '<span style="color:var(--text3);">OP Gold</span>'
+            + '<span style="font-family:var(--mono);color:var(--gold);">'+fmt(-opGold2)+'</span></div>'
+            + '<div style="height:1px;background:rgba(255,255,255,0.06);margin:6px 0;"></div>'
+            + '<div class="sub-row" style="margin-bottom:4px;">'
+            + '<span style="font-size:12px;font-weight:600;">Nettorytmi</span>'
+            + '<span style="font-family:var(--mono);font-size:16px;font-weight:700;color:'+nr2Color+';">'+fmt(nettorytmi2)+'</span></div>';
+          if (baseline2 !== null) {
+            html2 += '<div class="sub-row" style="font-size:10px;">'
+              + '<span style="color:var(--text3);">Normaali (5kk ka.)</span>'
+              + '<span style="font-family:var(--mono);color:var(--text3);">'+fmt(baseline2)+'</span></div>'
+              + '<div style="font-size:11px;font-weight:600;color:'+devColor2+';margin-top:4px;">'+devLabel2+'</div>';
+          }
+          html2 += '</div>';
+          return html2;
         })()}
       </div>
 
