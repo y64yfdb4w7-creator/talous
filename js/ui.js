@@ -88,81 +88,42 @@ function _loanCfg(key, endsYear, monthly) {
   } catch(e) { return { endsYear, monthly }; }
 }
 function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
-  var tempo   = sig && sig.tempo;
-  var fc      = sig && sig.futureCapacity;
   var nowYear = new Date().getFullYear();
-  // Rytmi siirretty käyttötilit-korttiin — tässä vain pitkät velat
-  var rytmiHTML = '';
 
-  // ── Rakenteellinen kuorma (lainat) ────────────
   var loanDefs = [
-    Object.assign({ key:'asuntolaina',          label:'Asuntolaina'  }, _loanCfg('asuntolaina',          2029, 200)),
-    Object.assign({ key:'autolaina',            label:'Autolaina'    }, _loanCfg('autolaina',            2027, 255)),
-    Object.assign({ key:'asuntolaina_remontti', label:'Remonttilaina'}, _loanCfg('asuntolaina_remontti', 2026, 170)),
+    Object.assign({ key:'asuntolaina',          label:'Asuntolaina'   }, _loanCfg('asuntolaina',          2029, 200)),
+    Object.assign({ key:'autolaina',            label:'Autolaina'     }, _loanCfg('autolaina',            2027, 255)),
+    Object.assign({ key:'asuntolaina_remontti', label:'Remonttilaina' }, _loanCfg('asuntolaina_remontti', 2026, 170)),
   ];
-  var loanRows = '';
-  loanDefs.forEach(function(ld) {
-    var bal = latest[ld.key];
-    if (!bal || Math.abs(bal) < 10) return;
-    var yLeft = ld.endsYear - nowYear;
-    var pClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : '#6b7280';
-    var prog  = Math.max(5, Math.min(95, Math.round((1 - yLeft / 10) * 100)));
-    loanRows += '<div style="margin-bottom:10px;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
-      + '<span style="font-size:11px;color:var(--text2);">'+ld.label+'</span>'
-      + '<span style="font-family:var(--mono);font-size:12px;color:var(--text2);">'+fmt(bal)+'</span>'
-      + '</div>'
-      + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">'
-      + '<span style="font-size:10px;color:'+pClr+';white-space:nowrap;">\u2192 '+ld.endsYear+'</span>'
-      + '<span style="font-size:10px;color:var(--text3);white-space:nowrap;">\u25cf suunnitelmassa</span>'
-      + '</div>'
-      + '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">'
-      + '<div style="height:100%;width:'+prog+'%;background:'+pClr+';opacity:0.4;"></div>'
-      + '</div></div>';
-  });
 
-  // ── Future Capacity ───────────────────────────
-  var fcHTML = '';
-  if (fc && fc.timeline) {
-    var upcoming = fc.timeline.filter(function(t){return t.year > nowYear;});
-    if (upcoming.length > 0) {
-      var total = upcoming.reduce(function(s,t){return s+t.monthlyEur;},0);
-      fcHTML = '<div style="margin-top:10px;padding:9px 11px;border-radius:7px;'
-        +'background:rgba(90,158,106,0.06);border:1px solid rgba(90,158,106,0.15);">'
-        +'<div style="font-size:10px;color:#5a9e6a;letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px;">\u2b06 Vapautuva kapasiteetti</div>';
-      upcoming.forEach(function(t) {
-        fcHTML += '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">'
-          +'<span style="color:var(--text3);">'+t.year+' \u00b7 '+t.label+' pois</span>'
-          +'<span style="color:#5a9e6a;font-weight:600;">+'+fmt(t.monthlyEur)+'/kk</span>'
-          +'</div>';
-      });
-      if (total > 0) fcHTML += '<div style="margin-top:5px;border-top:1px solid rgba(90,158,106,0.2);padding-top:5px;'
-        +'display:flex;justify-content:space-between;font-size:11px;">'
-        +'<span style="color:var(--text3);">Yhteensä</span>'
-        +'<span style="color:#5a9e6a;font-weight:700;">+'+fmt(total)+'/kk</span></div>';
-      fcHTML += '</div>';
-    }
-  }
-
-  var totalTip = 'OP Gold (' + fmt(-creditDebt) + ') + Lainat (' + fmt(-ltDebt) + ')';
-
-  // Velat-kortti = vain pitkät rakenteelliset velat, rauhallinen esitys
+  // % muutos vs ed. kk
   var lainatPct = (typeof _lainatPrevPct !== 'undefined') ? _lainatPrevPct : null;
   var lainatBadge = lainatPct !== null
     ? ' <span style="font-size:10px;color:'+(lainatPct<=0?'var(--green)':'var(--text3)')+';">'
       +(lainatPct>=0?'+':'')+lainatPct.toFixed(1)+'% vs ed. kk</span>'
     : '';
 
+  // Yksinkertaiset laina-rivit: nimi · saldo · → vuosi
+  var loanRows = '';
+  loanDefs.forEach(function(ld) {
+    var bal = latest[ld.key];
+    if (!bal || Math.abs(bal) < 10) return;
+    var yLeft = ld.endsYear - nowYear;
+    var yearClr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
+    loanRows += '<div style="display:flex;justify-content:space-between;align-items:baseline;'
+      +'margin-bottom:7px;">'
+      +'<span style="font-size:12px;color:var(--text2);">'+ld.label+'</span>'
+      +'<span style="display:flex;gap:8px;align-items:baseline;">'
+      +'<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(bal)+'</span>'
+      +'<span style="font-size:10px;color:'+yearClr+';">\u2192 '+ld.endsYear+'</span>'
+      +'</span></div>';
+  });
+
   return '<div class="card">'
-    + '<div class="card-label" style="color:var(--text3);letter-spacing:.06em;">Pitkät velat</div>'
-    + '<div style="font-family:var(--mono);font-size:26px;font-weight:700;color:#6b7280;margin-bottom:4px;">'
-    + fmt(-ltDebt) + lainatBadge + '</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:10px;">rakenteellinen infrastruktuuri</div>'
-    + rytmiHTML
-    + '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'
-    + '<div style="font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">\u25fc Aikarakenne · lainat</div>'
-    + loanRows + '</div>'
-    + fcHTML
+    + '<div class="card-label" style="color:var(--text3);">Pitkät velat</div>'
+    + '<div style="font-family:var(--mono);font-size:26px;font-weight:700;'
+    + 'color:#6b7280;margin-bottom:12px;">'+fmt(-ltDebt)+lainatBadge+'</div>'
+    + loanRows
     + '</div>';
 }
 
@@ -2920,7 +2881,7 @@ function renderTulotItems() {
       +' oninput="window._tulotItems['+i+'].label=this.value"'
       +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
       +'border-radius:6px;color:var(--text);font-size:14px;">'
-      +'<input type="number" value="'+(item.amount||'')+'" placeholder="0"'
+      +'<input type="number" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
       +' oninput="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
       +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
       +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
@@ -2943,7 +2904,7 @@ function renderRytmiItems() {
       +' oninput="window._rytmiItems['+i+'].label=this.value"'
       +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
       +'border-radius:6px;color:var(--text);font-size:14px;">'
-      +'<input type="number" value="'+(item.amount||'')+'" placeholder="0"'
+      +'<input type="number" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
       +' oninput="window._rytmiItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
       +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
       +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
@@ -3066,9 +3027,10 @@ async function renderEntryView() {
         <span style="font-size:10px;color:var(--text3);">Palkanmaksupäivä</span>
         <input type="date" id="inp-tulot_pvm"
           value="${v('tulot_pvm') || ''}"
-          style="font-family:var(--mono);font-size:12px;padding:3px 7px;
+          style="font-family:var(--mono);font-size:13px;padding:4px 9px;
           background:rgba(0,200,255,0.06);border:1px solid var(--border);
-          border-radius:6px;color:var(--text2);cursor:pointer;font-size:16px;"
+          border-radius:6px;color:var(--text2);cursor:pointer;font-size:16px;
+          letter-spacing:.02em;"
           onchange="window._entryKvPvm=this.value;">
       </div>
     </div>
