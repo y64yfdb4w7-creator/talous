@@ -649,6 +649,13 @@ async function renderDashboard() {
               + '<div style="font-size:11px;font-weight:600;color:'+devColor2+';margin-top:4px;">'+devLabel2+'</div>';
           }
           html2 += '</div>';
+          // Tulorytmi-vihje jos tulot_kk tallennettu
+          var tlot2 = (latest.tulot_kk||0) + (latest.muut_tulot||0);
+          if (tlot2 > 0) {
+            html2 += '<div style="margin-top:6px;padding:4px 8px;border-radius:5px;'
+              +'background:rgba(106,184,122,0.07);font-size:10px;color:var(--green);">'
+              +'tulorytmi ~'+Math.round(tlot2).toLocaleString('fi-FI')+' €/kk</div>';
+          }
           return html2;
         })()}
       </div>
@@ -1566,6 +1573,10 @@ async function saveDayFromHoldings() {
     elatustili:           latest?.elatustili,
     tavoitetili:          latest?.tavoitetili,
     s_pankki:             latest?.s_pankki,
+    nordnet_cash:         latest?.nordnet_cash,
+    tulot_kk:             latest?.tulot_kk,
+    muut_tulot:           latest?.muut_tulot,
+    menot_kk:             latest?.menot_kk,
     op_gold:              latest?.op_gold,
     visa:                 latest?.visa,
     luottotili:           latest?.luottotili,
@@ -2883,6 +2894,42 @@ async function renderEntryView() {
     border:1px solid rgba(90,158,106,0.3);color:#5a9e6a;font-size:12px;margin-bottom:12px;">
     ✓ Tänään (${todayFi}) on jo tallennettu — päivittäminen korvaa vanhan snapshottia.</div>` : ''}
 
+  <!-- ── KASSAVIRTA (kuukauden rytmi) ── -->
+  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:8px;">Kuukauden kassavirta — tulot &amp; menot</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
+    overflow:hidden;margin-bottom:16px;">
+    <div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;
+        letter-spacing:.05em;margin-bottom:6px;">Tulot</div>
+      ${entryRow('Palkka / päätulot', 'tulot_kk', v('tulot_kk'), '€', 'kuukauden brutto tai netto')}
+      ${entryRow('Muut tulot', 'muut_tulot', v('muut_tulot'), '€', 'osingot, vuokrat, sivutulot')}
+    </div>
+    <div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;
+        letter-spacing:.05em;margin-bottom:6px;">Menot (arvio)</div>
+      ${entryRow('Menot yhteensä', 'menot_kk', v('menot_kk'), '€', 'kuukauden kokonaismenot')}
+    </div>
+    <div style="padding:8px 14px;" id="kassavirta-block">
+      ${(()=>{
+        var tulot = (parseFloat(v('tulot_kk'))||0) + (parseFloat(v('muut_tulot'))||0);
+        var menot = Math.abs(parseFloat(v('menot_kk'))||0);
+        var opGold2 = Math.abs(parseFloat(v('op_gold'))||0);
+        var tulotili2 = parseFloat(v('tulotili'))||0;
+        var nettorytmi2 = tulotili2 - opGold2;
+        if (!tulot && !menot) return '<div style="font-size:11px;color:var(--text3);padding:4px 0;">Syötä tulot nähdäksesi kassavirta-analyysi.</div>';
+        var virta = tulot - menot;
+        var virtaCls = virta >= 0 ? 'color:var(--green)' : 'color:var(--red)';
+        return '<div style="display:flex;gap:12px;flex-wrap:wrap;background:rgba(0,0,0,0.1);border-radius:7px;padding:8px 10px;">'
+          + (tulot > 0 ? '<div style="font-size:11px;"><span style="color:var(--text3);">Tulot </span><span style="font-family:var(--mono);color:var(--green);">+'+tulot.toLocaleString('fi-FI')+'€</span></div>' : '')
+          + (menot > 0 ? '<div style="font-size:11px;"><span style="color:var(--text3);">Menot </span><span style="font-family:var(--mono);color:var(--red);">−'+menot.toLocaleString('fi-FI')+'€</span></div>' : '')
+          + (tulot > 0 && menot > 0 ? '<div style="font-size:11px;font-weight:700;"><span style="color:var(--text3);">Jää </span><span style="font-family:var(--mono);'+virtaCls+';">'+(virta>=0?'+':'−')+Math.abs(virta).toLocaleString('fi-FI')+'€</span></div>' : '')
+          + '</div>';
+      })()}
+    </div>
+  </div>
+
   <!-- ── TASO 1: PÄIVITTÄINEN ── -->
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
     <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">1 · Päivittäinen — käyttötilit &amp; OP Gold</div>
@@ -3380,23 +3427,43 @@ function renderRightPanel(snaps, latest, calc) {
     html += '</div>';
   }
 
-  // Kassavirta-ankkuri
+  // Kuukauden kassavirta
+  var menot_kk_p = Math.abs(latest.menot_kk ?? 0);
+  var muut_tulot_p = latest.muut_tulot ?? 0;
+  var tulot_yht = (tulot_kk || 0) + muut_tulot_p;
+  var kassavirta = tulot_yht > 0 ? tulot_yht - menot_kk_p - opGold_p : null;
+
   html += '<div class="panel-section">';
-  html += '<div class="panel-label">Kassavirta-ankkuri</div>';
-  if (tulot_kk) {
-    html += '<div class="panel-row"><span class="panel-row-lbl">Tulot / kk</span>'
-      + '<span class="panel-row-val pos">+' + fmtP(tulot_kk) + '</span></div>';
-    html += '<div class="panel-row"><span class="panel-row-lbl">OP Gold</span>'
-      + '<span class="panel-row-val" style="color:var(--gold);">' + fmtP(-opGold_p) + '</span></div>';
+  html += '<div class="panel-label">Kuukauden kassavirta</div>';
+
+  if (tulot_kk || menot_kk_p > 0) {
+    // Tulot-rivi
+    if (tulot_yht > 0) {
+      html += '<div class="panel-row"><span class="panel-row-lbl">Tulot</span>'
+        + '<span class="panel-row-val pos">+' + fmtP(tulot_yht) + '</span></div>';
+    }
+    // Menot-rivi
+    if (menot_kk_p > 0) {
+      html += '<div class="panel-row"><span class="panel-row-lbl">Menot</span>'
+        + '<span class="panel-row-val neg">−' + fmtP(menot_kk_p) + '</span></div>';
+    }
+    // Viiva
     html += '<div style="height:1px;background:var(--border);margin:6px 0;"></div>';
-    html += '<div class="panel-row"><span class="panel-row-lbl" style="font-weight:600;">Nettorytmi</span>'
+    // Operatiivinen rytmi (nettorytmi = tulotili - OP Gold)
+    html += '<div class="panel-row"><span class="panel-row-lbl" style="font-weight:600;">Operatiivinen rytmi</span>'
       + '<span class="panel-row-val ' + signCls(nettorytmi_p) + '">' + fmtP(nettorytmi_p) + '</span></div>';
+    // Kassavirta jos data täydellinen
+    if (kassavirta !== null) {
+      html += '<div class="panel-row" style="margin-top:2px;"><span class="panel-row-lbl" style="font-size:10px;color:var(--text3);">Jää / käytettävissä</span>'
+        + '<span class="panel-row-val ' + signCls(kassavirta) + '" style="font-size:12px;">'
+        + (kassavirta >= 0 ? '+' : '') + fmtP(kassavirta) + '</span></div>';
+    }
   } else {
-    html += '<div class="panel-row"><span class="panel-row-lbl">OP Gold</span>'
-      + '<span class="panel-row-val" style="color:var(--gold);">' + fmtP(-opGold_p) + '</span></div>';
-    html += '<div class="panel-row"><span class="panel-row-lbl">Nettorytmi</span>'
+    // Ei dataa — näytä nettorytmi ja ohje
+    html += '<div class="panel-row"><span class="panel-row-lbl">Operatiivinen rytmi</span>'
       + '<span class="panel-row-val ' + signCls(nettorytmi_p) + '">' + fmtP(nettorytmi_p) + '</span></div>';
-    html += '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Lisää kuukausitulot +Päivitä-näkymässä tarkkaa kassavirta-analyysiä varten.</div>';
+    html += '<div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.6;">'
+      + 'Lisää tulot &amp; menot +Päivitä-näkymässä.</div>';
   }
   html += '</div>';
 
