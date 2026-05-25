@@ -103,20 +103,22 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       +(lainatPct>=0?'+':'')+lainatPct.toFixed(1)+'% vs ed. kk</span>'
     : '';
 
-  // Yksinkertaiset laina-rivit: nimi · saldo · → vuosi
+  // Yksinkertaiset laina-rivit — grid estää rivinvaihdon
   var loanRows = '';
   loanDefs.forEach(function(ld) {
     var bal = latest[ld.key];
     if (!bal || Math.abs(bal) < 10) return;
     var yLeft = ld.endsYear - nowYear;
     var yearClr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
-    loanRows += '<div style="display:flex;justify-content:space-between;align-items:baseline;'
-      +'margin-bottom:7px;">'
-      +'<span style="font-size:12px;color:var(--text2);">'+ld.label+'</span>'
-      +'<span style="display:flex;gap:8px;align-items:baseline;">'
-      +'<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(bal)+'</span>'
-      +'<span style="font-size:10px;color:'+yearClr+';">\u2192 '+ld.endsYear+'</span>'
-      +'</span></div>';
+    loanRows += '<div style="display:grid;grid-template-columns:1fr auto auto;'
+      +'gap:6px;align-items:baseline;margin-bottom:7px;min-width:0;">'
+      +'<span style="font-size:12px;color:var(--text2);white-space:nowrap;'
+      +'overflow:hidden;text-overflow:ellipsis;">'+ld.label+'</span>'
+      +'<span style="font-family:var(--mono);font-size:12px;color:var(--text2);'
+      +'white-space:nowrap;text-align:right;">'+fmt(bal)+'</span>'
+      +'<span style="font-size:10px;color:'+yearClr+';white-space:nowrap;">'
+      +'\u2192\u00a0'+ld.endsYear+'</span>'
+      +'</div>';
   });
 
   return '<div class="card">'
