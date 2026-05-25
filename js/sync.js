@@ -201,6 +201,13 @@ async function refreshAndFreeze() {
       asuntolaina:          latest?.asuntolaina,
       asuntolaina_remontti: latest?.asuntolaina_remontti,
       autolaina:            latest?.autolaina,
+      // Kassavirta — säilytetään käyttäjän syöttämät tulot
+      tulot_kk:             latest?.tulot_kk,
+      tulot_items:          latest?.tulot_items,
+      rytmi_items:          latest?.rytmi_items,
+      tulot_pvm:            latest?.tulot_pvm,
+      menot_kk:             latest?.menot_kk,
+      nordnet_cash:         latest?.nordnet_cash,
     };
 
     await DB.bulkPutSnapshots([snap]);
