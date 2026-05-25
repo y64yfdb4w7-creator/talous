@@ -323,14 +323,59 @@ async function syncFromSupabase(showStatus) {
     const remoteSnaps = (data.snaps || []).filter(s => s.date && s.totals);
     if (remoteSnaps.length === 0) return { ok: false, reason: 'empty' };
 
-    // 4. Tuo vain puuttuvat päivät
+    // 4. Tuo puuttuvat päivät JA päivitä tilitiedot olemassa oleviin
+    //    KORJAUS: aiemmin sama päivämäärä ohitettiin kokonaan → iPhonen
+    //    tilitiedot eivät päivittyneet Macille. Nyt sama päivä mergataan.
     const localSnaps = await DB.getAll('snapshots');
-    const localDates = new Set(localSnaps.map(s => s.date));
-    const toImport = remoteSnaps.filter(s => !localDates.has(s.date));
+    const localByDate = {};
+    localSnaps.forEach(s => { localByDate[s.date] = s; });
+
+    const toImport  = [];
+    const toMerge   = [];
+
+    for (const remote of remoteSnaps) {
+      const local = localByDate[remote.date];
+      if (!local) {
+        // Uusi päivä — tuo suoraan
+        toImport.push(convertOldSnap(remote));
+        continue;
+      }
+      // Sama päivä — vertaa tilitietoja
+      // remote.totals on vanha formaatti: { tulotili, opvisa, asunto, remontti, auto, ... }
+      const rt = remote.totals || {};
+      const remTulotili = typeof rt.tulotili === 'number' ? rt.tulotili : null;
+      const remOpGold   = typeof rt.opvisa   === 'number' ? rt.opvisa   : null;
+
+      // Päivitä jos remote:lla on käyttäjän syöttämiä arvoja jotka poikkeavat paikallisesta
+      const tuloChanged = remTulotili !== null && remTulotili !== (local.tulotili ?? null);
+      const goldChanged = remOpGold   !== null &&
+        Math.abs(remOpGold) !== Math.abs(local.op_gold ?? 0);
+
+      if (tuloChanged || goldChanged) {
+        // Merge: säilytä paikalliset kurssitiedot, päivitä tilitiedot remotesta
+        const merged = {
+          ...local,
+          tulotili:             remTulotili    ?? local.tulotili,
+          op_gold:              remOpGold != null ? -Math.abs(remOpGold) : local.op_gold,
+          asuntolaina:          rt.asunto  != null ? -Math.abs(rt.asunto)   : local.asuntolaina,
+          asuntolaina_remontti: rt.remontti != null ? -Math.abs(rt.remontti) : local.asuntolaina_remontti,
+          autolaina:            rt.auto     != null ? -Math.abs(rt.auto)     : local.autolaina,
+          s_pankki:             rt.spankki  != null ? rt.spankki             : local.s_pankki,
+          _mergedFromRemote:    true,
+        };
+        toMerge.push(merged);
+      }
+    }
 
     if (toImport.length > 0) {
       await DB.bulkPutSnapshots(toImport.map(convertOldSnap));
-      console.log('Sync: tuotu ' + toImport.length + ' uutta snapshottia');
+    }
+    if (toMerge.length > 0) {
+      await DB.bulkPutSnapshots(toMerge);
+    }
+    const totalChanged = toImport.length + toMerge.length;
+    if (totalChanged > 0) {
+      console.log('Sync: tuotu ' + toImport.length + ' uutta, päivitetty ' + toMerge.length + ' olemassa olevaa');
     }
 
     // 5. Synkronoi holdings (kappalemäärät + hankintahinnat)
