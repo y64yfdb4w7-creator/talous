@@ -901,7 +901,7 @@
   <button class="nav-btn" id="btn-salkku" onclick="showView('salkku')">Salkku</button>
   <button class="nav-btn" id="btn-likviditeetti" onclick="showView('likviditeetti')">Kassavirta</button>
   <button class="nav-btn" id="btn-historia" onclick="showView('historia')">Historia</button>
-  <button class="nav-btn" id="btn-ledger" onclick="showView('ledger')">Ledger</button>
+  <button class="nav-btn" id="btn-ledger" onclick="showView('ledger')">Päiväkirja</button>
   <button class="nav-btn" id="btn-events" onclick="showView('events')">Tapahtumat</button>
   <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
@@ -963,7 +963,7 @@
   <div class="sb-section-label">Muut</div>
 
   <button class="sb-btn" id="sb-ledger" onclick="showView('ledger',this)">
-    <span class="sb-icon">≡</span> Ledger
+    <span class="sb-icon">≡</span> Päiväkirja
   </button>
   <button class="sb-btn" id="sb-events" onclick="showView('events',this)">
     <span class="sb-icon">◷</span> Tapahtumat
@@ -1292,6 +1292,23 @@ function getSupaKey() { return localStorage.getItem('finos_supa_key') || ''; }
 
 
 <script>
+// Päivitä oikea paneeli kun sivu latautuu
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    if (typeof updateRightPanel === 'function') updateRightPanel();
+    // Aseta sidebar active-tila
+    var activeView = document.querySelector('.view.active');
+    if (activeView) {
+      var viewId = activeView.id.replace('view-', '');
+      var sbEl = document.getElementById('sb-' + viewId);
+      if (sbEl) {
+        document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+        sbEl.classList.add('active');
+      }
+    }
+  }, 1500);
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/talous/sw.js')

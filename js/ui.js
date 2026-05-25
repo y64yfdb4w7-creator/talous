@@ -191,16 +191,27 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
 
   var totalTip = 'OP Gold (' + fmt(-creditDebt) + ') + Lainat (' + fmt(-ltDebt) + ')';
 
+  // Laske % muutos vs edellinen kuukausi — tuodaan ulkopuolelta jos saatavilla
+  var opGoldPct  = (typeof _opGoldPrevPct  !== 'undefined') ? _opGoldPrevPct  : null;
+  var lainatPct  = (typeof _lainatPrevPct  !== 'undefined') ? _lainatPrevPct  : null;
+
+  function pctBadge(pct, invert) {
+    if (pct === null) return '';
+    var good = invert ? pct <= 0 : pct >= 0;
+    var color = good ? 'var(--green)' : 'var(--red)';
+    return ' <span style="font-size:10px;color:'+color+';">'+(pct>=0?'+':'')+pct.toFixed(1)+'% vs ed. kk</span>';
+  }
+
   return '<div class="card">'
     + '<div class="card-label" style="color:var(--text3);">Velat</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
     + '<span style="font-family:var(--mono);font-size:12px;color:var(--gold);">OP Gold</span>'
     + '<span class="tip" style="font-family:var(--mono);font-size:14px;color:var(--gold);" data-tip="OP Gold luottokortin saldo">'
-    + fmt(-creditDebt) + '</span></div>'
+    + fmt(-creditDebt) + pctBadge(opGoldPct, true) + '</span></div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
     + '<span style="font-family:var(--mono);font-size:12px;color:#6b7280;">Lainat</span>'
     + '<span class="tip" style="font-family:var(--mono);font-size:14px;color:#6b7280;" data-tip="' + totalTip + '">'
-    + fmt(-ltDebt) + '</span></div>'
+    + fmt(-ltDebt) + pctBadge(lainatPct, true) + '</span></div>'
     + rytmiHTML
     + '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'
     + '<div style="font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">\u25fc Aikarakenne · lainat</div>'
@@ -631,7 +642,23 @@ async function renderDashboard() {
       </div>
 
       <!-- 2. SITOUMUKSET -->
-      ${renderSitoumusCard(sig, latest, creditDebt, ltDebt)}
+      ${(()=>{
+        // Laske % muutos vs ed. kk
+        const snap1mo = snapBefore(snaps, daysAgoISO(30));
+        if (snap1mo) {
+          const prev1mCalc = calculateNetWorth(snap1mo);
+          window._opGoldPrevPct = snap1mo.op_gold && creditDebt
+            ? ((creditDebt - prev1mCalc.shortTermDebt) / Math.abs(prev1mCalc.shortTermDebt) * 100)
+            : null;
+          window._lainatPrevPct = prev1mCalc.longTermDebt
+            ? ((ltDebt - prev1mCalc.longTermDebt) / Math.abs(prev1mCalc.longTermDebt) * 100)
+            : null;
+        } else {
+          window._opGoldPrevPct = null;
+          window._lainatPrevPct = null;
+        }
+        return renderSitoumusCard(sig, latest, creditDebt, ltDebt);
+      })()}
 
       <!-- 3. KÄYTTÖTILIT -->
       <div class="card kpi-compact">
@@ -736,6 +763,8 @@ async function renderDashboard() {
   `;
 
   drawStackedChart(snaps);
+  // Päivitä oikea paneeli datan latauksen jälkeen
+  setTimeout(() => { if (typeof updateRightPanel === 'function') updateRightPanel(); }, 200);
 }
 
 // ═══════════════════════════════════════════════
@@ -2426,6 +2455,11 @@ function showView(name) {
   document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
   const sbEl = document.getElementById('sb-' + name);
   if (sbEl) sbEl.classList.add('active');
+  // Päiväkirja-alias
+  if (name === 'ledger') {
+    const sbLed = document.getElementById('sb-ledger');
+    if (sbLed) { sbLed.classList.add('active'); }
+  }
   document.getElementById(`view-${name}`).classList.add('active');
   const btn = document.getElementById(`btn-${name}`);
   if (btn) btn.classList.add('active');
