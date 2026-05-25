@@ -2927,8 +2927,13 @@ function renderRytmiItems() {
 }
 
 function renderRytmiYhteenveto() {
-  var tulot = (window._tulotItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
-  var rytmi = (window._rytmiItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+  // Lue suoraan DOM:sta — luotettavin tapa
+  var tulot = 0; var ri = 0;
+  while(true) { var e=document.getElementById('tulot-amt-'+ri); if(!e)break; tulot+=parseFloat(e.value)||0; ri++; }
+  if (!tulot) tulot = (window._tulotItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
+  var rytmi = 0; ri = 0;
+  while(true) { var e=document.getElementById('rytmi-amt-'+ri); if(!e)break; rytmi+=parseFloat(e.value)||0; ri++; }
+  if (!rytmi) rytmi = (window._rytmiItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
   var netto  = tulot - rytmi;
   if (!tulot && !rytmi) return '<div style="font-size:11px;color:var(--text3);">Lisää tuloja ja rakennerivejä nähdäksesi yhteenveto.</div>';
   var parts = [];
@@ -3036,17 +3041,19 @@ async function renderEntryView() {
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:10px;color:var(--text3);">Palkanmaksupäivä</span>
         <div style="display:flex;align-items:center;gap:6px;">
-          <input type="date" id="inp-tulot_pvm" lang="fi"
+          <input type="date" id="inp-tulot_pvm"
             value="${v('tulot_pvm') || ''}"
             style="font-family:var(--mono);padding:4px 8px;font-size:16px;
-            background:rgba(0,200,255,0.06);border:1px solid var(--border);
-            border-radius:6px;color:var(--text2);cursor:pointer;"
-            onchange="window._entryKvPvm=this.value;
-              var fi=document.getElementById('pvm_fi_lbl');
-              if(fi){var d=new Date(this.value);
-              fi.textContent=isNaN(d)?'':d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();}">
-          <span id="pvm_fi_lbl" style="font-size:12px;color:var(--text3);white-space:nowrap;">
-            ${(()=>{var p=v('tulot_pvm');if(!p)return'';var d=new Date(p);return isNaN(d)?'':d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();})()}
+            opacity:0;position:absolute;width:110px;cursor:pointer;"
+            onchange="var fi=document.getElementById('pvm_fi_lbl');
+              var d=new Date(this.value);
+              if(fi)fi.textContent=isNaN(d)?'':d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();">
+          <span id="pvm_fi_lbl"
+            onclick="document.getElementById('inp-tulot_pvm').showPicker?document.getElementById('inp-tulot_pvm').showPicker():document.getElementById('inp-tulot_pvm').click()"
+            style="font-family:var(--mono);font-size:14px;color:var(--text2);
+            padding:4px 10px;background:rgba(0,200,255,0.06);border:1px solid var(--border);
+            border-radius:6px;cursor:pointer;white-space:nowrap;min-width:90px;display:inline-block;">
+            ${(()=>{var p=v('tulot_pvm');if(!p)return 'pp.kk.vvvv';var d=new Date(p);return isNaN(d)?'pp.kk.vvvv':d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();})()}
           </span>
         </div>
       </div>
