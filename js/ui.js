@@ -3037,13 +3037,20 @@ async function renderEntryView() {
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:10px;color:var(--text3);">Palkanmaksupäivä</span>
-        <input type="date" id="inp-tulot_pvm"
-          value="${v('tulot_pvm') || ''}"
-          style="font-family:var(--mono);font-size:13px;padding:4px 9px;
-          background:rgba(0,200,255,0.06);border:1px solid var(--border);
-          border-radius:6px;color:var(--text2);cursor:pointer;font-size:16px;
-          letter-spacing:.02em;"
-          onchange="window._entryKvPvm=this.value;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="date" id="inp-tulot_pvm" lang="fi"
+            value="${v('tulot_pvm') || ''}"
+            style="font-family:var(--mono);padding:4px 8px;font-size:16px;
+            background:rgba(0,200,255,0.06);border:1px solid var(--border);
+            border-radius:6px;color:var(--text2);cursor:pointer;"
+            onchange="window._entryKvPvm=this.value;
+              var fi=document.getElementById('pvm_fi_lbl');
+              if(fi){var d=new Date(this.value);
+              fi.textContent=isNaN(d)?'':d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();}">
+          <span id="pvm_fi_lbl" style="font-size:12px;color:var(--text3);white-space:nowrap;">
+            ${(()=>{var p=v('tulot_pvm');if(!p)return'';var d=new Date(p);return isNaN(d)?'':d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();})()}
+          </span>
+        </div>
       </div>
     </div>
     <div id="tulot-items-list" style="padding:6px 14px 4px;">
@@ -3689,7 +3696,7 @@ async function updateRightPanel() {
   try {
     const snaps  = (await DB.getAll('snapshots')).sort((a,b)=>a.date.localeCompare(b.date));
     if (!snaps.length) return;
-    const latest = snaps[snaps.length-1];
+    const latest = snaps[0];  // uusin ensin
     const calc   = calculateNetWorth(latest);
     // runway from signals if available
     if (window._lastSig) calc.runway = window._lastSig.runway?.months ?? null;
