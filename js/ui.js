@@ -3237,7 +3237,10 @@ async function saveEntrySnapshot() {
 
   // Päivitä dashboard
   await updateNavCount();
-  setTimeout(() => showView('dashboard'), 800);
+  setTimeout(async () => {
+    showView('dashboard');
+    await renderDashboard();
+  }, 800);
 }
 
 // Tallenna lainan konfiguraatio localStorageen
