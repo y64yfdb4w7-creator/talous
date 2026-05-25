@@ -1551,6 +1551,8 @@ async function saveDayFromHoldings() {
     tulot_pvm:            latest?.tulot_pvm,
     muut_tulot:           latest?.muut_tulot,
     menot_kk:             latest?.menot_kk,
+    tulot_items:          latest?.tulot_items,
+    rytmi_items:          latest?.rytmi_items,
     op_gold:              latest?.op_gold,
     visa:                 latest?.visa,
     luottotili:           latest?.luottotili,
