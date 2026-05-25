@@ -273,38 +273,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
   const stDebtMobile = calc.shortTermDebt;
 
   var grid = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">'
-    + (function() {
-      const bk = calc.brokers || {};
-      const nn  = (bk.nordnet?.total  ?? latest.nordnet    ?? 0);
-      const op  = (bk.op?.total       ?? latest.op_osakkeet?? 0);
-      const sp  = (bk.spankki?.total  ?? latest.tapiola    ?? 0);
-      const nnC = bk.nordnet?.cash ?? 0;
-      // Broker-rivit: näytä jos arvo > 0
-      var brokerRows = '';
-      if (nn > 0) brokerRows += '<div style="display:flex;justify-content:space-between;'
-        +'align-items:baseline;margin-top:4px;">'
-        +'<span style="font-size:10px;color:var(--text3);">Nordnet</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text2);">'
-        +_fK(nn)+(nnC>0?'<span style="font-size:9px;color:var(--text3);margin-left:3px;">+'
-        +_fK(nnC)+' kät.</span>':'')+'</span></div>';
-      if (op > 0) brokerRows += '<div style="display:flex;justify-content:space-between;'
-        +'align-items:baseline;margin-top:2px;">'
-        +'<span style="font-size:10px;color:var(--text3);">OP</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text2);">'
-        +_fK(op)+'</span></div>';
-      if (sp > 0) brokerRows += '<div style="display:flex;justify-content:space-between;'
-        +'align-items:baseline;margin-top:2px;">'
-        +'<span style="font-size:10px;color:var(--text3);">S-Pankki</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text2);">'
-        +_fK(sp)+'</span></div>';
-      return '<div style="background:var(--surface);border:1px solid var(--border);'
-        +'border-radius:10px;padding:10px 11px;min-width:0;overflow:hidden;">'
-        +'<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;'
-        +'text-transform:uppercase;margin-bottom:4px;">Sijoitukset</div>'
-        +'<div style="font-family:var(--mono);font-size:18px;font-weight:700;'
-        +'color:var(--text);line-height:1.1;">'+_fK(inv)+'</div>'
-        +brokerRows+'</div>';
-    })()
+    + tile('Sijoitukset', _fK(inv), 'Nordnet + OP')
     + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 11px;min-width:0;overflow:hidden;">'
     + '<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">Velat</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
@@ -1595,7 +1564,6 @@ async function saveDayFromHoldings() {
     elatustili:           latest?.elatustili,
     tavoitetili:          latest?.tavoitetili,
     s_pankki:             latest?.s_pankki,
-    nordnet_cash:         latest?.nordnet_cash,
     op_gold:              latest?.op_gold,
     visa:                 latest?.visa,
     luottotili:           latest?.luottotili,
@@ -1617,7 +1585,7 @@ async function saveDayFromHoldings() {
 
   // Compute osakkeet_yht
   snap.osakkeet_yht = Object.entries(acctTotals)
-    .filter(([k]) => ['nordnet','nordnet_cash','op_osakkeet','tapiola','s_sijoitus','rahastot','lasten_sijoitus'].includes(k))
+    .filter(([k]) => ['nordnet','op_osakkeet','tapiola','s_sijoitus','rahastot','lasten_sijoitus'].includes(k))
     .reduce((s, [,v]) => s + v, 0);
 
   await DB.putSnapshot(snap);
@@ -2455,10 +2423,14 @@ async function downloadBackupNow() {
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+  const sbEl = document.getElementById('sb-' + name);
+  if (sbEl) sbEl.classList.add('active');
   document.getElementById(`view-${name}`).classList.add('active');
   const btn = document.getElementById(`btn-${name}`);
   if (btn) btn.classList.add('active');
   if (name === 'syota')        requestAnimationFrame(() => renderEntryView());
+  requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia')      requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku')        requestAnimationFrame(() => renderSalkku());
   if (name === 'likviditeetti') requestAnimationFrame(() => renderLikviditeetti());
@@ -2941,8 +2913,7 @@ async function renderEntryView() {
   <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
     overflow:hidden;margin-bottom:12px;">
     <div style="padding:8px 14px 4px;">
-      ${entryRow('Nordnet (sijoitukset)', 'nordnet', v('nordnet'), '€')}
-      ${entryRow('Nordnet käteinen', 'nordnet_cash', v('nordnet_cash'), '€', 'odottaa sijoittamista')}
+      ${entryRow('Nordnet', 'nordnet', v('nordnet'), '€')}
       ${entryRow('OP Osakkeet', 'op_osakkeet', v('op_osakkeet'), '€')}
       ${entryRow('Tapiola / S-sijoitus', 'tapiola', v('tapiola'), '€')}
     </div>
@@ -3295,3 +3266,147 @@ function updateLoanScheduleFromStorage() {
     } catch(e) {}
   });
 }
+
+// ══════════════════════════════════════════════════════════════
+// OIKEA PANEELI — kuukausikatsaus + aikarakenne
+// ══════════════════════════════════════════════════════════════
+function renderRightPanel(snaps, latest, calc) {
+  if (!latest || !calc) {
+    return '<div class="panel-section"><div class="panel-label">Ladataan...</div></div>';
+  }
+
+  const now   = new Date();
+  const yr    = now.getFullYear();
+  const mo    = now.getMonth();
+  const KUUKAUDET = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu',
+                     'Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'];
+  const moLabel = KUUKAUDET[mo] + ' ' + yr;
+
+  // Kuukauden alku vs nyt
+  const moStart = yr + '-' + String(mo+1).padStart(2,'0') + '-01';
+  const snapsMo = snaps.filter(s => s.date >= moStart).sort((a,b) => a.date.localeCompare(b.date));
+  const first   = snapsMo[0];
+  const nwNow   = calc.netWorth;
+  const nwFirst = first ? calculateNetWorth(first).netWorth : null;
+  const moChg   = nwFirst !== null ? nwNow - nwFirst : null;
+  const moPct   = (nwFirst && nwFirst !== 0) ? (moChg / Math.abs(nwFirst) * 100) : null;
+
+  const invNow   = calc.investments;
+  const invFirst = first ? calculateNetWorth(first).investments : null;
+  const invChg   = invFirst !== null ? invNow - invFirst : null;
+
+  // Nettorytmi
+  const tulotili = latest.tulotili ?? 0;
+  const opGold   = Math.abs(latest.op_gold ?? 0);
+  const nettorytmi = tulotili - opGold;
+
+  // Lainat aikarakenne
+  function getLoanCfg(key, defYear, defMonthly) {
+    try { const c = JSON.parse(localStorage.getItem('loan_cfg_'+key)||'{}'); return { year: c.year||defYear, monthly: c.monthly||defMonthly }; } catch { return { year: defYear, monthly: defMonthly }; }
+  }
+  const loans = [
+    { label: 'Asuntolaina', key: 'asuntolaina',          val: Math.abs(latest.asuntolaina??0),          cfg: getLoanCfg('asuntolaina',2030,200) },
+    { label: 'Autolaina',   key: 'autolaina',             val: Math.abs(latest.autolaina??0),            cfg: getLoanCfg('autolaina',2027,255) },
+    { label: 'Remonttilaina',key:'asuntolaina_remontti',  val: Math.abs(latest.asuntolaina_remontti??0), cfg: getLoanCfg('asuntolaina_remontti',2028,170) },
+  ].filter(l => l.val > 0);
+
+  const totalMonthly = loans.reduce((s,l) => s + l.cfg.monthly, 0);
+  const curYear = now.getFullYear();
+
+  // Laske palkki: kuinka lähellä päättymistä
+  function loanPct(l) {
+    const yearsLeft = Math.max(0, l.cfg.year - curYear);
+    const totalYears = Math.max(1, l.cfg.year - 2020); // ~alkuarvo
+    return Math.max(5, Math.min(95, (1 - yearsLeft/totalYears)*100));
+  }
+
+  // ── HTML ──────────────────────────────────────────────────────────
+  function fmtP(n) { if(n==null)return'—'; var a=Math.abs(n); var s=a.toLocaleString('fi-FI',{maximumFractionDigits:0}); return (n<0?'−':'')+s+' €'; }
+  function signCls(n) { return n==null?'':n>0?'pos':'neg'; }
+  function signPfx(n) { return n>0?'+':''; }
+
+  var html = '';
+
+  // Kuukausikatsaus
+  html += '<div class="panel-section">';
+  html += '<div class="panel-month-title">' + moLabel + '</div>';
+  if (moChg !== null) {
+    html += '<div class="panel-row"><span class="panel-row-lbl">Netto</span>'
+      + '<span class="panel-row-val ' + signCls(moChg) + '">'
+      + signPfx(moChg) + fmtP(moChg)
+      + (moPct ? ' <span style="font-size:9px;opacity:.7">' + signPfx(moPct) + moPct.toFixed(1) + '%</span>' : '')
+      + '</span></div>';
+  }
+  if (invChg !== null) {
+    html += '<div class="panel-row"><span class="panel-row-lbl">Sijoitukset</span>'
+      + '<span class="panel-row-val ' + signCls(invChg) + '">' + signPfx(invChg) + fmtP(invChg) + '</span></div>';
+  }
+  html += '<div style="height:1px;background:var(--border);margin:8px 0;"></div>';
+  html += '<div class="panel-row"><span class="panel-row-lbl">Operatiivinen rytmi</span>'
+    + '<span class="panel-row-val ' + signCls(nettorytmi) + '">' + fmtP(nettorytmi) + '</span></div>';
+  html += '<div class="panel-row"><span class="panel-row-lbl">Strateginen reservi</span>'
+    + '<span class="panel-row-val">' + (calc.runway ? Math.round(calc.runway) + ' kk' : '—') + '</span></div>';
+  html += '</div>';
+
+  // Aikarakenne
+  if (loans.length > 0) {
+    html += '<div class="panel-section">';
+    html += '<div class="panel-label">Aikarakenne · pitkät velat</div>';
+    loans.forEach(function(l) {
+      var pct = loanPct(l);
+      var near = (l.cfg.year - curYear) <= 2;
+      html += '<div class="loan-bar-wrap">';
+      html += '<div class="loan-bar-hdr">'
+        + '<span class="loan-bar-name">' + l.label + '</span>'
+        + '<span class="loan-bar-year">→ ' + l.cfg.year + ' · ' + fmtP(l.val) + '</span>'
+        + '</div>';
+      html += '<div class="loan-bar-track"><div class="loan-bar-fill'+(near?' near':'')+'" style="width:'+pct.toFixed(0)+'%"></div></div>';
+      html += '</div>';
+    });
+    html += '<div class="loan-capacity">↑ Vapautuu yhteensä +' + totalMonthly.toLocaleString('fi-FI') + ' €/kk</div>';
+    html += '</div>';
+  }
+
+  // Broker-snapshot
+  if (calc.brokers) {
+    var bk = calc.brokers;
+    html += '<div class="panel-section">';
+    html += '<div class="panel-label">Salkku nyt</div>';
+    if (bk.nordnet.total > 0) {
+      html += '<div class="panel-row"><span class="panel-row-lbl">Nordnet</span>'
+        + '<span class="panel-row-val">' + fmtP(bk.nordnet.total)
+        + (bk.nordnet.cash > 0 ? ' <span style="font-size:9px;color:var(--text3);">+'
+          + fmtP(bk.nordnet.cash) + ' kät.</span>' : '')
+        + '</span></div>';
+    }
+    if (bk.op.total > 0) {
+      html += '<div class="panel-row"><span class="panel-row-lbl">OP</span>'
+        + '<span class="panel-row-val">' + fmtP(bk.op.total) + '</span></div>';
+    }
+    if (bk.spankki.total > 0) {
+      html += '<div class="panel-row"><span class="panel-row-lbl">S-Pankki</span>'
+        + '<span class="panel-row-val">' + fmtP(bk.spankki.total) + '</span></div>';
+    }
+    html += '</div>';
+  }
+
+  return html;
+}
+
+async function updateRightPanel() {
+  const el = document.getElementById('panel-content');
+  if (!el) return;
+  try {
+    const snaps  = (await DB.getAll('snapshots')).sort((a,b)=>a.date.localeCompare(b.date));
+    if (!snaps.length) return;
+    const latest = snaps[snaps.length-1];
+    const calc   = calculateNetWorth(latest);
+    // runway from signals if available
+    if (window._lastSig) calc.runway = window._lastSig.runway?.months ?? null;
+    el.innerHTML = renderRightPanel(snaps, latest, calc);
+    // Update sidebar meta
+    const sbMeta = document.getElementById('sb-meta');
+    if (sbMeta) sbMeta.innerHTML = snaps.length + ' snapshotia<br>' + (latest.date ? fmtDate(latest.date) : '');
+  } catch(e) { console.warn('Panel update:', e); }
+}
+// ══════════════════════════════════════════════════════════════
