@@ -233,7 +233,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     rytmiBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
       +'border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
-      +'<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">● Operatiivinen rytmi</span>'
+      +'<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">● Tulotili − käyttöluotto</span>'
       +cycLabel+'</div>'
       // Tulotili
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
@@ -607,7 +607,7 @@ async function renderDashboard() {
           var html2 = '<div style="margin-top:10px;padding:10px 12px;border-radius:8px;'
             + 'background:rgba(0,0,0,0.14);border-top:1px solid var(--border);">'
             + '<div style="font-size:9px;color:var(--text3);text-transform:uppercase;'
-            + 'letter-spacing:.06em;margin-bottom:8px;">● Operatiivinen rytmi</div>'
+            + 'letter-spacing:.06em;margin-bottom:8px;">● Tulotili − käyttöluotto</div>'
             + '<div class="sub-row" style="font-size:12px;margin-bottom:4px;">'
             + '<span style="color:var(--text3);">OP Gold</span>'
             + '<span style="font-family:var(--mono);color:var(--gold);">'+fmt(-opGold2)+'</span></div>'
@@ -3078,7 +3078,7 @@ async function renderEntryView() {
     overflow:hidden;margin-bottom:16px;">
     <div style="padding:8px 14px;border-bottom:1px solid var(--border);">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">
-        Operatiivinen rytmi — jatkuvat rakenteet
+        Tulotili − käyttöluotto — jatkuvat rakenteet
       </div>
       <div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic;">
         OP Gold, pankkimaksut, puhelin, vakuutukset — ei yksittäisiä ostoksia
@@ -3622,7 +3622,7 @@ function renderRightPanel(snaps, latest, calc) {
       + '<span class="panel-row-val ' + signCls(invChg) + '">' + signPfx(invChg) + fmtP(invChg) + '</span></div>';
   }
   html += '<div style="height:1px;background:var(--border);margin:8px 0;"></div>';
-  html += '<div class="panel-row"><span class="panel-row-lbl">Operatiivinen rytmi</span>'
+  html += '<div class="panel-row"><span class="panel-row-lbl">Tulotili − käyttöluotto</span>'
     + '<span class="panel-row-val ' + signCls(nettorytmi) + '">' + fmtP(nettorytmi) + '</span></div>';
   html += '<div class="panel-row"><span class="panel-row-lbl">Strateginen reservi</span>'
     + '<span class="panel-row-val">' + (calc.runway ? Math.round(calc.runway) + ' kk' : '—') + '</span></div>';
@@ -3693,7 +3693,7 @@ function renderRightPanel(snaps, latest, calc) {
     // Viiva
     html += '<div style="height:1px;background:var(--border);margin:6px 0;"></div>';
     // Operatiivinen rytmi (nettorytmi = tulotili - OP Gold)
-    html += '<div class="panel-row"><span class="panel-row-lbl" style="font-weight:600;">Operatiivinen rytmi</span>'
+    html += '<div class="panel-row"><span class="panel-row-lbl" style="font-weight:600;">Tulotili − käyttöluotto</span>'
       + '<span class="panel-row-val ' + signCls(nettorytmi_p) + '">' + fmtP(nettorytmi_p) + '</span></div>';
     // Kassavirta jos data täydellinen
     if (kassavirta !== null) {
@@ -3703,7 +3703,7 @@ function renderRightPanel(snaps, latest, calc) {
     }
   } else {
     // Ei dataa — näytä nettorytmi ja ohje
-    html += '<div class="panel-row"><span class="panel-row-lbl">Operatiivinen rytmi</span>'
+    html += '<div class="panel-row"><span class="panel-row-lbl">Tulotili − käyttöluotto</span>'
       + '<span class="panel-row-val ' + signCls(nettorytmi_p) + '">' + fmtP(nettorytmi_p) + '</span></div>';
     html += '<div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.6;">'
       + 'Lisää tulot &amp; menot +Päivitä-näkymässä.</div>';
