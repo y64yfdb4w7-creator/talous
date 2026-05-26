@@ -122,10 +122,18 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
   });
 
   return '<div class="card">'
-    + '<div class="card-label" style="color:var(--text3);">Pitkät velat</div>'
+    + _cardHeader('Pitkät velat', 'debt', [
+      {key:'asuntolaina', label:'As.laina'},
+      {key:'autolaina',   label:'Autolaina'},
+      {key:'asremontti',  label:'As.remontti'},
+    ])
     + '<div style="font-family:var(--mono);font-size:26px;font-weight:700;'
     + 'color:#6b7280;margin-bottom:12px;">'+fmt(-ltDebt)+lainatBadge+'</div>'
-    + loanRows
+    + (_pref('debt','expanded',true) ? loanRows
+       : '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
+         + loanDefs.filter(l=>latest[l.key]&&Math.abs(latest[l.key])>10)
+             .map(l=>'→ '+l.endsYear).join(' · ')
+         + '</div>')
     + '</div>';
 }
 
@@ -329,6 +337,157 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     +'</div>';
 }
 
+
+// ══════════════════════════════════════════════════════════
+// FOCUS MODE — korttiasetukset, collapse, prosentit, rivit
+// ══════════════════════════════════════════════════════════
+function _getCardPrefs() {
+  try { return JSON.parse(localStorage.getItem('fin_card_prefs') || '{}'); }
+  catch { return {}; }
+}
+function _setCardPref(card, key, val) {
+  var p = _getCardPrefs();
+  if (!p[card]) p[card] = {};
+  p[card][key] = val;
+  localStorage.setItem('fin_card_prefs', JSON.stringify(p));
+}
+function _pref(card, key, def) {
+  var p = _getCardPrefs();
+  return (p[card] && p[card][key] !== undefined) ? p[card][key] : def;
+}
+
+window.toggleCardDetail = function(card) {
+  _setCardPref(card, 'expanded', !_pref(card, 'expanded', true));
+  renderDashboard();
+};
+window.toggleCardPct = function(card) {
+  _setCardPref(card, 'showPct', !_pref(card, 'showPct', true));
+  renderDashboard();
+};
+window.toggleCardRow = function(card, row) {
+  _setCardPref(card, 'row_'+row, !_pref(card, 'row_'+row, true));
+  renderDashboard();
+};
+window.toggleCardVisible = function(card) {
+  _setCardPref(card, 'visible', !_pref(card, 'visible', true));
+  renderDashboard();
+};
+
+// Settingsi-popover — DOM-manipulaatiolla, ei innerHTML-escaping-ongelmia
+window.openCardSettings = function(card, title, rows, evt) {
+  var el = document.getElementById('card-settings-popover');
+  if (el && el.dataset.card === card) { el.remove(); return; }
+  if (el) el.remove();
+
+  var div = document.createElement('div');
+  div.id = 'card-settings-popover';
+  div.dataset.card = card;
+  div.style.cssText = 'position:fixed;z-index:500;background:var(--surface);'
+    + 'border:1px solid var(--border-bright);border-radius:10px;padding:14px 16px;'
+    + 'min-width:210px;box-shadow:0 8px 32px rgba(0,0,0,0.5);top:0;left:0;';
+
+  // Otsikko
+  var h = document.createElement('div');
+  h.style.cssText = 'font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;';
+  h.textContent = title;
+  div.appendChild(h);
+
+  // Rivit
+  rows.forEach(function(r) {
+    var lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = _pref(card, 'row_'+r.key, true);
+    cb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);cursor:pointer;';
+    cb.addEventListener('change', function() { toggleCardRow(card, r.key); });
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(r.label));
+    div.appendChild(lbl);
+  });
+
+  // Viiva
+  var hr = document.createElement('div');
+  hr.style.cssText = 'height:1px;background:var(--border);margin:8px 0;';
+  div.appendChild(hr);
+
+  // % toggle
+  var pctLbl = document.createElement('label');
+  pctLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+  var pctCb = document.createElement('input');
+  pctCb.type = 'checkbox'; pctCb.checked = _pref(card, 'showPct', true);
+  pctCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);';
+  pctCb.addEventListener('change', function() { toggleCardPct(card); });
+  pctLbl.appendChild(pctCb); pctLbl.appendChild(document.createTextNode('Muutosprosentit'));
+  div.appendChild(pctLbl);
+
+  // Näytä kortti toggle
+  var visLbl = document.createElement('label');
+  visLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+  var visCb = document.createElement('input');
+  visCb.type = 'checkbox'; visCb.checked = _pref(card, 'visible', true);
+  visCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);';
+  visCb.addEventListener('change', function() { toggleCardVisible(card); });
+  visLbl.appendChild(visCb); visLbl.appendChild(document.createTextNode('Näytä dashboardissa'));
+  div.appendChild(visLbl);
+
+  // Sulje-nappi
+  var btn = document.createElement('button');
+  btn.textContent = 'Sulje';
+  btn.style.cssText = 'margin-top:10px;width:100%;padding:5px;border-radius:6px;background:transparent;'
+    + 'border:1px solid var(--border);color:var(--text3);font-size:11px;cursor:pointer;';
+  btn.addEventListener('click', function() { div.remove(); });
+  div.appendChild(btn);
+
+  document.body.appendChild(div);
+
+  // Asemoi
+  var clientX = evt ? evt.clientX : window.innerWidth/2;
+  var clientY = evt ? evt.clientY : window.innerHeight/2;
+  setTimeout(function() {
+    var r2 = div.getBoundingClientRect();
+    div.style.left = Math.min(window.innerWidth - r2.width - 12, Math.max(12, clientX - 10)) + 'px';
+    div.style.top  = Math.min(window.innerHeight - r2.height - 12, clientY + 8) + 'px';
+  }, 0);
+
+  setTimeout(function() {
+    document.addEventListener('click', function closeP(e) {
+      if (!div.contains(e.target) && e.target.id !== 'card-settings-popover') {
+        div.remove(); document.removeEventListener('click', closeP);
+      }
+    });
+  }, 100);
+};
+
+// Card-otsikkorivi
+function _cardHeader(label, cardKey, settingsRows) {
+  var exp = _pref(cardKey, 'expanded', true);
+  var pct = _pref(cardKey, 'showPct', true);
+  var rows = settingsRows || [];
+  var rowsJSON = JSON.stringify(rows).replace(/"/g, '&quot;');
+  return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+    + '<div class="card-label" style="margin-bottom:0;">' + label + '</div>'
+    + '<div style="display:flex;gap:3px;align-items:center;">'
+    // % toggle
+    + '<button onclick="event.stopPropagation();toggleCardPct(\'' + cardKey + '\')" '
+    + 'title="Muutosprosentit" style="font-size:10px;padding:2px 7px;border-radius:4px;'
+    + 'border:1px solid var(--border);cursor:pointer;'
+    + 'background:'+(pct?'rgba(0,200,255,0.1)':'transparent')+';'
+    + 'color:'+(pct?'var(--cyan)':'var(--text3)')+';transition:all .12s;">%</button>'
+    // Asetukset-ikoni
+    + (rows.length > 0
+      ? '<button onclick="event.stopPropagation();openCardSettings(\'' + cardKey + '\',\'' + label + '\',' + rowsJSON + ')" '
+        + 'title="Asetukset" style="font-size:11px;padding:2px 7px;border-radius:4px;'
+        + 'border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;">⋯</button>'
+      : '')
+    // Expand/collapse
+    + '<button onclick="event.stopPropagation();toggleCardDetail(\'' + cardKey + '\')" '
+    + 'title="Laajenna/tiivistä" style="font-size:12px;padding:2px 7px;border-radius:4px;'
+    + 'border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;'
+    + 'transition:all .12s;">'+(exp?'●':'○')+'</button>'
+    + '</div></div>';
+}
+
 async function renderDashboard() {
   const c = document.getElementById('db-content');
   const cnt = await DB.count('snapshots');
@@ -519,9 +678,15 @@ async function renderDashboard() {
 
       <!-- 1. SIJOITUKSET -->
       <div class="card">
-        <div class="card-label">Sijoitukset</div>
-        <div class="card-value">${fmt(inv)}</div>
-        <div class="sub-rows">
+        ${_cardHeader('Sijoitukset', 'inv', [
+          {key:'nordnet',label:'Nordnet'},
+          {key:'op',     label:'OP Osakkeet'},
+          {key:'spankki',label:'S-Pankki'},
+        ])}
+        <div class="card-value" style="margin-top:0;">${fmt(inv)}</div>
+        ${!_pref('inv','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
+          +(latest.nordnet?'Nordnet':'')+(latest.op_osakkeet?' · OP':'')+(latest.tapiola?' · S-Pankki':'')+'</div>' : ''}
+        <div class="sub-rows" style="display:${_pref('inv','expanded',true)?'block':'none'}">
           ${(()=>{
             const invRows = [
               { f:'nordnet',     l:'Nordnet',  abbr:'NN'  },
@@ -537,6 +702,10 @@ async function renderDashboard() {
             return invRows.filter(r => {
               if (!latest[r.f] || shown.has(r.l)) return false;
               shown.add(r.l); return true;
+            }).filter(r => {
+              // Per-rivi näkyvyys
+              var rowKey = r.f === 'nordnet' ? 'nordnet' : r.f === 'op_osakkeet' ? 'op' : 'spankki';
+              return _pref('inv', 'row_'+rowKey, true);
             }).map(r => {
               const cur  = latest[r.f];
               const v1d  = snap1d  ? snap1d[r.f]  : null;
@@ -550,8 +719,8 @@ async function renderDashboard() {
                 +'<span style="font-size:11px;color:var(--text2);white-space:nowrap;'
                 +'flex-shrink:0;margin-right:6px;">'+r.l+'</span>'
                 +'<span style="display:flex;align-items:baseline;gap:5px;flex-shrink:0;">'
-                +(p1d!==null?'<span style="font-size:10px;color:'+pclr(p1d)+';white-space:nowrap;">'+pfmt(p1d)+'</span>':'')
-                +(p1mo!==null?'<span style="font-size:10px;color:'+pclr(p1mo)+';white-space:nowrap;">'+pfmt(p1mo)+'</span>':'')
+                +(_pref('inv','showPct',true)&&p1d!==null?'<span style="font-size:10px;color:'+pclr(p1d)+';white-space:nowrap;">'+pfmt(p1d)+'</span>':'')
+                +(_pref('inv','showPct',true)&&p1mo!==null?'<span style="font-size:10px;color:'+pclr(p1mo)+';white-space:nowrap;">'+pfmt(p1mo)+'</span>':'')
                 +'<span style="font-family:var(--mono);font-size:11px;white-space:nowrap;'
                 +'color:var(--text);">'+fmt(cur)+'</span>'
                 +'</span></div>';
@@ -581,13 +750,19 @@ async function renderDashboard() {
 
       <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
       <div class="card kpi-compact">
-        <div class="card-label" style="color:var(--text3);">Käyttötilit &amp; rytmi</div>
+        ${_cardHeader('Käyttötilit &amp; rytmi', 'cash', [
+          {key:'tulotili',   label:'Tulotili'},
+          {key:'spankki',    label:'S-Pankki'},
+          {key:'tavoitetili',label:'Tavoitetili'},
+          {key:'elatustili', label:'Elatustili'},
+        ])}
         <div class="card-value" style="font-size:28px;color:var(--text2);">${fmt(cash)}</div>
-        <div class="sub-rows">
-          ${latest.tulotili !== undefined ? '<div class="sub-row"><span>Tulotili</span><span>' + fmt(latest.tulotili) + '</span></div>' : ''}
-          ${latest.s_pankki !== undefined ? '<div class="sub-row"><span>S-Pankki</span><span>' + fmt(latest.s_pankki) + '</span></div>' : ''}
-          ${latest.tavoitetili !== undefined ? '<div class="sub-row"><span>Tavoitetili</span><span>' + fmt(latest.tavoitetili) + '</span></div>' : ''}
-          ${latest.elatustili !== undefined ? '<div class="sub-row"><span>Elatustili</span><span>' + fmt(latest.elatustili) + '</span></div>' : ''}
+        ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Käyttövara '+(latest.tulotili&&latest.op_gold?fmt((latest.tulotili||0)-Math.abs(latest.op_gold||0)):'—')+'</div>' : ''}
+        <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
+          ${(latest.tulotili !== undefined && _pref('cash','row_tulotili',true)) ? '<div class="sub-row"><span>Tulotili</span><span>' + fmt(latest.tulotili) + '</span></div>' : ''}
+          ${(latest.s_pankki !== undefined && _pref('cash','row_spankki',true)) ? '<div class="sub-row"><span>S-Pankki</span><span>' + fmt(latest.s_pankki) + '</span></div>' : ''}
+          ${(latest.tavoitetili !== undefined && _pref('cash','row_tavoitetili',true)) ? '<div class="sub-row"><span>Tavoitetili</span><span>' + fmt(latest.tavoitetili) + '</span></div>' : ''}
+          ${(latest.elatustili !== undefined && _pref('cash','row_elatustili',true)) ? '<div class="sub-row"><span>Elatustili</span><span>' + fmt(latest.elatustili) + '</span></div>' : ''}
         </div>
         ${(()=>{
           if (latest.op_gold === undefined) return '';
