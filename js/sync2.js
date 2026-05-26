@@ -185,9 +185,13 @@ async function refreshAndFreeze() {
     await syncFromSupabase().catch(() => {});
 
     // Hae viimeisin snapshot baseline-arvoksi (tilit, lainat)
+    // TÄRKEÄÄ: käytä aina EILISTÄ tai vanhempaa — ei tänään luotua tyhjää snappia
     const allSnaps = (await DB.getAll('snapshots')).sort((a,b)=>a.date.localeCompare(b.date));
-    const latest   = allSnaps[allSnaps.length - 1];
     const today    = new Date().toISOString().slice(0,10);
+    const prevSnaps = allSnaps.filter(s => s.date < today);
+    const latest   = prevSnaps.length > 0
+      ? prevSnaps[prevSnaps.length - 1]   // eilen tai vanhempi
+      : allSnaps[allSnaps.length - 1];    // fallback jos ei edellistä
 
     const snap = {
       date: today,
