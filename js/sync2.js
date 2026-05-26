@@ -1,5 +1,5 @@
-// SYNC VERSION 20260526-1
-console.log("SYNC VERSION 20260526-1");
+// SYNC VERSION 20260526-2
+console.log("SYNC VERSION 20260526-2");
 function getFinnhubKey() {
   return localStorage.getItem('finos_finnhub_key') || '';
 }
@@ -395,7 +395,7 @@ async function syncFromSupabase(showStatus) {
     }
 
     if (toImport.length > 0) {
-      await DB.bulkPutSnapshots(toImport.map(convertOldSnap));
+      await DB.bulkPutSnapshots(toImport);  // jo konvertoitu ylempänä
     }
     if (toMerge.length > 0) {
       await DB.bulkPutSnapshots(toMerge);
