@@ -596,37 +596,40 @@ async function renderDashboard() {
           var nettorytmi2 = tulotili2 - opGold2;
           var tempo2     = sig && sig.tempo;
           var baseline2  = tempo2 ? tempo2.paceAvg : null;
-          var devPct2    = (baseline2 && baseline2 !== 0)
-            ? Math.round(((nettorytmi2 - baseline2) / Math.abs(baseline2)) * 100) : null;
-          var devColor2  = devPct2 === null ? 'var(--text3)'
-            : devPct2 > 10 ? 'var(--green)' : devPct2 < -10 ? '#b8956a' : 'var(--text3)';
-          var devLabel2  = devPct2 === null ? ''
-            : devPct2 > 10 ? '+'+devPct2+'% parempi kuin normaali'
-            : devPct2 < -10 ? Math.abs(devPct2)+'% yli normaalin' : 'Normaali sykli';
-          var nr2Color = nettorytmi2 >= 0 ? 'var(--green)' : 'var(--text2)';
-          var html2 = '<div style="margin-top:10px;padding:10px 12px;border-radius:8px;'
-            + 'background:rgba(0,0,0,0.14);border-top:1px solid var(--border);">'
-            + '<div style="font-size:9px;color:var(--text3);text-transform:uppercase;'
-            + 'letter-spacing:.06em;margin-bottom:8px;">● Tulotili − käyttöluotto</div>'
-            + '<div class="sub-row" style="font-size:12px;margin-bottom:4px;">'
-            + '<span style="color:var(--text3);">OP Gold</span>'
-            + '<span style="font-family:var(--mono);color:var(--gold);">'+fmt(-opGold2)+'</span></div>'
-            + '<div style="height:1px;background:rgba(255,255,255,0.06);margin:6px 0;"></div>'
-            + '<div class="sub-row" style="margin-bottom:4px;">'
-            + '<span style="font-size:12px;font-weight:600;">Nettorytmi</span>'
-            + '<span style="font-family:var(--mono);font-size:16px;font-weight:700;color:'+nr2Color+';">'+fmt(nettorytmi2)+'</span></div>';
-          if (baseline2 !== null) {
-            html2 += '<div class="sub-row" style="font-size:10px;">'
-              + '<span style="color:var(--text3);">Normaali (5kk ka.)</span>'
-              + '<span style="font-family:var(--mono);color:var(--text3);">'+fmt(baseline2)+'</span></div>'
-              + '<div style="font-size:11px;font-weight:600;color:'+devColor2+';margin-top:4px;">'+devLabel2+'</div>';
-          }
-          html2 += '</div>';
-          // Tulorytmi-vihje jos tulot_kk tallennettu
+          var devEur2    = (baseline2 !== null) ? nettorytmi2 - baseline2 : null;
+          var kayttovara = nettorytmi2;
+          var kv2Color   = kayttovara >= 0 ? 'var(--green)' : '#b8956a';
+
+          var html2 = '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">'
+            // Tulotili-rivi
+            + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">'
+            + '<span style="font-size:12px;color:var(--text3);">Tulotili</span>'
+            + '<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili2)+'</span>'
+            + '</div>'
+            // OP Gold -rivi
+            + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
+            + '<span style="font-size:12px;color:var(--text3);">OP Gold</span>'
+            + '<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold2)+'</span>'
+            + '</div>'
+            // Viiva
+            + '<div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:8px;"></div>'
+            // Käyttövara
+            + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+            + '<span style="font-size:12px;color:var(--text2);font-weight:600;">Käyttövara</span>'
+            + '<div style="text-align:right;">'
+            + '<span style="font-family:var(--mono);font-size:18px;font-weight:700;color:'+kv2Color+';">'+fmt(kayttovara)+'</span>'
+            + (devEur2 !== null && Math.abs(devEur2) > 50
+              ? '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:1px;">'
+                +(devEur2>0?'+':'')+fmt(devEur2)+' vs. normaali</div>'
+              : '')
+            + '</div>'
+            + '</div>'
+            + '</div>';
+
+          // Tulorytmi-vihje
           var tlot2 = (latest.tulot_kk||0) + (latest.muut_tulot||0);
           if (tlot2 > 0) {
-            html2 += '<div style="margin-top:6px;padding:4px 8px;border-radius:5px;'
-              +'background:rgba(106,184,122,0.07);font-size:10px;color:var(--green);">'
+            html2 += '<div style="margin-top:8px;font-size:10px;color:var(--text3);">'
               +'tulorytmi ~'+Math.round(tlot2).toLocaleString('fi-FI')+' €/kk</div>';
           }
           return html2;
