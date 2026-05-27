@@ -1,7 +1,7 @@
-// Finance OS — Service Worker v25
+// Finance OS — Service Worker v26
 // Passiivinen: ei välimuistia, kaikki suoraan verkosta
 
-const CACHE_NAME = 'finance-os-v25';
+const CACHE_NAME = 'finance-os-v26';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
