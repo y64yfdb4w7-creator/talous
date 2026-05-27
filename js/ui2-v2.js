@@ -121,7 +121,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       +'</div>';
   });
 
-  return '<div class="db-item card" data-item-id="debt">'
+  return '<div class="db-item card" data-item-id="debt" style="flex:1;min-width:240px;">'
     + _cardHeader('Pitkät velat', 'debt', [
       {key:'asuntolaina', label:'As.laina'},
       {key:'autolaina',   label:'Autolaina'},
@@ -674,10 +674,11 @@ async function renderDashboard() {
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
 
-    <div id="all-cards-container" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;align-items:start;">
+    <div id="layout-toolbar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;"></div>
+    <div id="all-cards-container" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;align-items:start;">
 
       <!-- 1. SIJOITUKSET -->
-      <div class="db-item card" data-item-id="inv">
+      <div class="db-item card" data-item-id="inv" style="flex:1;min-width:240px;">
         ${_cardHeader('Sijoitukset', 'inv', [
           {key:'nordnet',label:'Nordnet'},
           {key:'op',     label:'OP Osakkeet'},
@@ -749,7 +750,7 @@ async function renderDashboard() {
       })()}
 
       <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
-      <div class="db-item card kpi-compact" data-item-id="cash">
+      <div class="db-item card kpi-compact" data-item-id="cash" style="flex:1;min-width:240px;">
         ${_cardHeader('Käyttötilit &amp; rytmi', 'cash', [
           {key:'tulotili',   label:'Tulotili'},
           {key:'spankki',    label:'S-Pankki'},
@@ -812,7 +813,7 @@ async function renderDashboard() {
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
-      <div class="db-item card kpi-wide" data-item-id="netto" style="grid-column:1/-1;" style="background:var(--surface2);">
+      <div class="db-item card kpi-wide" data-item-id="netto" style="flex:0 0 100%;width:100%;" style="background:var(--surface2);">
         <div class="card-label">Nettovarallisuus</div>
         <div class="card-value tip" style="font-size:38px;"
           data-tip="Omaisuus (${fmt(calc.assets)}) − Luottokortit (${fmt(-calc.shortTermDebt)}) − Lainat (${fmt(-calc.longTermDebt)})"
@@ -842,9 +843,9 @@ async function renderDashboard() {
 
     </div>
 
-      <div class="db-item" data-item-id="heartbeat" style="grid-column:1/-1;">${renderHeartbeatCard(sig)}</div>
+      <div class="db-item" data-item-id="heartbeat" style="flex:0 0 100%;width:100%;">${renderHeartbeatCard(sig)}</div>
 
-    <div class="db-item db-section" data-item-id="historia" style="grid-column:1/-1;">
+    <div class="db-item db-section" data-item-id="historia" style="flex:0 0 100%;width:100%;">
     <div class="sec">Historia</div>
     <div class="chart-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -860,7 +861,7 @@ async function renderDashboard() {
     </div>
 
     </div>
-    <div class="db-item db-section" data-item-id="muuttui" style="grid-column:1/-1;">
+    <div class="db-item db-section" data-item-id="muuttui" style="flex:0 0 100%;width:100%;">
     ${changes.length > 0 ? `
     <div class="sec">Mitä muuttui?</div>
     <div class="change-list">
@@ -875,7 +876,7 @@ async function renderDashboard() {
     </div>` : prev ? `<p style="color:var(--text2);font-size:13px;margin-bottom:24px;">Ei muutoksia edelliseen merkintään.</p>` : ''}
 
     </div>
-    <div class="db-item db-section" data-item-id="tapahtumat" style="grid-column:1/-1;">
+    <div class="db-item db-section" data-item-id="tapahtumat" style="flex:0 0 100%;width:100%;">
     ${evts.length > 0 ? `
     <div class="sec">Viimeisimmät tapahtumat</div>
     <div class="ev-list">
@@ -899,7 +900,7 @@ async function renderDashboard() {
   drawStackedChart(snaps);
   // Päivitä oikea paneeli datan latauksen jälkeen
   setTimeout(() => { if (typeof updateRightPanel === 'function') updateRightPanel(); }, 200);
-  setTimeout(() => initCardDrag(), 100);
+  setTimeout(() => { initCardDrag(); initLayoutToolbar(); }, 100);
 }
 
 // ═══════════════════════════════════════════════
@@ -3974,9 +3975,10 @@ function initCardDrag() {
       order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     }
   } catch(e) {}
-  // Varmista grid-column kaikille
+  // Varmista flex-leveys kaikille
   container.querySelectorAll('[data-item-id]').forEach(item => {
-    item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
+    if (wideIds.includes(item.dataset.itemId)) { item.style.flex='0 0 100%'; item.style.width='100%'; }
+    else { item.style.flex='1'; item.style.minWidth='240px'; item.style.width=''; }
   });
 
   // Drop-indikaattori
@@ -4083,10 +4085,11 @@ function initCardDrag() {
       if (clone) { clone.remove(); clone = null; }
       if (dropTarget) {
         dropBefore ? container.insertBefore(el, dropTarget) : container.insertBefore(el, dropTarget.nextSibling);
-        // Palauta grid-column leveys siirron jälkeen
+        // Palauta flex-leveys siirron jälkeen
         const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
         container.querySelectorAll('[data-item-id]').forEach(item => {
-          item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
+          if (wideIds.includes(item.dataset.itemId)) { item.style.flex='0 0 100%'; item.style.width='100%'; }
+          else { item.style.flex='1'; item.style.minWidth='240px'; item.style.width=''; }
         });
         const newOrder = [...container.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
@@ -4104,3 +4107,100 @@ function initCardDrag() {
 }
 // ── END DRAG ─────────────────────────────────────────────────────────────
 
+
+// ── LAYOUT TALLENNIN ─────────────────────────────────────────────────────
+function initLayoutToolbar() {
+  const toolbar = document.getElementById('layout-toolbar');
+  const container = document.getElementById('db-content');
+  if (!toolbar || !container) return;
+
+  const LAYOUTS_KEY = 'fin_layouts';
+  const CURRENT_KEY = 'fin_item_order';
+
+  function getLayouts() {
+    try { return JSON.parse(localStorage.getItem(LAYOUTS_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function saveLayouts(layouts) {
+    localStorage.setItem(LAYOUTS_KEY, JSON.stringify(layouts));
+  }
+  function getCurrentOrder() {
+    return [...container.querySelectorAll('[data-item-id]')].map(el => el.dataset.itemId);
+  }
+  function applyLayout(order) {
+    const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
+    const map = {};
+    container.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
+    order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
+    container.querySelectorAll('[data-item-id]').forEach(item => {
+      if (wideIds.includes(item.dataset.itemId)) { item.style.flex='0 0 100%'; item.style.width='100%'; }
+      else { item.style.flex='1'; item.style.minWidth='240px'; item.style.width=''; }
+    });
+    localStorage.setItem(CURRENT_KEY, JSON.stringify(order));
+  }
+
+  function render() {
+    const layouts = getLayouts();
+    const names = Object.keys(layouts);
+    toolbar.innerHTML = '';
+
+    // Otsikko
+    const lbl = document.createElement('span');
+    lbl.style.cssText = 'font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:var(--mono);white-space:nowrap;';
+    lbl.textContent = 'Näkymät:';
+    toolbar.appendChild(lbl);
+
+    // Tallennetut näkymät
+    names.forEach(name => {
+      const btn = document.createElement('button');
+      btn.style.cssText = 'font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);' +
+        'background:rgba(0,200,255,0.06);color:var(--text2);cursor:pointer;font-family:var(--mono);' +
+        'display:flex;align-items:center;gap:6px;white-space:nowrap;';
+      btn.innerHTML = name + '<span style="color:var(--text3);font-size:10px;" title="Poista">✕</span>';
+      // Sovella näkymä
+      btn.addEventListener('click', e => {
+        if (e.target.tagName === 'SPAN') {
+          // Poista
+          if (confirm('Poistetaanko näkymä "' + name + '"?')) {
+            const layouts = getLayouts();
+            delete layouts[name];
+            saveLayouts(layouts);
+            render();
+          }
+        } else {
+          applyLayout(layouts[name]);
+          render();
+        }
+      });
+      toolbar.appendChild(btn);
+    });
+
+    // + Tallenna -nappi
+    const saveBtn = document.createElement('button');
+    saveBtn.style.cssText = 'font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid rgba(0,255,157,0.3);' +
+      'background:rgba(0,255,157,0.06);color:var(--green);cursor:pointer;font-family:var(--mono);white-space:nowrap;';
+    saveBtn.textContent = '+ Tallenna näkymä';
+    saveBtn.addEventListener('click', () => {
+      const name = prompt('Anna näkymälle nimi (esim. "Päivittäinen", "Analyysi"):');
+      if (!name || !name.trim()) return;
+      const layouts = getLayouts();
+      layouts[name.trim()] = getCurrentOrder();
+      saveLayouts(layouts);
+      render();
+    });
+    toolbar.appendChild(saveBtn);
+
+    // Nollaa järjestys
+    const resetBtn = document.createElement('button');
+    resetBtn.style.cssText = 'font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);' +
+      'background:transparent;color:var(--text3);cursor:pointer;font-family:var(--mono);white-space:nowrap;';
+    resetBtn.textContent = '↺ Oletus';
+    resetBtn.addEventListener('click', () => {
+      applyLayout(['inv','debt','cash','netto','heartbeat','historia','muuttui','tapahtumat']);
+      render();
+    });
+    toolbar.appendChild(resetBtn);
+  }
+
+  render();
+}
+// ── END LAYOUT TALLENNIN ─────────────────────────────────────────────────
