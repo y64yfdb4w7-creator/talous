@@ -900,7 +900,7 @@ async function renderDashboard() {
   drawStackedChart(snaps);
   // Päivitä oikea paneeli datan latauksen jälkeen
   setTimeout(() => { if (typeof updateRightPanel === 'function') updateRightPanel(); }, 200);
-  setTimeout(() => { initCardDrag(); initLayoutToolbar(); if (window.applyAllSizes) window.applyAllSizes(); }, 100);
+  setTimeout(() => { if (window.onDashboardRendered) window.onDashboardRendered(); }, 120);
 }
 
 // ═══════════════════════════════════════════════
