@@ -62,7 +62,7 @@ function renderHeartbeatCard(sig) {
     ? '<div style="font-size:10px;color:' + direction.color + ';text-align:right;max-width:140px;line-height:1.4;margin-top:2px;">' + direction.label + '</div>'
     : '';
 
-  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 16px 14px;margin-bottom:14px;position:relative;overflow:hidden;">'
+  return '<div data-section-id="heartbeat" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 16px 14px;margin-bottom:14px;position:relative;overflow:hidden;">'
     + '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,' + hb.color + '50,transparent);"></div>'
     + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'
     + '<div style="display:flex;align-items:center;gap:8px;">'
@@ -3979,13 +3979,17 @@ function initCardDrag() {
         const h = document.createElement('div');
         h.className = 'drag-handle';
         h.innerHTML = '⠿';
-        h.style.cssText = 'position:absolute;top:8px;right:8px;cursor:grab;font-size:14px;color:var(--text3);opacity:0;transition:opacity .15s;z-index:10;user-select:none;pointer-events:none;';
+        h.title = 'Vedä siirtääksesi';
+        h.style.cssText = 'position:absolute;top:8px;right:8px;cursor:grab;font-size:16px;color:var(--text3);opacity:0;transition:opacity .15s;z-index:10;user-select:none;padding:4px 6px;';
         card.style.position = 'relative';
         card.appendChild(h);
-        card.addEventListener('mouseenter', () => h.style.opacity = '1');
+        card.addEventListener('mouseenter', () => h.style.opacity = '0.6');
         card.addEventListener('mouseleave', () => h.style.opacity = '0');
+        // Drag vain kahvasta
+        h.addEventListener('mousedown', () => card.setAttribute('draggable', 'true'));
+        h.addEventListener('mouseup',   () => card.setAttribute('draggable', 'false'));
       }
-      card.setAttribute('draggable', 'true');
+      card.setAttribute('draggable', 'false');
       card.addEventListener('dragstart', e => { dragging = card; card.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; });
       card.addEventListener('dragend', () => {
         card.style.opacity = '1';
@@ -4008,7 +4012,7 @@ function initCardDrag() {
   // ── 2. Osiot (Historia, Mitä muuttui, Tapahtumat) ───────────────────
   const container = document.getElementById('db-content');
   if (!container) return;
-  const DEFAULT_SECTIONS = ['historia', 'muuttui', 'tapahtumat'];
+  const DEFAULT_SECTIONS = ['heartbeat', 'historia', 'muuttui', 'tapahtumat'];
 
   function applySectionOrder() {
     try {
@@ -4022,20 +4026,36 @@ function initCardDrag() {
 
   let dragSec = null;
   container.querySelectorAll('[data-section-id]').forEach(sec => {
-    // Lisää handle osion otsikon viereen
+    // Lisää handle osion otsikon viereen tai kortin yläreunaan
     const label = sec.querySelector('.sec');
     if (label && !label.querySelector('.drag-handle')) {
       const h = document.createElement('span');
       h.className = 'drag-handle';
       h.innerHTML = ' ⠿';
-      h.style.cssText = 'cursor:grab;color:var(--text3);opacity:0.4;font-size:13px;margin-left:8px;user-select:none;';
-      h.title = 'Vedä järjestelläksesi';
+      h.style.cssText = 'cursor:grab;color:var(--text3);font-size:13px;margin-left:8px;user-select:none;opacity:0.5;';
+      h.title = 'Vedä siirtääksesi';
       label.appendChild(h);
+    } else if (!label && !sec.querySelector('.drag-handle')) {
+      // Heartbeat-kortille jolla ei ole .sec-otsikkoa
+      const h = document.createElement('div');
+      h.className = 'drag-handle';
+      h.innerHTML = '⠿';
+      h.style.cssText = 'position:absolute;top:8px;right:8px;cursor:grab;font-size:16px;color:var(--text3);opacity:0.5;z-index:10;user-select:none;padding:4px 6px;';
+      h.title = 'Vedä siirtääksesi';
+      sec.style.position = 'relative';
+      sec.appendChild(h);
     }
-    sec.setAttribute('draggable', 'true');
+    sec.setAttribute('draggable', 'false');
+    // Drag vain kahvasta
+    const handle = sec.querySelector('.drag-handle');
+    if (handle) {
+      handle.addEventListener('mousedown', () => sec.setAttribute('draggable', 'true'));
+      handle.addEventListener('mouseup',   () => sec.setAttribute('draggable', 'false'));
+    }
     sec.addEventListener('dragstart', e => { dragSec = sec; sec.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; e.stopPropagation(); });
     sec.addEventListener('dragend', () => {
       sec.style.opacity = '1';
+      sec.setAttribute('draggable', 'false');
       container.querySelectorAll('[data-section-id]').forEach(s => s.style.outline = '');
       dragSec = null;
       const newOrder = [...container.querySelectorAll('[data-section-id]')].map(s => s.dataset.sectionId);
