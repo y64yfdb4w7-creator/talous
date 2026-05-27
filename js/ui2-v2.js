@@ -813,7 +813,7 @@ async function renderDashboard() {
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
-      <div class="db-item card kpi-wide" data-item-id="netto" style="grid-column:1/-1;" style="background:var(--surface2);">
+      <div class="db-item card kpi-wide" data-item-id="netto" style="background:var(--surface2);">
         <div class="card-label">Nettovarallisuus</div>
         <div class="card-value tip" style="font-size:38px;"
           data-tip="Omaisuus (${fmt(calc.assets)}) − Luottokortit (${fmt(-calc.shortTermDebt)}) − Lainat (${fmt(-calc.longTermDebt)})"
@@ -843,9 +843,9 @@ async function renderDashboard() {
 
     </div>
 
-      <div class="db-item" data-item-id="heartbeat" style="grid-column:1/-1;">${renderHeartbeatCard(sig)}</div>
+      <div class="db-item" data-item-id="heartbeat">${renderHeartbeatCard(sig)}</div>
 
-    <div class="db-item db-section" data-item-id="historia" style="grid-column:1/-1;">
+    <div class="db-item db-section" data-item-id="historia">
     <div class="sec">Historia</div>
     <div class="chart-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -861,7 +861,7 @@ async function renderDashboard() {
     </div>
 
     </div>
-    <div class="db-item db-section" data-item-id="muuttui" style="grid-column:1/-1;">
+    <div class="db-item db-section" data-item-id="muuttui">
     ${changes.length > 0 ? `
     <div class="sec">Mitä muuttui?</div>
     <div class="change-list">
@@ -876,7 +876,7 @@ async function renderDashboard() {
     </div>` : prev ? `<p style="color:var(--text2);font-size:13px;margin-bottom:24px;">Ei muutoksia edelliseen merkintään.</p>` : ''}
 
     </div>
-    <div class="db-item db-section" data-item-id="tapahtumat" style="grid-column:1/-1;">
+    <div class="db-item db-section" data-item-id="tapahtumat">
     ${evts.length > 0 ? `
     <div class="sec">Viimeisimmät tapahtumat</div>
     <div class="ev-list">
@@ -900,7 +900,7 @@ async function renderDashboard() {
   drawStackedChart(snaps);
   // Päivitä oikea paneeli datan latauksen jälkeen
   setTimeout(() => { if (typeof updateRightPanel === 'function') updateRightPanel(); }, 200);
-  setTimeout(() => { initCardDrag(); initLayoutToolbar(); }, 100);
+  setTimeout(() => { initCardDrag(); initLayoutToolbar(); if (window.applyAllSizes) window.applyAllSizes(); }, 100);
 }
 
 // ═══════════════════════════════════════════════
@@ -1384,7 +1384,7 @@ async function renderEvents() {
             style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
               padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
         </div>
-        <div style="grid-column:1/-1;">
+        <div>
           <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Muistiinpano</div>
           <input id="ev-note" type="text" placeholder="Vapaaehtoinen lisätieto"
             style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
@@ -3976,7 +3976,7 @@ function initCardDrag() {
   }
   window.applyAllSizes = function applyAllSizes() {
     document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => {
-      el.style.gridColumn = isWide(el.dataset.itemId) ? '1 / -1' : 'auto';
+      el.classList.toggle('card-wide', isWide(el.dataset.itemId)); el.classList.toggle('card-normal', !isWide(el.dataset.itemId));
       const btn = el.querySelector('.size-toggle-btn');
       if (btn) {
         const wide = isWide(el.dataset.itemId);
