@@ -4069,7 +4069,12 @@ function initCardDrag() {
         'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:all .15s;';
       sBtn.addEventListener('mouseenter', () => { sBtn.style.color='#fff'; sBtn.style.background='rgba(255,255,255,0.12)'; });
       sBtn.addEventListener('mouseleave', () => { sBtn.style.color='rgba(255,255,255,0.55)'; sBtn.style.background='rgba(255,255,255,0.06)'; });
-      sBtn.addEventListener('click', e => { e.stopPropagation(); toggleItemSize(el.dataset.itemId); });
+      const _itemId = el.dataset.itemId;
+      sBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        window.toggleItemSize(_itemId);
+      });
       el.style.position = 'relative';
       el.appendChild(sBtn);
     }
