@@ -3958,6 +3958,28 @@ function initCardDrag() {
   const CARD_KEY    = 'fin_card_order';
   const SECTION_KEY = 'fin_section_order';
 
+  // ── Auto-scroll kun raahaa reunan lähellä ──────────────────────────
+  let scrollInterval = null;
+  const SCROLL_ZONE = 100; // px reunasta
+  const SCROLL_SPEED = 12;
+
+  function startAutoScroll(e) {
+    const scroller = document.getElementById('os-main') || document.documentElement;
+    if (scrollInterval) clearInterval(scrollInterval);
+    scrollInterval = setInterval(() => {
+      const y = e.clientY;
+      const h = window.innerHeight;
+      if (y < SCROLL_ZONE) scroller.scrollTop -= SCROLL_SPEED * (1 - y / SCROLL_ZONE);
+      else if (y > h - SCROLL_ZONE) scroller.scrollTop += SCROLL_SPEED * (1 - (h - y) / SCROLL_ZONE);
+    }, 16);
+  }
+  function stopAutoScroll() {
+    if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; }
+  }
+  document.addEventListener('dragend', stopAutoScroll);
+  document.addEventListener('drop', stopAutoScroll);
+  document.addEventListener('dragover', e => { if (scrollInterval) startAutoScroll(e); });
+
   // ── 1. KPI-GRID kortit ──────────────────────────────────────────────
   const grid = document.querySelector('.kpi-grid');
   if (grid) {
@@ -4000,6 +4022,7 @@ function initCardDrag() {
       });
       card.addEventListener('dragover', e => {
         e.preventDefault(); if (!dragging || dragging === card) return;
+        startAutoScroll(e);
         card.style.outline = '2px solid var(--blue)';
         const r = card.getBoundingClientRect();
         e.clientX < r.left + r.width / 2 ? grid.insertBefore(dragging, card) : grid.insertBefore(dragging, card.nextSibling);
@@ -4063,6 +4086,7 @@ function initCardDrag() {
     });
     sec.addEventListener('dragover', e => {
       e.preventDefault(); e.stopPropagation(); if (!dragSec || dragSec === sec) return;
+      startAutoScroll(e);
       sec.style.outline = '2px solid var(--blue)';
       const r = sec.getBoundingClientRect();
       e.clientY < r.top + r.height / 2 ? container.insertBefore(dragSec, sec) : container.insertBefore(dragSec, sec.nextSibling);
