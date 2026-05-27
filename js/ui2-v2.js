@@ -3955,109 +3955,136 @@ async function updateRightPanel() {
 
 // ── KORTTIEN JA OSIOIDEN DRAG & DROP ────────────────────────────────────
 // ── KORTTIEN JA OSIOIDEN JÄRJESTELY (mouse-pohjainen) ───────────────────
+// ── KORTTIEN JA OSIOIDEN JÄRJESTELY ─────────────────────────────────────
 function initCardDrag() {
   const CARD_KEY = 'fin_card_order';
   const SEC_KEY  = 'fin_section_order';
-  const scroller = () => document.getElementById('os-main') || document.documentElement;
+  const sc = () => document.getElementById('os-main') || document.documentElement;
 
-  function addHandle(el, position) {
-    if (el.querySelector('.drag-handle')) return;
-    const h = document.createElement('div');
+  // Drop-indikaattori viiva
+  const indicator = document.createElement('div');
+  indicator.style.cssText = 'position:fixed;left:0;right:0;height:3px;background:var(--blue);' +
+    'border-radius:2px;z-index:10000;pointer-events:none;display:none;' +
+    'box-shadow:0 0 8px var(--blue);transition:top .08s;';
+  document.body.appendChild(indicator);
+
+  function showIndicator(targetEl, before) {
+    const r = targetEl.getBoundingClientRect();
+    indicator.style.display = 'block';
+    indicator.style.top = (before ? r.top - 2 : r.bottom - 1) + 'px';
+    indicator.style.left = r.left + 'px';
+    indicator.style.right = (window.innerWidth - r.right) + 'px';
+    indicator.style.width = 'auto';
+  }
+  function hideIndicator() { indicator.style.display = 'none'; }
+
+  function addHandle(el) {
+    if (el.querySelector('.drag-handle')) return el.querySelector('.drag-handle');
+    const label = el.querySelector('.sec');
+    const h = document.createElement(label ? 'span' : 'div');
     h.className = 'drag-handle';
     h.innerHTML = '⠿';
-    h.style.cssText = (position === 'inline')
-      ? 'display:inline-block;cursor:grab;color:rgba(255,255,255,0.45);font-size:16px;margin-left:10px;user-select:none;vertical-align:middle;padding:2px 4px;border-radius:4px;'
-      : 'position:absolute;top:8px;right:10px;cursor:grab;font-size:18px;color:rgba(255,255,255,0.35);z-index:20;user-select:none;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.04);';
+    if (label) {
+      h.style.cssText = 'cursor:grab;color:rgba(255,255,255,0.4);font-size:15px;margin-left:10px;user-select:none;vertical-align:middle;';
+      label.appendChild(h);
+    } else {
+      h.style.cssText = 'position:absolute;top:8px;right:10px;cursor:grab;font-size:18px;color:rgba(255,255,255,0.3);z-index:20;user-select:none;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.04);';
+      el.style.position = 'relative';
+      el.appendChild(h);
+    }
     h.title = 'Vedä siirtääksesi';
-    if (position === 'inline') el.appendChild(h);
-    else { el.style.position = 'relative'; el.appendChild(h); }
     return h;
   }
 
-  function makeDraggable(el, container, storageKey) {
-    const label = el.querySelector('.sec');
-    const handle = label ? addHandle(label, 'inline') : addHandle(el, 'abs');
-    if (!handle) return;
+  function makeDraggable(el, container) {
+    const handle = addHandle(el);
+    let clone = null, startX = 0, startY = 0, scrollTimer = null;
+    let dropTarget = null, dropBefore = true;
 
-    let clone = null, startX = 0, startY = 0, scrollStart = 0, scrollTimer = null;
+    function getTargets() {
+      return [...container.querySelectorAll('[data-card-id],[data-section-id]')].filter(t => t !== el);
+    }
+
+    function findDrop(cx, cy) {
+      let best = null, bestBefore = true, bestDist = Infinity;
+      getTargets().forEach(t => {
+        const r = t.getBoundingClientRect();
+        // Onko x koordinaatti kortin alueella (tai riittävän lähellä)
+        const inX = cx >= r.left - 20 && cx <= r.right + 20;
+        if (!inX) return;
+        const topDist = Math.abs(cy - r.top);
+        const botDist = Math.abs(cy - r.bottom);
+        const dist = Math.min(topDist, botDist);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = t;
+          bestBefore = cy < r.top + r.height / 2;
+        }
+      });
+      return best ? { target: best, before: bestBefore } : null;
+    }
 
     function onMove(e) {
-      const cx = e.touches ? e.touches[0].clientX : e.clientX;
-      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      const cx = e.clientX, cy = e.clientY;
       if (!clone) {
-        if (Math.abs(cx - startX) < 4 && Math.abs(cy - startY) < 4) return;
-        // Luo ghost
-        clone = el.cloneNode(true);
-        clone.style.cssText = 'position:fixed;z-index:9999;opacity:0.75;pointer-events:none;'
-          + 'box-shadow:0 8px 32px rgba(0,0,0,0.5);border-radius:14px;'
-          + 'width:' + el.offsetWidth + 'px;transition:none;';
+        if (Math.abs(cx - startX) < 5 && Math.abs(cy - startY) < 5) return;
+        clone = document.createElement('div');
+        clone.style.cssText = 'position:fixed;z-index:9999;opacity:0.7;pointer-events:none;'
+          + 'box-shadow:0 12px 40px rgba(0,0,0,0.6);border-radius:14px;overflow:hidden;'
+          + 'width:' + el.offsetWidth + 'px;height:' + Math.min(el.offsetHeight, 120) + 'px;'
+          + 'background:var(--surface2);border:2px solid var(--blue);';
+        // Lisää label klooniin
+        const lbl = el.querySelector('.sec,.card-label,.drag-handle');
+        if (lbl) clone.innerHTML = '<div style="padding:12px 16px;font-size:13px;font-weight:700;color:var(--text1);">' + (el.querySelector('.sec,.card-label')?.textContent?.trim() || '⠿') + '</div>';
         document.body.appendChild(clone);
-        el.style.opacity = '0.3';
+        el.style.opacity = '0.25';
         handle.style.cursor = 'grabbing';
       }
       clone.style.left = (cx - el.offsetWidth / 2) + 'px';
       clone.style.top  = (cy - 30) + 'px';
 
       // Auto-scroll
-      const sc = scroller();
       if (scrollTimer) clearInterval(scrollTimer);
       scrollTimer = setInterval(() => {
-        if (cy < 100) sc.scrollTop -= 10 * (1 - cy/100);
-        else if (cy > window.innerHeight - 100) sc.scrollTop += 10 * (1 - (window.innerHeight - cy)/100);
+        const s = sc(), h = window.innerHeight;
+        if (cy < 120) s.scrollTop -= 14 * (1 - cy/120);
+        else if (cy > h - 120) s.scrollTop += 14 * (1 - (h-cy)/120);
       }, 20);
 
-      // Highlight drop target
-      container.querySelectorAll('[data-card-id],[data-section-id]').forEach(t => {
-        if (t === el) return;
-        t.style.outline = '';
-        const r = t.getBoundingClientRect();
-        if (cx > r.left && cx < r.right && cy > r.top && cy < r.bottom) {
-          t.style.outline = '2px solid var(--blue)';
-        }
-      });
+      // Drop indikaattori
+      const drop = findDrop(cx, cy);
+      if (drop) { dropTarget = drop.target; dropBefore = drop.before; showIndicator(drop.target, drop.before); }
+      else { dropTarget = null; hideIndicator(); }
     }
 
     function onEnd(e) {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup',   onEnd);
       if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; }
+      hideIndicator();
       el.style.opacity = '1';
       handle.style.cursor = 'grab';
-      if (!clone) return;
-      clone.remove(); clone = null;
-
-      const cx = e.clientX, cy = e.clientY;
-      let target = null, before = true;
-      container.querySelectorAll('[data-card-id],[data-section-id]').forEach(t => {
-        if (t === el) return;
-        t.style.outline = '';
-        const r = t.getBoundingClientRect();
-        if (cx > r.left && cx < r.right && cy > r.top && cy < r.bottom) {
-          target = t;
-          before = cy < r.top + r.height / 2;
-        }
-      });
-      if (target) {
-        before ? container.insertBefore(el, target) : container.insertBefore(el, target.nextSibling);
-        // Tallenna järjestys
-        const key = el.dataset.cardId ? CARD_KEY : SEC_KEY;
-        const attr = el.dataset.cardId ? 'cardId' : 'sectionId';
-        const newOrder = [...container.querySelectorAll(el.dataset.cardId ? '[data-card-id]' : '[data-section-id]')]
-          .map(c => c.dataset[attr]);
-        localStorage.setItem(key, JSON.stringify(newOrder));
+      if (clone) { clone.remove(); clone = null; }
+      if (dropTarget) {
+        dropBefore ? container.insertBefore(el, dropTarget) : container.insertBefore(el, dropTarget.nextSibling);
+        const isCard = !!el.dataset.cardId;
+        const attr = isCard ? 'cardId' : 'sectionId';
+        const key  = isCard ? CARD_KEY : SEC_KEY;
+        const sel  = isCard ? '[data-card-id]' : '[data-section-id]';
+        localStorage.setItem(key, JSON.stringify([...container.querySelectorAll(sel)].map(c => c.dataset[attr])));
       }
+      dropTarget = null;
     }
 
     handle.addEventListener('mousedown', e => {
-      e.preventDefault();
+      e.preventDefault(); e.stopPropagation();
       startX = e.clientX; startY = e.clientY;
-      scrollStart = scroller().scrollTop;
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup',   onEnd);
     });
   }
 
-  // ── KPI-GRID kortit ────────────────────────────────────────────────
+  // ── KPI-GRID ──────────────────────────────────────────────────────
   const grid = document.querySelector('.kpi-grid');
   if (grid) {
     try {
@@ -4067,10 +4094,10 @@ function initCardDrag() {
         order.forEach(id => { if (map[id]) grid.appendChild(map[id]); });
       }
     } catch(e) {}
-    grid.querySelectorAll('[data-card-id]').forEach(c => makeDraggable(c, grid, CARD_KEY));
+    grid.querySelectorAll('[data-card-id]').forEach(c => makeDraggable(c, grid));
   }
 
-  // ── Osiot ──────────────────────────────────────────────────────────
+  // ── Osiot ─────────────────────────────────────────────────────────
   const container = document.getElementById('db-content');
   if (!container) return;
   try {
@@ -4080,7 +4107,7 @@ function initCardDrag() {
       order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     }
   } catch(e) {}
-  container.querySelectorAll('[data-section-id]').forEach(s => makeDraggable(s, container, SEC_KEY));
+  container.querySelectorAll('[data-section-id]').forEach(s => makeDraggable(s, container));
 }
 // ── END DRAG ─────────────────────────────────────────────────────────────
 
