@@ -121,7 +121,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       +'</div>';
   });
 
-  return '<div class="card" data-card-id="debt">'
+  return '<div class="db-item card" data-item-id="debt">'
     + _cardHeader('Pitkät velat', 'debt', [
       {key:'asuntolaina', label:'As.laina'},
       {key:'autolaina',   label:'Autolaina'},
@@ -674,10 +674,10 @@ async function renderDashboard() {
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
 
-    <div class="kpi-grid">
+    <div id="all-cards-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:14px;align-items:start;">
 
       <!-- 1. SIJOITUKSET -->
-      <div class="card" data-card-id="inv">
+      <div class="db-item card" data-item-id="inv">
         ${_cardHeader('Sijoitukset', 'inv', [
           {key:'nordnet',label:'Nordnet'},
           {key:'op',     label:'OP Osakkeet'},
@@ -749,7 +749,7 @@ async function renderDashboard() {
       })()}
 
       <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
-      <div class="card kpi-compact" data-card-id="cash">
+      <div class="db-item card kpi-compact" data-item-id="cash">
         ${_cardHeader('Käyttötilit &amp; rytmi', 'cash', [
           {key:'tulotili',   label:'Tulotili'},
           {key:'spankki',    label:'S-Pankki'},
@@ -812,7 +812,7 @@ async function renderDashboard() {
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
-      <div class="card kpi-wide" data-card-id="netto" style="background:var(--surface2);">
+      <div class="db-item card kpi-wide" data-item-id="netto" style="background:var(--surface2);">
         <div class="card-label">Nettovarallisuus</div>
         <div class="card-value tip" style="font-size:38px;"
           data-tip="Omaisuus (${fmt(calc.assets)}) − Luottokortit (${fmt(-calc.shortTermDebt)}) − Lainat (${fmt(-calc.longTermDebt)})"
@@ -842,9 +842,9 @@ async function renderDashboard() {
 
     </div>
 
-    ${renderHeartbeatCard(sig)}
+      <div class="db-item" data-item-id="heartbeat">${renderHeartbeatCard(sig)}</div>
 
-    <div class="db-section" data-section-id="historia">
+    <div class="db-item db-section" data-item-id="historia">
     <div class="sec">Historia</div>
     <div class="chart-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -860,7 +860,7 @@ async function renderDashboard() {
     </div>
 
     </div>
-    <div class="db-section" data-section-id="muuttui">
+    <div class="db-item db-section" data-item-id="muuttui">
     ${changes.length > 0 ? `
     <div class="sec">Mitä muuttui?</div>
     <div class="change-list">
@@ -875,7 +875,7 @@ async function renderDashboard() {
     </div>` : prev ? `<p style="color:var(--text2);font-size:13px;margin-bottom:24px;">Ei muutoksia edelliseen merkintään.</p>` : ''}
 
     </div>
-    <div class="db-section" data-section-id="tapahtumat">
+    <div class="db-item db-section" data-item-id="tapahtumat">
     ${evts.length > 0 ? `
     <div class="sec">Viimeisimmät tapahtumat</div>
     <div class="ev-list">
@@ -3956,69 +3956,90 @@ async function updateRightPanel() {
 // ── KORTTIEN JA OSIOIDEN DRAG & DROP ────────────────────────────────────
 // ── KORTTIEN JA OSIOIDEN JÄRJESTELY (mouse-pohjainen) ───────────────────
 // ── KORTTIEN JA OSIOIDEN JÄRJESTELY ─────────────────────────────────────
+// ── YHTEINEN DRAG & DROP ─────────────────────────────────────────────────
 function initCardDrag() {
-  const CARD_KEY = 'fin_card_order';
-  const SEC_KEY  = 'fin_section_order';
-  const sc = () => document.getElementById('os-main') || document.documentElement;
+  const STORAGE_KEY = 'fin_item_order';
+  const container = document.getElementById('db-content');
+  if (!container) return;
 
-  // Drop-indikaattori viiva
+  const DEFAULT = ['inv','debt','cash','netto','heartbeat','historia','muuttui','tapahtumat'];
+
+  // Palauta tallennettu järjestys
+  try {
+    const order = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (order && order.length > 0) {
+      const map = {};
+      container.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
+      order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
+    }
+  } catch(e) {}
+
+  // Drop-indikaattori
   const indicator = document.createElement('div');
-  indicator.style.cssText = 'position:fixed;left:0;right:0;height:3px;background:var(--blue);' +
-    'border-radius:2px;z-index:10000;pointer-events:none;display:none;' +
-    'box-shadow:0 0 8px var(--blue);transition:top .08s;';
+  indicator.style.cssText = 'position:fixed;height:3px;background:#00c8ff;border-radius:2px;' +
+    'z-index:10000;pointer-events:none;display:none;box-shadow:0 0 10px #00c8ff;';
   document.body.appendChild(indicator);
 
-  function showIndicator(targetEl, before) {
-    const r = targetEl.getBoundingClientRect();
+  function showIndicator(el, before) {
+    const r = el.getBoundingClientRect();
     indicator.style.display = 'block';
-    indicator.style.top = (before ? r.top - 2 : r.bottom - 1) + 'px';
+    indicator.style.top  = (before ? r.top - 2 : r.bottom - 1) + 'px';
     indicator.style.left = r.left + 'px';
-    indicator.style.right = (window.innerWidth - r.right) + 'px';
-    indicator.style.width = 'auto';
+    indicator.style.width = r.width + 'px';
   }
   function hideIndicator() { indicator.style.display = 'none'; }
 
   function addHandle(el) {
     if (el.querySelector('.drag-handle')) return el.querySelector('.drag-handle');
-    const label = el.querySelector('.sec');
+    const label = el.querySelector('.sec,.card-label');
     const h = document.createElement(label ? 'span' : 'div');
     h.className = 'drag-handle';
     h.innerHTML = '⠿';
+    h.title = 'Vedä siirtääksesi';
     if (label) {
       h.style.cssText = 'cursor:grab;color:rgba(255,255,255,0.4);font-size:15px;margin-left:10px;user-select:none;vertical-align:middle;';
       label.appendChild(h);
     } else {
-      h.style.cssText = 'position:absolute;top:8px;right:10px;cursor:grab;font-size:18px;color:rgba(255,255,255,0.3);z-index:20;user-select:none;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.04);';
+      h.style.cssText = 'position:absolute;top:8px;right:10px;cursor:grab;font-size:18px;color:rgba(255,255,255,0.3);z-index:20;user-select:none;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.05);';
       el.style.position = 'relative';
       el.appendChild(h);
     }
-    h.title = 'Vedä siirtääksesi';
     return h;
   }
 
-  function makeDraggable(el, container) {
+  let scrollTimer = null, _my = 0;
+  document.addEventListener('mousemove', e => { _my = e.clientY; });
+  function startScroll() {
+    if (scrollTimer) return;
+    const sc = document.getElementById('os-main') || document.documentElement;
+    scrollTimer = setInterval(() => {
+      const h = window.innerHeight;
+      if (_my < 120) sc.scrollTop -= 12 * (1 - _my/120);
+      else if (_my > h-120) sc.scrollTop += 12 * (1 - (h-_my)/120);
+    }, 20);
+  }
+  function stopScroll() { if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; } }
+
+  container.querySelectorAll('[data-item-id]').forEach(el => {
     const handle = addHandle(el);
-    let clone = null, startX = 0, startY = 0, scrollTimer = null;
+    let clone = null, startX = 0, startY = 0;
     let dropTarget = null, dropBefore = true;
 
-    function getTargets() {
-      return [...container.querySelectorAll('[data-card-id],[data-section-id]')].filter(t => t !== el);
+    function getItems() {
+      return [...container.querySelectorAll('[data-item-id]')].filter(t => t !== el);
     }
 
     function findDrop(cx, cy) {
       let best = null, bestBefore = true, bestDist = Infinity;
-      getTargets().forEach(t => {
+      getItems().forEach(t => {
         const r = t.getBoundingClientRect();
-        // Onko x koordinaatti kortin alueella (tai riittävän lähellä)
-        const inX = cx >= r.left - 20 && cx <= r.right + 20;
-        if (!inX) return;
-        const topDist = Math.abs(cy - r.top);
-        const botDist = Math.abs(cy - r.bottom);
-        const dist = Math.min(topDist, botDist);
+        if (r.height === 0) return;
+        const midY = r.top + r.height / 2;
+        const dist = Math.abs(cy - midY);
         if (dist < bestDist) {
           bestDist = dist;
           best = t;
-          bestBefore = cy < r.top + r.height / 2;
+          bestBefore = cy < midY;
         }
       });
       return best ? { target: best, before: bestBefore } : null;
@@ -4027,51 +4048,38 @@ function initCardDrag() {
     function onMove(e) {
       const cx = e.clientX, cy = e.clientY;
       if (!clone) {
-        if (Math.abs(cx - startX) < 5 && Math.abs(cy - startY) < 5) return;
+        if (Math.abs(cx-startX) < 5 && Math.abs(cy-startY) < 5) return;
         clone = document.createElement('div');
-        clone.style.cssText = 'position:fixed;z-index:9999;opacity:0.7;pointer-events:none;'
-          + 'box-shadow:0 12px 40px rgba(0,0,0,0.6);border-radius:14px;overflow:hidden;'
-          + 'width:' + el.offsetWidth + 'px;height:' + Math.min(el.offsetHeight, 120) + 'px;'
-          + 'background:var(--surface2);border:2px solid var(--blue);';
-        // Lisää label klooniin
-        const lbl = el.querySelector('.sec,.card-label,.drag-handle');
-        if (lbl) clone.innerHTML = '<div style="padding:12px 16px;font-size:13px;font-weight:700;color:var(--text1);">' + (el.querySelector('.sec,.card-label')?.textContent?.trim() || '⠿') + '</div>';
+        const title = el.querySelector('.sec,.card-label')?.textContent?.trim() || '⠿';
+        clone.innerHTML = '<div style="padding:12px 16px;font-size:13px;font-weight:700;color:#e2ddd4;">' + title + '</div>';
+        clone.style.cssText = 'position:fixed;z-index:9999;opacity:0.75;pointer-events:none;' +
+          'box-shadow:0 12px 40px rgba(0,0,0,0.6);border-radius:12px;overflow:hidden;' +
+          'width:' + Math.min(el.offsetWidth, 300) + 'px;' +
+          'background:#1a2420;border:2px solid #00c8ff;';
         document.body.appendChild(clone);
-        el.style.opacity = '0.25';
+        el.style.opacity = '0.2';
         handle.style.cursor = 'grabbing';
+        startScroll();
       }
-      clone.style.left = (cx - el.offsetWidth / 2) + 'px';
-      clone.style.top  = (cy - 30) + 'px';
+      clone.style.left = (cx - parseInt(clone.style.width)/2) + 'px';
+      clone.style.top  = (cy - 20) + 'px';
 
-      // Auto-scroll
-      if (scrollTimer) clearInterval(scrollTimer);
-      scrollTimer = setInterval(() => {
-        const s = sc(), h = window.innerHeight;
-        if (cy < 120) s.scrollTop -= 14 * (1 - cy/120);
-        else if (cy > h - 120) s.scrollTop += 14 * (1 - (h-cy)/120);
-      }, 20);
-
-      // Drop indikaattori
       const drop = findDrop(cx, cy);
       if (drop) { dropTarget = drop.target; dropBefore = drop.before; showIndicator(drop.target, drop.before); }
       else { dropTarget = null; hideIndicator(); }
     }
 
-    function onEnd(e) {
+    function onEnd() {
       document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup',   onEnd);
-      if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; }
-      hideIndicator();
+      document.removeEventListener('mouseup', onEnd);
+      stopScroll(); hideIndicator();
       el.style.opacity = '1';
       handle.style.cursor = 'grab';
       if (clone) { clone.remove(); clone = null; }
       if (dropTarget) {
         dropBefore ? container.insertBefore(el, dropTarget) : container.insertBefore(el, dropTarget.nextSibling);
-        const isCard = !!el.dataset.cardId;
-        const attr = isCard ? 'cardId' : 'sectionId';
-        const key  = isCard ? CARD_KEY : SEC_KEY;
-        const sel  = isCard ? '[data-card-id]' : '[data-section-id]';
-        localStorage.setItem(key, JSON.stringify([...container.querySelectorAll(sel)].map(c => c.dataset[attr])));
+        const newOrder = [...container.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
       }
       dropTarget = null;
     }
@@ -4080,34 +4088,9 @@ function initCardDrag() {
       e.preventDefault(); e.stopPropagation();
       startX = e.clientX; startY = e.clientY;
       document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup',   onEnd);
+      document.addEventListener('mouseup', onEnd);
     });
-  }
-
-  // ── KPI-GRID ──────────────────────────────────────────────────────
-  const grid = document.querySelector('.kpi-grid');
-  if (grid) {
-    try {
-      const order = JSON.parse(localStorage.getItem(CARD_KEY));
-      if (order) {
-        const map = {}; grid.querySelectorAll('[data-card-id]').forEach(c => map[c.dataset.cardId] = c);
-        order.forEach(id => { if (map[id]) grid.appendChild(map[id]); });
-      }
-    } catch(e) {}
-    grid.querySelectorAll('[data-card-id]').forEach(c => makeDraggable(c, grid));
-  }
-
-  // ── Osiot ─────────────────────────────────────────────────────────
-  const container = document.getElementById('db-content');
-  if (!container) return;
-  try {
-    const order = JSON.parse(localStorage.getItem(SEC_KEY));
-    if (order) {
-      const map = {}; container.querySelectorAll('[data-section-id]').forEach(s => map[s.dataset.sectionId] = s);
-      order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
-    }
-  } catch(e) {}
-  container.querySelectorAll('[data-section-id]').forEach(s => makeDraggable(s, container));
+  });
 }
 // ── END DRAG ─────────────────────────────────────────────────────────────
 
