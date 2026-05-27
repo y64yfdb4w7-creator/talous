@@ -121,7 +121,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       +'</div>';
   });
 
-  return '<div class="card">'
+  return '<div class="card" data-card-id="debt">'
     + _cardHeader('Pitkät velat', 'debt', [
       {key:'asuntolaina', label:'As.laina'},
       {key:'autolaina',   label:'Autolaina'},
@@ -677,7 +677,7 @@ async function renderDashboard() {
     <div class="kpi-grid">
 
       <!-- 1. SIJOITUKSET -->
-      <div class="card">
+      <div class="card" data-card-id="inv">
         ${_cardHeader('Sijoitukset', 'inv', [
           {key:'nordnet',label:'Nordnet'},
           {key:'op',     label:'OP Osakkeet'},
@@ -749,7 +749,7 @@ async function renderDashboard() {
       })()}
 
       <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
-      <div class="card kpi-compact">
+      <div class="card kpi-compact" data-card-id="cash">
         ${_cardHeader('Käyttötilit &amp; rytmi', 'cash', [
           {key:'tulotili',   label:'Tulotili'},
           {key:'spankki',    label:'S-Pankki'},
@@ -896,6 +896,7 @@ async function renderDashboard() {
   drawStackedChart(snaps);
   // Päivitä oikea paneeli datan latauksen jälkeen
   setTimeout(() => { if (typeof updateRightPanel === 'function') updateRightPanel(); }, 200);
+  setTimeout(() => initCardDrag(), 100);
 }
 
 // ═══════════════════════════════════════════════
@@ -3948,3 +3949,72 @@ async function updateRightPanel() {
   } catch(e) { console.warn('Panel update:', e); }
 }
 // ══════════════════════════════════════════════════════════════
+
+// ── KORTTIEN DRAG & DROP JÄRJESTYS ─────────────────────────────────────
+function initCardDrag() {
+  const grid = document.querySelector('.kpi-grid');
+  if (!grid) return;
+
+  const STORAGE_KEY = 'fin_card_order';
+  const DEFAULT_ORDER = ['inv', 'debt', 'cash'];
+
+  // Lisää drag-kahvat kortteihin
+  grid.querySelectorAll('[data-card-id]').forEach(card => {
+    // Estä duplikaatti
+    if (card.querySelector('.drag-handle')) return;
+    const handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.innerHTML = '⠿';
+    handle.title = 'Vedä järjestelläksesi';
+    handle.style.cssText = 'position:absolute;top:8px;right:8px;cursor:grab;font-size:14px;color:var(--text3);opacity:0;transition:opacity .15s;z-index:10;user-select:none;';
+    card.style.position = 'relative';
+    card.appendChild(handle);
+    card.addEventListener('mouseenter', () => handle.style.opacity = '1');
+    card.addEventListener('mouseleave', () => handle.style.opacity = '0');
+  });
+
+  // Palauta tallennettu järjestys
+  function applyOrder() {
+    try {
+      const order = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || DEFAULT_ORDER;
+      const cards = {};
+      grid.querySelectorAll('[data-card-id]').forEach(c => { cards[c.dataset.cardId] = c; });
+      // Löydä ensimmäinen ei-järjestettävä kortti (nettovarallisuus) paikkamerkkiä varten
+      const wide = grid.querySelector('.kpi-wide');
+      order.forEach(id => { if (cards[id]) grid.insertBefore(cards[id], wide || null); });
+    } catch(e) {}
+  }
+  applyOrder();
+
+  // Drag events
+  let dragging = null;
+  grid.querySelectorAll('[data-card-id]').forEach(card => {
+    card.setAttribute('draggable', 'true');
+
+    card.addEventListener('dragstart', e => {
+      dragging = card;
+      card.style.opacity = '0.4';
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      card.style.opacity = '1';
+      grid.querySelectorAll('[data-card-id]').forEach(c => c.style.outline = '');
+      dragging = null;
+      // Tallenna uusi järjestys
+      const newOrder = [...grid.querySelectorAll('[data-card-id]')].map(c => c.dataset.cardId);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!dragging || dragging === card) return;
+      card.style.outline = '2px solid var(--blue)';
+      const rect = card.getBoundingClientRect();
+      const mid = rect.left + rect.width / 2;
+      if (e.clientX < mid) grid.insertBefore(dragging, card);
+      else grid.insertBefore(dragging, card.nextSibling);
+    });
+    card.addEventListener('dragleave', () => { card.style.outline = ''; });
+    card.addEventListener('drop', e => { e.preventDefault(); card.style.outline = ''; });
+  });
+}
+// ── END DRAG ────────────────────────────────────────────────────────────
