@@ -3992,7 +3992,7 @@ function initCardDrag() {
     const sizes = getSizes();
     sizes[id] = isWide(id) ? 'small' : 'wide';
     localStorage.setItem(SIZE_KEY, JSON.stringify(sizes));
-    applyAllSizes();
+    window.applyAllSizes();
   };
 
   // Palauta tallennettu järjestys
@@ -4062,11 +4062,11 @@ function initCardDrag() {
       sBtn.className = 'size-toggle-btn';
       sBtn.textContent = isWide(el.dataset.itemId) ? '⊡' : '⊞';
       sBtn.title = isWide(el.dataset.itemId) ? 'Tee pieneksi' : 'Tee leveäksi';
-      sBtn.style.cssText = 'position:absolute;top:8px;right:36px;cursor:pointer;font-size:14px;' +
-        'color:rgba(255,255,255,0.3);z-index:20;user-select:none;padding:4px 6px;border-radius:5px;' +
-        'transition:color .15s;';
-      sBtn.addEventListener('mouseenter', () => sBtn.style.color='rgba(255,255,255,0.7)');
-      sBtn.addEventListener('mouseleave', () => sBtn.style.color='rgba(255,255,255,0.3)');
+      sBtn.style.cssText = 'position:absolute;top:6px;right:38px;cursor:pointer;font-size:15px;' +
+        'color:rgba(255,255,255,0.55);z-index:20;user-select:none;padding:4px 8px;border-radius:6px;' +
+        'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:all .15s;';
+      sBtn.addEventListener('mouseenter', () => { sBtn.style.color='#fff'; sBtn.style.background='rgba(255,255,255,0.12)'; });
+      sBtn.addEventListener('mouseleave', () => { sBtn.style.color='rgba(255,255,255,0.55)'; sBtn.style.background='rgba(255,255,255,0.06)'; });
       sBtn.addEventListener('click', e => { e.stopPropagation(); toggleItemSize(el.dataset.itemId); });
       el.style.position = 'relative';
       el.appendChild(sBtn);
@@ -4127,7 +4127,8 @@ function initCardDrag() {
       if (clone) { clone.remove(); clone = null; }
       if (dropTarget) {
         dropBefore ? container.insertBefore(el, dropTarget) : container.insertBefore(el, dropTarget.nextSibling);
-        applyAllSizes();
+        // Palauta koot drag-siirron jälkeen
+        window.applyAllSizes();
         const newOrder = [...container.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
       }
