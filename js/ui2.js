@@ -3954,126 +3954,133 @@ async function updateRightPanel() {
 // ══════════════════════════════════════════════════════════════
 
 // ── KORTTIEN JA OSIOIDEN DRAG & DROP ────────────────────────────────────
+// ── KORTTIEN JA OSIOIDEN JÄRJESTELY (mouse-pohjainen) ───────────────────
 function initCardDrag() {
-  const CARD_KEY    = 'fin_card_order';
-  const SECTION_KEY = 'fin_section_order';
+  const CARD_KEY = 'fin_card_order';
+  const SEC_KEY  = 'fin_section_order';
+  const scroller = () => document.getElementById('os-main') || document.documentElement;
 
-  // Auto-scroll
-  let scrollInterval = null;
-  let _dragY = 0;
-  document.addEventListener('dragover', e => { _dragY = e.clientY; });
-  function startAutoScroll() {
-    if (scrollInterval) return;
-    const scroller = document.getElementById('os-main') || document.documentElement;
-    scrollInterval = setInterval(() => {
-      const h = window.innerHeight;
-      if (_dragY < 100)      scroller.scrollTop -= 12 * (1 - _dragY / 100);
-      else if (_dragY > h - 100) scroller.scrollTop += 12 * (1 - (h - _dragY) / 100);
-    }, 20);
+  function addHandle(el, position) {
+    if (el.querySelector('.drag-handle')) return;
+    const h = document.createElement('div');
+    h.className = 'drag-handle';
+    h.innerHTML = '⠿';
+    h.style.cssText = (position === 'inline')
+      ? 'display:inline-block;cursor:grab;color:rgba(255,255,255,0.45);font-size:16px;margin-left:10px;user-select:none;vertical-align:middle;padding:2px 4px;border-radius:4px;'
+      : 'position:absolute;top:8px;right:10px;cursor:grab;font-size:18px;color:rgba(255,255,255,0.35);z-index:20;user-select:none;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.04);';
+    h.title = 'Vedä siirtääksesi';
+    if (position === 'inline') el.appendChild(h);
+    else { el.style.position = 'relative'; el.appendChild(h); }
+    return h;
   }
-  function stopAutoScroll() { if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; } }
-  document.addEventListener('dragend', stopAutoScroll);
-  document.addEventListener('drop',    stopAutoScroll);
 
-  // ── KPI-GRID kortit ──────────────────────────────────────────────────
+  function makeDraggable(el, container, storageKey) {
+    const label = el.querySelector('.sec');
+    const handle = label ? addHandle(label, 'inline') : addHandle(el, 'abs');
+    if (!handle) return;
+
+    let clone = null, startX = 0, startY = 0, scrollStart = 0, scrollTimer = null;
+
+    function onMove(e) {
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      if (!clone) {
+        if (Math.abs(cx - startX) < 4 && Math.abs(cy - startY) < 4) return;
+        // Luo ghost
+        clone = el.cloneNode(true);
+        clone.style.cssText = 'position:fixed;z-index:9999;opacity:0.75;pointer-events:none;'
+          + 'box-shadow:0 8px 32px rgba(0,0,0,0.5);border-radius:14px;'
+          + 'width:' + el.offsetWidth + 'px;transition:none;';
+        document.body.appendChild(clone);
+        el.style.opacity = '0.3';
+        handle.style.cursor = 'grabbing';
+      }
+      clone.style.left = (cx - el.offsetWidth / 2) + 'px';
+      clone.style.top  = (cy - 30) + 'px';
+
+      // Auto-scroll
+      const sc = scroller();
+      if (scrollTimer) clearInterval(scrollTimer);
+      scrollTimer = setInterval(() => {
+        if (cy < 100) sc.scrollTop -= 10 * (1 - cy/100);
+        else if (cy > window.innerHeight - 100) sc.scrollTop += 10 * (1 - (window.innerHeight - cy)/100);
+      }, 20);
+
+      // Highlight drop target
+      container.querySelectorAll('[data-card-id],[data-section-id]').forEach(t => {
+        if (t === el) return;
+        t.style.outline = '';
+        const r = t.getBoundingClientRect();
+        if (cx > r.left && cx < r.right && cy > r.top && cy < r.bottom) {
+          t.style.outline = '2px solid var(--blue)';
+        }
+      });
+    }
+
+    function onEnd(e) {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onEnd);
+      if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; }
+      el.style.opacity = '1';
+      handle.style.cursor = 'grab';
+      if (!clone) return;
+      clone.remove(); clone = null;
+
+      const cx = e.clientX, cy = e.clientY;
+      let target = null, before = true;
+      container.querySelectorAll('[data-card-id],[data-section-id]').forEach(t => {
+        if (t === el) return;
+        t.style.outline = '';
+        const r = t.getBoundingClientRect();
+        if (cx > r.left && cx < r.right && cy > r.top && cy < r.bottom) {
+          target = t;
+          before = cy < r.top + r.height / 2;
+        }
+      });
+      if (target) {
+        before ? container.insertBefore(el, target) : container.insertBefore(el, target.nextSibling);
+        // Tallenna järjestys
+        const key = el.dataset.cardId ? CARD_KEY : SEC_KEY;
+        const attr = el.dataset.cardId ? 'cardId' : 'sectionId';
+        const newOrder = [...container.querySelectorAll(el.dataset.cardId ? '[data-card-id]' : '[data-section-id]')]
+          .map(c => c.dataset[attr]);
+        localStorage.setItem(key, JSON.stringify(newOrder));
+      }
+    }
+
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      startX = e.clientX; startY = e.clientY;
+      scrollStart = scroller().scrollTop;
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup',   onEnd);
+    });
+  }
+
+  // ── KPI-GRID kortit ────────────────────────────────────────────────
   const grid = document.querySelector('.kpi-grid');
   if (grid) {
-    const DEFAULT = ['inv', 'debt', 'cash', 'netto'];
     try {
-      const order = JSON.parse(localStorage.getItem(CARD_KEY)) || DEFAULT;
-      const map = {}; grid.querySelectorAll('[data-card-id]').forEach(c => map[c.dataset.cardId] = c);
-      order.forEach(id => { if (map[id]) grid.appendChild(map[id]); });
-    } catch(e) {}
-
-    let dragCard = null, fromHandle = false;
-    grid.querySelectorAll('[data-card-id]').forEach(card => {
-      card.setAttribute('draggable', 'true');
-      if (!card.querySelector('.drag-handle')) {
-        const h = document.createElement('div');
-        h.className = 'drag-handle';
-        h.innerHTML = '⠿';
-        h.style.cssText = 'position:absolute;top:6px;right:6px;cursor:grab;font-size:18px;' +
-          'color:rgba(255,255,255,0.25);z-index:20;user-select:none;padding:6px 8px;' +
-          'border-radius:6px;transition:color .15s,background .15s;';
-        card.style.position = 'relative';
-        card.appendChild(h);
-        h.addEventListener('mouseenter', () => { h.style.color='rgba(255,255,255,0.7)'; h.style.background='rgba(255,255,255,0.08)'; });
-        h.addEventListener('mouseleave', () => { h.style.color='rgba(255,255,255,0.25)'; h.style.background=''; });
+      const order = JSON.parse(localStorage.getItem(CARD_KEY));
+      if (order) {
+        const map = {}; grid.querySelectorAll('[data-card-id]').forEach(c => map[c.dataset.cardId] = c);
+        order.forEach(id => { if (map[id]) grid.appendChild(map[id]); });
       }
-      card.addEventListener('dragstart', e => {
-        dragCard = card; card.style.opacity = '0.45';
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', card.dataset.cardId);
-      });
-      card.addEventListener('dragend', () => {
-        if (dragCard) dragCard.style.opacity = '1';
-        dragCard = null; stopAutoScroll();
-        grid.querySelectorAll('[data-card-id]').forEach(c => c.style.outline = '');
-        const newOrder = [...grid.querySelectorAll('[data-card-id]')].map(c => c.dataset.cardId);
-        localStorage.setItem(CARD_KEY, JSON.stringify(newOrder));
-      });
-      card.addEventListener('dragover', e => {
-        e.preventDefault(); if (!dragCard || dragCard === card) return;
-        startAutoScroll();
-        card.style.outline = '2px solid var(--blue)';
-        const r = card.getBoundingClientRect();
-        e.clientX < r.left + r.width / 2 ? grid.insertBefore(dragCard, card) : grid.insertBefore(dragCard, card.nextSibling);
-      });
-      card.addEventListener('dragleave', () => card.style.outline = '');
-      card.addEventListener('drop',      e => { e.preventDefault(); card.style.outline = ''; });
-    });
+    } catch(e) {}
+    grid.querySelectorAll('[data-card-id]').forEach(c => makeDraggable(c, grid, CARD_KEY));
   }
 
-  // ── Osiot ────────────────────────────────────────────────────────────
+  // ── Osiot ──────────────────────────────────────────────────────────
   const container = document.getElementById('db-content');
   if (!container) return;
-  const DEFAULT_SEC = ['heartbeat', 'historia', 'muuttui', 'tapahtumat'];
   try {
-    const order = JSON.parse(localStorage.getItem(SECTION_KEY)) || DEFAULT_SEC;
-    const map = {}; container.querySelectorAll('[data-section-id]').forEach(s => map[s.dataset.sectionId] = s);
-    order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
-  } catch(e) {}
-
-  let dragSec = null;
-  container.querySelectorAll('[data-section-id]').forEach(sec => {
-    sec.setAttribute('draggable', 'true');
-    // Lisää ⠿ kahva — aina näkyvä
-    if (!sec.querySelector('.drag-handle')) {
-      const label = sec.querySelector('.sec');
-      const h = document.createElement(label ? 'span' : 'div');
-      h.className = 'drag-handle';
-      h.innerHTML = label ? ' ⠿' : '⠿';
-      h.style.cssText = label
-        ? 'cursor:grab;color:rgba(255,255,255,0.5);font-size:14px;margin-left:8px;user-select:none;'
-        : 'position:absolute;top:8px;right:8px;cursor:grab;font-size:18px;color:rgba(255,255,255,0.4);z-index:20;user-select:none;padding:6px 8px;border-radius:6px;';
-      h.title = 'Vedä siirtääksesi';
-      if (label) label.appendChild(h);
-      else { sec.style.position = 'relative'; sec.appendChild(h); }
+    const order = JSON.parse(localStorage.getItem(SEC_KEY));
+    if (order) {
+      const map = {}; container.querySelectorAll('[data-section-id]').forEach(s => map[s.dataset.sectionId] = s);
+      order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     }
-    sec.addEventListener('dragstart', e => {
-      dragSec = sec; sec.style.opacity = '0.45';
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', sec.dataset.sectionId);
-      e.stopPropagation();
-    });
-    sec.addEventListener('dragend', () => {
-      if (dragSec) dragSec.style.opacity = '1';
-      dragSec = null; stopAutoScroll();
-      container.querySelectorAll('[data-section-id]').forEach(s => s.style.outline = '');
-      const newOrder = [...container.querySelectorAll('[data-section-id]')].map(s => s.dataset.sectionId);
-      localStorage.setItem(SECTION_KEY, JSON.stringify(newOrder));
-    });
-    sec.addEventListener('dragover', e => {
-      e.preventDefault(); e.stopPropagation();
-      if (!dragSec || dragSec === sec) return;
-      startAutoScroll();
-      sec.style.outline = '2px solid var(--blue)';
-      const r = sec.getBoundingClientRect();
-      e.clientY < r.top + r.height / 2 ? container.insertBefore(dragSec, sec) : container.insertBefore(dragSec, sec.nextSibling);
-    });
-    sec.addEventListener('dragleave', () => sec.style.outline = '');
-    sec.addEventListener('drop',      e => { e.preventDefault(); e.stopPropagation(); sec.style.outline = ''; });
-  });
+  } catch(e) {}
+  container.querySelectorAll('[data-section-id]').forEach(s => makeDraggable(s, container, SEC_KEY));
 }
 // ── END DRAG ─────────────────────────────────────────────────────────────
 
