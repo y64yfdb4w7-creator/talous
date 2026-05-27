@@ -3958,141 +3958,123 @@ function initCardDrag() {
   const CARD_KEY    = 'fin_card_order';
   const SECTION_KEY = 'fin_section_order';
 
-  // ── Auto-scroll kun raahaa reunan lähellä ──────────────────────────
+  // Auto-scroll
   let scrollInterval = null;
-  const SCROLL_ZONE = 100; // px reunasta
-  const SCROLL_SPEED = 12;
-
-  function startAutoScroll(e) {
+  function startAutoScroll(clientY) {
     const scroller = document.getElementById('os-main') || document.documentElement;
     if (scrollInterval) clearInterval(scrollInterval);
     scrollInterval = setInterval(() => {
-      const y = e.clientY;
       const h = window.innerHeight;
-      if (y < SCROLL_ZONE) scroller.scrollTop -= SCROLL_SPEED * (1 - y / SCROLL_ZONE);
-      else if (y > h - SCROLL_ZONE) scroller.scrollTop += SCROLL_SPEED * (1 - (h - y) / SCROLL_ZONE);
-    }, 16);
+      if (clientY < 100) scroller.scrollTop -= 10 * (1 - clientY / 100);
+      else if (clientY > h - 100) scroller.scrollTop += 10 * (1 - (h - clientY) / 100);
+    }, 20);
   }
-  function stopAutoScroll() {
-    if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; }
-  }
+  function stopAutoScroll() { if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; } }
   document.addEventListener('dragend', stopAutoScroll);
-  document.addEventListener('drop', stopAutoScroll);
-  document.addEventListener('dragover', e => { if (scrollInterval) startAutoScroll(e); });
+  document.addEventListener('drop',    stopAutoScroll);
 
-  // ── 1. KPI-GRID kortit ──────────────────────────────────────────────
+  // ── KPI-GRID kortit ──────────────────────────────────────────────────
   const grid = document.querySelector('.kpi-grid');
   if (grid) {
-    const DEFAULT_ORDER = ['inv', 'debt', 'cash', 'netto'];
+    const DEFAULT = ['inv', 'debt', 'cash', 'netto'];
+    try {
+      const order = JSON.parse(localStorage.getItem(CARD_KEY)) || DEFAULT;
+      const map = {}; grid.querySelectorAll('[data-card-id]').forEach(c => map[c.dataset.cardId] = c);
+      order.forEach(id => { if (map[id]) grid.appendChild(map[id]); });
+    } catch(e) {}
 
-    function applyCardOrder() {
-      try {
-        const order = JSON.parse(localStorage.getItem(CARD_KEY) || 'null') || DEFAULT_ORDER;
-        const cards = {};
-        grid.querySelectorAll('[data-card-id]').forEach(c => { cards[c.dataset.cardId] = c; });
-        order.forEach(id => { if (cards[id]) grid.appendChild(cards[id]); });
-      } catch(e) {}
-    }
-    applyCardOrder();
-
-    let dragging = null;
+    let dragCard = null, fromHandle = false;
     grid.querySelectorAll('[data-card-id]').forEach(card => {
+      card.setAttribute('draggable', 'true');
       if (!card.querySelector('.drag-handle')) {
         const h = document.createElement('div');
         h.className = 'drag-handle';
         h.innerHTML = '⠿';
-        h.title = 'Vedä siirtääksesi';
-        h.style.cssText = 'position:absolute;top:8px;right:8px;cursor:grab;font-size:16px;color:var(--text3);opacity:0;transition:opacity .15s;z-index:10;user-select:none;padding:4px 6px;';
+        h.style.cssText = 'position:absolute;top:6px;right:6px;cursor:grab;font-size:18px;' +
+          'color:rgba(255,255,255,0.25);z-index:20;user-select:none;padding:6px 8px;' +
+          'border-radius:6px;transition:color .15s,background .15s;';
         card.style.position = 'relative';
         card.appendChild(h);
-        card.addEventListener('mouseenter', () => h.style.opacity = '0.6');
-        card.addEventListener('mouseleave', () => h.style.opacity = '0');
-        // Drag vain kahvasta
-        h.addEventListener('mousedown', () => card.setAttribute('draggable', 'true'));
-        h.addEventListener('mouseup',   () => card.setAttribute('draggable', 'false'));
+        h.addEventListener('mouseenter', () => { h.style.color='rgba(255,255,255,0.7)'; h.style.background='rgba(255,255,255,0.08)'; });
+        h.addEventListener('mouseleave', () => { h.style.color='rgba(255,255,255,0.25)'; h.style.background=''; });
       }
-      card.setAttribute('draggable', 'false');
-      card.addEventListener('dragstart', e => { dragging = card; card.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; });
+      card.addEventListener('dragstart', e => {
+        dragCard = card; card.style.opacity = '0.45';
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.cardId);
+      });
       card.addEventListener('dragend', () => {
-        card.style.opacity = '1';
+        if (dragCard) dragCard.style.opacity = '1';
+        dragCard = null; stopAutoScroll();
         grid.querySelectorAll('[data-card-id]').forEach(c => c.style.outline = '');
-        dragging = null;
         const newOrder = [...grid.querySelectorAll('[data-card-id]')].map(c => c.dataset.cardId);
         localStorage.setItem(CARD_KEY, JSON.stringify(newOrder));
       });
       card.addEventListener('dragover', e => {
-        e.preventDefault(); if (!dragging || dragging === card) return;
-        startAutoScroll(e);
+        e.preventDefault(); if (!dragCard || dragCard === card) return;
+        startAutoScroll(e.clientY);
         card.style.outline = '2px solid var(--blue)';
         const r = card.getBoundingClientRect();
-        e.clientX < r.left + r.width / 2 ? grid.insertBefore(dragging, card) : grid.insertBefore(dragging, card.nextSibling);
+        e.clientX < r.left + r.width / 2 ? grid.insertBefore(dragCard, card) : grid.insertBefore(dragCard, card.nextSibling);
       });
-      card.addEventListener('dragleave', () => { card.style.outline = ''; });
-      card.addEventListener('drop', e => { e.preventDefault(); card.style.outline = ''; });
+      card.addEventListener('dragleave', () => card.style.outline = '');
+      card.addEventListener('drop',      e => { e.preventDefault(); card.style.outline = ''; });
     });
   }
 
-  // ── 2. Osiot (Historia, Mitä muuttui, Tapahtumat) ───────────────────
+  // ── Osiot ────────────────────────────────────────────────────────────
   const container = document.getElementById('db-content');
   if (!container) return;
-  const DEFAULT_SECTIONS = ['heartbeat', 'historia', 'muuttui', 'tapahtumat'];
-
-  function applySectionOrder() {
-    try {
-      const order = JSON.parse(localStorage.getItem(SECTION_KEY) || 'null') || DEFAULT_SECTIONS;
-      const secs = {};
-      container.querySelectorAll('[data-section-id]').forEach(s => { secs[s.dataset.sectionId] = s; });
-      order.forEach(id => { if (secs[id]) container.appendChild(secs[id]); });
-    } catch(e) {}
-  }
-  applySectionOrder();
+  const DEFAULT_SEC = ['heartbeat', 'historia', 'muuttui', 'tapahtumat'];
+  try {
+    const order = JSON.parse(localStorage.getItem(SECTION_KEY)) || DEFAULT_SEC;
+    const map = {}; container.querySelectorAll('[data-section-id]').forEach(s => map[s.dataset.sectionId] = s);
+    order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
+  } catch(e) {}
 
   let dragSec = null;
   container.querySelectorAll('[data-section-id]').forEach(sec => {
-    // Lisää handle osion otsikon viereen tai kortin yläreunaan
+    sec.setAttribute('draggable', 'true');
+    // Lisää ⠿ kahva
     const label = sec.querySelector('.sec');
     if (label && !label.querySelector('.drag-handle')) {
       const h = document.createElement('span');
       h.className = 'drag-handle';
       h.innerHTML = ' ⠿';
-      h.style.cssText = 'cursor:grab;color:var(--text3);font-size:13px;margin-left:8px;user-select:none;opacity:0.5;';
-      h.title = 'Vedä siirtääksesi';
+      h.style.cssText = 'cursor:grab;color:rgba(255,255,255,0.3);font-size:14px;margin-left:8px;user-select:none;';
       label.appendChild(h);
     } else if (!label && !sec.querySelector('.drag-handle')) {
-      // Heartbeat-kortille jolla ei ole .sec-otsikkoa
       const h = document.createElement('div');
       h.className = 'drag-handle';
       h.innerHTML = '⠿';
-      h.style.cssText = 'position:absolute;top:8px;right:8px;cursor:grab;font-size:16px;color:var(--text3);opacity:0.5;z-index:10;user-select:none;padding:4px 6px;';
-      h.title = 'Vedä siirtääksesi';
+      h.style.cssText = 'position:absolute;top:8px;right:8px;cursor:grab;font-size:18px;' +
+        'color:rgba(255,255,255,0.25);z-index:20;user-select:none;padding:6px 8px;border-radius:6px;';
       sec.style.position = 'relative';
       sec.appendChild(h);
     }
-    sec.setAttribute('draggable', 'false');
-    // Drag vain kahvasta
-    const handle = sec.querySelector('.drag-handle');
-    if (handle) {
-      handle.addEventListener('mousedown', () => sec.setAttribute('draggable', 'true'));
-      handle.addEventListener('mouseup',   () => sec.setAttribute('draggable', 'false'));
-    }
-    sec.addEventListener('dragstart', e => { dragSec = sec; sec.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; e.stopPropagation(); });
+    sec.addEventListener('dragstart', e => {
+      dragSec = sec; sec.style.opacity = '0.45';
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', sec.dataset.sectionId);
+      e.stopPropagation();
+    });
     sec.addEventListener('dragend', () => {
-      sec.style.opacity = '1';
-      sec.setAttribute('draggable', 'false');
+      if (dragSec) dragSec.style.opacity = '1';
+      dragSec = null; stopAutoScroll();
       container.querySelectorAll('[data-section-id]').forEach(s => s.style.outline = '');
-      dragSec = null;
       const newOrder = [...container.querySelectorAll('[data-section-id]')].map(s => s.dataset.sectionId);
       localStorage.setItem(SECTION_KEY, JSON.stringify(newOrder));
     });
     sec.addEventListener('dragover', e => {
-      e.preventDefault(); e.stopPropagation(); if (!dragSec || dragSec === sec) return;
-      startAutoScroll(e);
+      e.preventDefault(); e.stopPropagation();
+      if (!dragSec || dragSec === sec) return;
+      startAutoScroll(e.clientY);
       sec.style.outline = '2px solid var(--blue)';
       const r = sec.getBoundingClientRect();
       e.clientY < r.top + r.height / 2 ? container.insertBefore(dragSec, sec) : container.insertBefore(dragSec, sec.nextSibling);
     });
-    sec.addEventListener('dragleave', () => { sec.style.outline = ''; });
-    sec.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); sec.style.outline = ''; });
+    sec.addEventListener('dragleave', () => sec.style.outline = '');
+    sec.addEventListener('drop',      e => { e.preventDefault(); e.stopPropagation(); sec.style.outline = ''; });
   });
 }
 // ── END DRAG ─────────────────────────────────────────────────────────────
