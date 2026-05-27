@@ -3960,13 +3960,15 @@ function initCardDrag() {
 
   // Auto-scroll
   let scrollInterval = null;
-  function startAutoScroll(clientY) {
+  let _dragY = 0;
+  document.addEventListener('dragover', e => { _dragY = e.clientY; });
+  function startAutoScroll() {
+    if (scrollInterval) return;
     const scroller = document.getElementById('os-main') || document.documentElement;
-    if (scrollInterval) clearInterval(scrollInterval);
     scrollInterval = setInterval(() => {
       const h = window.innerHeight;
-      if (clientY < 100) scroller.scrollTop -= 10 * (1 - clientY / 100);
-      else if (clientY > h - 100) scroller.scrollTop += 10 * (1 - (h - clientY) / 100);
+      if (_dragY < 100)      scroller.scrollTop -= 12 * (1 - _dragY / 100);
+      else if (_dragY > h - 100) scroller.scrollTop += 12 * (1 - (h - _dragY) / 100);
     }, 20);
   }
   function stopAutoScroll() { if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; } }
@@ -4012,7 +4014,7 @@ function initCardDrag() {
       });
       card.addEventListener('dragover', e => {
         e.preventDefault(); if (!dragCard || dragCard === card) return;
-        startAutoScroll(e.clientY);
+        startAutoScroll();
         card.style.outline = '2px solid var(--blue)';
         const r = card.getBoundingClientRect();
         e.clientX < r.left + r.width / 2 ? grid.insertBefore(dragCard, card) : grid.insertBefore(dragCard, card.nextSibling);
@@ -4035,22 +4037,18 @@ function initCardDrag() {
   let dragSec = null;
   container.querySelectorAll('[data-section-id]').forEach(sec => {
     sec.setAttribute('draggable', 'true');
-    // Lisää ⠿ kahva
-    const label = sec.querySelector('.sec');
-    if (label && !label.querySelector('.drag-handle')) {
-      const h = document.createElement('span');
+    // Lisää ⠿ kahva — aina näkyvä
+    if (!sec.querySelector('.drag-handle')) {
+      const label = sec.querySelector('.sec');
+      const h = document.createElement(label ? 'span' : 'div');
       h.className = 'drag-handle';
-      h.innerHTML = ' ⠿';
-      h.style.cssText = 'cursor:grab;color:rgba(255,255,255,0.3);font-size:14px;margin-left:8px;user-select:none;';
-      label.appendChild(h);
-    } else if (!label && !sec.querySelector('.drag-handle')) {
-      const h = document.createElement('div');
-      h.className = 'drag-handle';
-      h.innerHTML = '⠿';
-      h.style.cssText = 'position:absolute;top:8px;right:8px;cursor:grab;font-size:18px;' +
-        'color:rgba(255,255,255,0.25);z-index:20;user-select:none;padding:6px 8px;border-radius:6px;';
-      sec.style.position = 'relative';
-      sec.appendChild(h);
+      h.innerHTML = label ? ' ⠿' : '⠿';
+      h.style.cssText = label
+        ? 'cursor:grab;color:rgba(255,255,255,0.5);font-size:14px;margin-left:8px;user-select:none;'
+        : 'position:absolute;top:8px;right:8px;cursor:grab;font-size:18px;color:rgba(255,255,255,0.4);z-index:20;user-select:none;padding:6px 8px;border-radius:6px;';
+      h.title = 'Vedä siirtääksesi';
+      if (label) label.appendChild(h);
+      else { sec.style.position = 'relative'; sec.appendChild(h); }
     }
     sec.addEventListener('dragstart', e => {
       dragSec = sec; sec.style.opacity = '0.45';
@@ -4068,7 +4066,7 @@ function initCardDrag() {
     sec.addEventListener('dragover', e => {
       e.preventDefault(); e.stopPropagation();
       if (!dragSec || dragSec === sec) return;
-      startAutoScroll(e.clientY);
+      startAutoScroll();
       sec.style.outline = '2px solid var(--blue)';
       const r = sec.getBoundingClientRect();
       e.clientY < r.top + r.height / 2 ? container.insertBefore(dragSec, sec) : container.insertBefore(dragSec, sec.nextSibling);
