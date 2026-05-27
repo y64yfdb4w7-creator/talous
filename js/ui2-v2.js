@@ -3975,8 +3975,8 @@ function initCardDrag() {
     return getSizes()[id] === 'wide';
   }
   window.applyAllSizes = function applyAllSizes() {
-    container.querySelectorAll('[data-item-id]').forEach(el => {
-      el.style.gridColumn = isWide(el.dataset.itemId) ? '1/-1' : '';
+    document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => {
+      el.style.gridColumn = isWide(el.dataset.itemId) ? '1 / -1' : 'auto';
       const btn = el.querySelector('.size-toggle-btn');
       if (btn) {
         const wide = isWide(el.dataset.itemId);
@@ -4003,7 +4003,7 @@ function initCardDrag() {
     const order = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (order && order.length > 0) {
       const map = {};
-      container.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
+      document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
       order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     }
   } catch(e) {}
@@ -4055,7 +4055,7 @@ function initCardDrag() {
   }
   function stopScroll() { if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; } }
 
-  container.querySelectorAll('[data-item-id]').forEach(el => {
+  document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => {
     const handle = addHandle(el);
     // Lisää koko-nappi pieniin kortteihin
     const ALWAYS_WIDE = ['netto','heartbeat','historia','muuttui','tapahtumat'];
@@ -4082,7 +4082,7 @@ function initCardDrag() {
     let dropTarget = null, dropBefore = true;
 
     function getItems() {
-      return [...container.querySelectorAll('[data-item-id]')].filter(t => t !== el);
+      return [...document.getElementById('db-content')?.querySelectorAll('[data-item-id]')].filter(t => t !== el);
     }
 
     function findDrop(cx, cy) {
@@ -4136,7 +4136,7 @@ function initCardDrag() {
         dropBefore ? container.insertBefore(el, dropTarget) : container.insertBefore(el, dropTarget.nextSibling);
         // Palauta koot drag-siirron jälkeen
         window.applyAllSizes();
-        const newOrder = [...container.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
+        const newOrder = [...document.getElementById('db-content')?.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
       }
       dropTarget = null;
@@ -4169,15 +4169,15 @@ function initLayoutToolbar() {
     localStorage.setItem(LAYOUTS_KEY, JSON.stringify(layouts));
   }
   function getCurrentOrder() {
-    return [...container.querySelectorAll('[data-item-id]')].map(el => el.dataset.itemId);
+    return [...document.getElementById('db-content')?.querySelectorAll('[data-item-id]')].map(el => el.dataset.itemId);
   }
   function applyLayout(order) {
     const map = {};
-    container.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
+    document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
     order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     if (window.applyAllSizes) window.applyAllSizes();
-    else container.querySelectorAll('[data-item-id]').forEach(item => {
-      item.style.gridColumn = ['netto','heartbeat','historia','muuttui','tapahtumat'].includes(item.dataset.itemId) ? '1/-1' : '';
+    else document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(item => {
+      item.style.gridColumn = ['netto','heartbeat','historia','muuttui','tapahtumat'].includes(item.dataset.itemId) ? '1/-1' : 'auto';
     });
     localStorage.setItem(CURRENT_KEY, JSON.stringify(order));
   }
