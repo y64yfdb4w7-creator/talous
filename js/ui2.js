@@ -2608,6 +2608,8 @@ function showView(name) {
   window.scrollTo({ top: 0, behavior: 'instant' });
   const viewEl = document.getElementById(`view-${name}`);
   if (viewEl) viewEl.scrollTop = 0;
+  const osMain = document.getElementById('os-main');
+  if (osMain) osMain.scrollTop = 0;
   if (name === 'syota')        requestAnimationFrame(() => renderEntryView());
   requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia')      requestAnimationFrame(() => renderHistoria());
