@@ -3977,7 +3977,6 @@ function initCardDrag() {
   window.applyAllSizes = function applyAllSizes() {
     container.querySelectorAll('[data-item-id]').forEach(el => {
       el.style.gridColumn = isWide(el.dataset.itemId) ? '1/-1' : '';
-      // Päivitä napin tila
       const btn = el.querySelector('.size-toggle-btn');
       if (btn) {
         const wide = isWide(el.dataset.itemId);
@@ -3985,6 +3984,9 @@ function initCardDrag() {
         btn.title = wide ? 'Tee pieneksi' : 'Tee leveäksi';
       }
     });
+    // Pakota Safari redraw
+    const grid = document.getElementById('all-cards-container');
+    if (grid) { grid.style.display='none'; void grid.offsetHeight; grid.style.display=''; }
   }
 
   window.toggleItemSize = function(id) {
