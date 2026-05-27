@@ -3960,13 +3960,43 @@ async function updateRightPanel() {
 // ── YHTEINEN DRAG & DROP ─────────────────────────────────────────────────
 function initCardDrag() {
   const STORAGE_KEY = 'fin_item_order';
+  const SIZE_KEY    = 'fin_item_sizes';
   const container = document.getElementById('db-content');
   if (!container) return;
 
   const DEFAULT = ['inv','debt','cash','netto','heartbeat','historia','muuttui','tapahtumat'];
+  const ALWAYS_WIDE = ['netto','heartbeat','historia','muuttui','tapahtumat'];
+
+  function getSizes() {
+    try { return JSON.parse(localStorage.getItem(SIZE_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function isWide(id) {
+    if (ALWAYS_WIDE.includes(id)) return true;
+    return getSizes()[id] === 'wide';
+  }
+  window.applyAllSizes = function applyAllSizes() {
+    container.querySelectorAll('[data-item-id]').forEach(el => {
+      el.style.gridColumn = isWide(el.dataset.itemId) ? '1/-1' : '';
+      // Päivitä napin tila
+      const btn = el.querySelector('.size-toggle-btn');
+      if (btn) {
+        const wide = isWide(el.dataset.itemId);
+        btn.textContent = wide ? '⊡' : '⊞';
+        btn.title = wide ? 'Tee pieneksi' : 'Tee leveäksi';
+      }
+    });
+  }
+
+  window.toggleItemSize = function(id) {
+    if (ALWAYS_WIDE.includes(id)) return;
+    const sizes = getSizes();
+    sizes[id] = isWide(id) ? 'small' : 'wide';
+    localStorage.setItem(SIZE_KEY, JSON.stringify(sizes));
+    applyAllSizes();
+  };
 
   // Palauta tallennettu järjestys
-  const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
+  const wideIds = ALWAYS_WIDE;
   try {
     const order = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (order && order.length > 0) {
@@ -3975,10 +4005,7 @@ function initCardDrag() {
       order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     }
   } catch(e) {}
-  // Varmista flex-leveys kaikille
-  container.querySelectorAll('[data-item-id]').forEach(item => {
-    item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
-  });
+  applyAllSizes();
 
   // Drop-indikaattori
   const indicator = document.createElement('div');
@@ -4028,6 +4055,22 @@ function initCardDrag() {
 
   container.querySelectorAll('[data-item-id]').forEach(el => {
     const handle = addHandle(el);
+    // Lisää koko-nappi pieniin kortteihin
+    const ALWAYS_WIDE = ['netto','heartbeat','historia','muuttui','tapahtumat'];
+    if (!ALWAYS_WIDE.includes(el.dataset.itemId) && !el.querySelector('.size-toggle-btn')) {
+      const sBtn = document.createElement('div');
+      sBtn.className = 'size-toggle-btn';
+      sBtn.textContent = isWide(el.dataset.itemId) ? '⊡' : '⊞';
+      sBtn.title = isWide(el.dataset.itemId) ? 'Tee pieneksi' : 'Tee leveäksi';
+      sBtn.style.cssText = 'position:absolute;top:8px;right:36px;cursor:pointer;font-size:14px;' +
+        'color:rgba(255,255,255,0.3);z-index:20;user-select:none;padding:4px 6px;border-radius:5px;' +
+        'transition:color .15s;';
+      sBtn.addEventListener('mouseenter', () => sBtn.style.color='rgba(255,255,255,0.7)');
+      sBtn.addEventListener('mouseleave', () => sBtn.style.color='rgba(255,255,255,0.3)');
+      sBtn.addEventListener('click', e => { e.stopPropagation(); toggleItemSize(el.dataset.itemId); });
+      el.style.position = 'relative';
+      el.appendChild(sBtn);
+    }
     let clone = null, startX = 0, startY = 0;
     let dropTarget = null, dropBefore = true;
 
@@ -4084,11 +4127,7 @@ function initCardDrag() {
       if (clone) { clone.remove(); clone = null; }
       if (dropTarget) {
         dropBefore ? container.insertBefore(el, dropTarget) : container.insertBefore(el, dropTarget.nextSibling);
-        // Palauta flex-leveys siirron jälkeen
-        const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
-        container.querySelectorAll('[data-item-id]').forEach(item => {
-          item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
-        });
+        applyAllSizes();
         const newOrder = [...container.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
       }
@@ -4125,12 +4164,12 @@ function initLayoutToolbar() {
     return [...container.querySelectorAll('[data-item-id]')].map(el => el.dataset.itemId);
   }
   function applyLayout(order) {
-    const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
     const map = {};
     container.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
     order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
-    container.querySelectorAll('[data-item-id]').forEach(item => {
-      item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
+    if (window.applyAllSizes) window.applyAllSizes();
+    else container.querySelectorAll('[data-item-id]').forEach(item => {
+      item.style.gridColumn = ['netto','heartbeat','historia','muuttui','tapahtumat'].includes(item.dataset.itemId) ? '1/-1' : '';
     });
     localStorage.setItem(CURRENT_KEY, JSON.stringify(order));
   }
