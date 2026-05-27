@@ -121,7 +121,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       +'</div>';
   });
 
-  return '<div class="db-item card" data-item-id="debt" style="flex:1;min-width:240px;">'
+  return '<div class="db-item card" data-item-id="debt" style="flex:1 1 calc(33% - 8px);min-width:240px;max-width:calc(33% - 8px);">'
     + _cardHeader('Pitkät velat', 'debt', [
       {key:'asuntolaina', label:'As.laina'},
       {key:'autolaina',   label:'Autolaina'},
@@ -678,7 +678,7 @@ async function renderDashboard() {
     <div id="all-cards-container" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;align-items:start;">
 
       <!-- 1. SIJOITUKSET -->
-      <div class="db-item card" data-item-id="inv" style="flex:1;min-width:240px;">
+      <div class="db-item card" data-item-id="inv" style="flex:1 1 calc(33% - 8px);min-width:240px;max-width:calc(33% - 8px);">
         ${_cardHeader('Sijoitukset', 'inv', [
           {key:'nordnet',label:'Nordnet'},
           {key:'op',     label:'OP Osakkeet'},
@@ -750,7 +750,7 @@ async function renderDashboard() {
       })()}
 
       <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
-      <div class="db-item card kpi-compact" data-item-id="cash" style="flex:1;min-width:240px;">
+      <div class="db-item card kpi-compact" data-item-id="cash" style="flex:1 1 calc(33% - 8px);min-width:240px;max-width:calc(33% - 8px);">
         ${_cardHeader('Käyttötilit &amp; rytmi', 'cash', [
           {key:'tulotili',   label:'Tulotili'},
           {key:'spankki',    label:'S-Pankki'},
@@ -4089,7 +4089,7 @@ function initCardDrag() {
         const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
         container.querySelectorAll('[data-item-id]').forEach(item => {
           if (wideIds.includes(item.dataset.itemId)) { item.style.flex='0 0 100%'; item.style.width='100%'; }
-          else { item.style.flex='1'; item.style.minWidth='240px'; item.style.width=''; }
+          else { item.style.flex='1 1 calc(33% - 8px)'; item.style.minWidth='240px'; item.style.maxWidth='calc(33% - 8px)'; item.style.width=''; }
         });
         const newOrder = [...container.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
