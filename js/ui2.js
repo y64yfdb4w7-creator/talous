@@ -1759,7 +1759,10 @@ async function saveDayFromHoldings() {
   await updateNavCount();
   alert(`Päivä tallennettu: ${today}`);
   showView('dashboard');
-  renderDashboard();
+  requestAnimationFrame(() => {
+    renderDashboard();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  });
 }
 
 // ═══════════════════════════════════════════════
@@ -2601,6 +2604,10 @@ function showView(name) {
   document.getElementById(`view-${name}`).classList.add('active');
   const btn = document.getElementById(`btn-${name}`);
   if (btn) btn.classList.add('active');
+  // Scrollaa ylös aina kun vaihdetaan näkymää
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  const viewEl = document.getElementById(`view-${name}`);
+  if (viewEl) viewEl.scrollTop = 0;
   if (name === 'syota')        requestAnimationFrame(() => renderEntryView());
   requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia')      requestAnimationFrame(() => renderHistoria());
@@ -3693,7 +3700,15 @@ async function saveEntrySnapshot() {
 
   // Päivitä dashboard
   await updateNavCount();
-  setTimeout(() => showView('dashboard'), 800);
+  setTimeout(() => {
+    showView('dashboard');
+    requestAnimationFrame(() => {
+      renderDashboard();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      const main = document.getElementById('db-content') || document.querySelector('.main-content') || document.querySelector('.view.active');
+      if (main) main.scrollTop = 0;
+    });
+  }, 800);
 }
 
 // Tallenna lainan konfiguraatio localStorageen
