@@ -327,7 +327,7 @@
     if (!grid) return;
 
     injectCSS();
-    moveCardsToGrid();   // kortit suoraan gridin alle
+    // kortit jo db-contentissa, ei siirtoa tarvita   // kortit suoraan gridin alle
     applyOrder();        // palauta tallennettu järjestys
     applyAllSizes();     // palauta leveydet
     initDragging();      // lisää drag-handleit ja eventit
