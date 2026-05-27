@@ -674,7 +674,7 @@ async function renderDashboard() {
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
 
-    <div id="all-cards-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:14px;align-items:start;">
+    <div id="all-cards-container" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;align-items:start;">
 
       <!-- 1. SIJOITUKSET -->
       <div class="db-item card" data-item-id="inv">
@@ -812,7 +812,7 @@ async function renderDashboard() {
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
-      <div class="db-item card kpi-wide" data-item-id="netto" style="background:var(--surface2);">
+      <div class="db-item card kpi-wide" data-item-id="netto" style="grid-column:1/-1;" style="background:var(--surface2);">
         <div class="card-label">Nettovarallisuus</div>
         <div class="card-value tip" style="font-size:38px;"
           data-tip="Omaisuus (${fmt(calc.assets)}) − Luottokortit (${fmt(-calc.shortTermDebt)}) − Lainat (${fmt(-calc.longTermDebt)})"
@@ -842,9 +842,9 @@ async function renderDashboard() {
 
     </div>
 
-      <div class="db-item" data-item-id="heartbeat">${renderHeartbeatCard(sig)}</div>
+      <div class="db-item" data-item-id="heartbeat" style="grid-column:1/-1;">${renderHeartbeatCard(sig)}</div>
 
-    <div class="db-item db-section" data-item-id="historia">
+    <div class="db-item db-section" data-item-id="historia" style="grid-column:1/-1;">
     <div class="sec">Historia</div>
     <div class="chart-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -860,7 +860,7 @@ async function renderDashboard() {
     </div>
 
     </div>
-    <div class="db-item db-section" data-item-id="muuttui">
+    <div class="db-item db-section" data-item-id="muuttui" style="grid-column:1/-1;">
     ${changes.length > 0 ? `
     <div class="sec">Mitä muuttui?</div>
     <div class="change-list">
@@ -875,7 +875,7 @@ async function renderDashboard() {
     </div>` : prev ? `<p style="color:var(--text2);font-size:13px;margin-bottom:24px;">Ei muutoksia edelliseen merkintään.</p>` : ''}
 
     </div>
-    <div class="db-item db-section" data-item-id="tapahtumat">
+    <div class="db-item db-section" data-item-id="tapahtumat" style="grid-column:1/-1;">
     ${evts.length > 0 ? `
     <div class="sec">Viimeisimmät tapahtumat</div>
     <div class="ev-list">
@@ -3965,6 +3965,7 @@ function initCardDrag() {
   const DEFAULT = ['inv','debt','cash','netto','heartbeat','historia','muuttui','tapahtumat'];
 
   // Palauta tallennettu järjestys
+  const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
   try {
     const order = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (order && order.length > 0) {
@@ -3973,6 +3974,10 @@ function initCardDrag() {
       order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     }
   } catch(e) {}
+  // Varmista grid-column kaikille
+  container.querySelectorAll('[data-item-id]').forEach(item => {
+    item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
+  });
 
   // Drop-indikaattori
   const indicator = document.createElement('div');
@@ -4078,6 +4083,11 @@ function initCardDrag() {
       if (clone) { clone.remove(); clone = null; }
       if (dropTarget) {
         dropBefore ? container.insertBefore(el, dropTarget) : container.insertBefore(el, dropTarget.nextSibling);
+        // Palauta grid-column leveys siirron jälkeen
+        const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
+        container.querySelectorAll('[data-item-id]').forEach(item => {
+          item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
+        });
         const newOrder = [...container.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
       }
