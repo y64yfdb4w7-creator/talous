@@ -121,7 +121,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       +'</div>';
   });
 
-  return '<div class="db-item card" data-item-id="debt" style="flex:1 1 200px;min-width:200px;max-width:216px;">'
+  return '<div class="db-item card" data-item-id="debt">'
     + _cardHeader('Pitkät velat', 'debt', [
       {key:'asuntolaina', label:'As.laina'},
       {key:'autolaina',   label:'Autolaina'},
@@ -675,10 +675,10 @@ async function renderDashboard() {
     </div>
 
     <div id="layout-toolbar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;"></div>
-    <div id="all-cards-container" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;align-items:start;">
+    <div id="all-cards-container" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;align-items:start;">
 
       <!-- 1. SIJOITUKSET -->
-      <div class="db-item card" data-item-id="inv" style="flex:1 1 200px;min-width:200px;max-width:216px;">
+      <div class="db-item card" data-item-id="inv">
         ${_cardHeader('Sijoitukset', 'inv', [
           {key:'nordnet',label:'Nordnet'},
           {key:'op',     label:'OP Osakkeet'},
@@ -750,7 +750,7 @@ async function renderDashboard() {
       })()}
 
       <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
-      <div class="db-item card kpi-compact" data-item-id="cash" style="flex:1 1 200px;min-width:200px;max-width:216px;">
+      <div class="db-item card kpi-compact" data-item-id="cash">
         ${_cardHeader('Käyttötilit &amp; rytmi', 'cash', [
           {key:'tulotili',   label:'Tulotili'},
           {key:'spankki',    label:'S-Pankki'},
@@ -813,7 +813,7 @@ async function renderDashboard() {
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
-      <div class="db-item card kpi-wide" data-item-id="netto" style="flex:0 0 100%;width:100%;" style="background:var(--surface2);">
+      <div class="db-item card kpi-wide" data-item-id="netto" style="grid-column:1/-1;" style="background:var(--surface2);">
         <div class="card-label">Nettovarallisuus</div>
         <div class="card-value tip" style="font-size:38px;"
           data-tip="Omaisuus (${fmt(calc.assets)}) − Luottokortit (${fmt(-calc.shortTermDebt)}) − Lainat (${fmt(-calc.longTermDebt)})"
@@ -843,9 +843,9 @@ async function renderDashboard() {
 
     </div>
 
-      <div class="db-item" data-item-id="heartbeat" style="flex:0 0 100%;width:100%;">${renderHeartbeatCard(sig)}</div>
+      <div class="db-item" data-item-id="heartbeat" style="grid-column:1/-1;">${renderHeartbeatCard(sig)}</div>
 
-    <div class="db-item db-section" data-item-id="historia" style="flex:0 0 100%;width:100%;">
+    <div class="db-item db-section" data-item-id="historia" style="grid-column:1/-1;">
     <div class="sec">Historia</div>
     <div class="chart-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -861,7 +861,7 @@ async function renderDashboard() {
     </div>
 
     </div>
-    <div class="db-item db-section" data-item-id="muuttui" style="flex:0 0 100%;width:100%;">
+    <div class="db-item db-section" data-item-id="muuttui" style="grid-column:1/-1;">
     ${changes.length > 0 ? `
     <div class="sec">Mitä muuttui?</div>
     <div class="change-list">
@@ -876,7 +876,7 @@ async function renderDashboard() {
     </div>` : prev ? `<p style="color:var(--text2);font-size:13px;margin-bottom:24px;">Ei muutoksia edelliseen merkintään.</p>` : ''}
 
     </div>
-    <div class="db-item db-section" data-item-id="tapahtumat" style="flex:0 0 100%;width:100%;">
+    <div class="db-item db-section" data-item-id="tapahtumat" style="grid-column:1/-1;">
     ${evts.length > 0 ? `
     <div class="sec">Viimeisimmät tapahtumat</div>
     <div class="ev-list">
@@ -3977,8 +3977,7 @@ function initCardDrag() {
   } catch(e) {}
   // Varmista flex-leveys kaikille
   container.querySelectorAll('[data-item-id]').forEach(item => {
-    if (wideIds.includes(item.dataset.itemId)) { item.style.flex='0 0 100%'; item.style.width='100%'; }
-    else { item.style.flex='1'; item.style.minWidth='240px'; item.style.width=''; }
+    item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
   });
 
   // Drop-indikaattori
@@ -4088,8 +4087,7 @@ function initCardDrag() {
         // Palauta flex-leveys siirron jälkeen
         const wideIds = ['netto','heartbeat','historia','muuttui','tapahtumat'];
         container.querySelectorAll('[data-item-id]').forEach(item => {
-          if (wideIds.includes(item.dataset.itemId)) { item.style.flex='0 0 100%'; item.style.width='100%'; }
-          else { item.style.flex='1 1 200px'; item.style.minWidth='200px'; item.style.maxWidth='216px'; item.style.width=''; }
+          item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
         });
         const newOrder = [...container.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
@@ -4132,8 +4130,7 @@ function initLayoutToolbar() {
     container.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
     order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     container.querySelectorAll('[data-item-id]').forEach(item => {
-      if (wideIds.includes(item.dataset.itemId)) { item.style.flex='0 0 100%'; item.style.width='100%'; }
-      else { item.style.flex='1'; item.style.minWidth='240px'; item.style.width=''; }
+      item.style.gridColumn = wideIds.includes(item.dataset.itemId) ? '1/-1' : '';
     });
     localStorage.setItem(CURRENT_KEY, JSON.stringify(order));
   }
