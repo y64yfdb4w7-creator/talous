@@ -15,6 +15,7 @@ function inject(){if(typeof snaps!='undefined')window.snaps=S.slice();if(typeof 
 function badge(){if(document.getElementById('demo-badge'))return;var b=document.createElement('div');b.id='demo-badge';b.textContent='DEMO';b.style.cssText='position:fixed;bottom:16px;right:16px;background:rgba(255,193,0,.15);border:1px solid rgba(255,193,0,.4);color:#ffc300;font-family:monospace;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;z-index:9999';document.body.appendChild(b);}
 function init(){badge();inject();if(typeof supaWrite!='undefined')window.supaWrite=function(){return Promise.resolve(true);};if(typeof saveState!='undefined')window.saveState=function(){return Promise.resolve();};if(typeof loadState!='undefined')window.loadState=async function(){window.stateLoaded=true;inject();};}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
+window.DEMO_MODE = true;
 window.enableDemoMode=function(){localStorage.setItem('fin_demo_mode','1');location.reload();};
 window.disableDemoMode=function(){localStorage.removeItem('fin_demo_mode');location.reload();};
 })();
