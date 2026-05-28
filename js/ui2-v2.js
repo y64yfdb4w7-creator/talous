@@ -901,6 +901,7 @@ async function renderDashboard() {
   // Päivitä oikea paneeli datan latauksen jälkeen
   setTimeout(() => { if (typeof updateRightPanel === 'function') updateRightPanel(); }, 200);
   setTimeout(() => { if (window.onDashboardRendered) window.onDashboardRendered(); }, 120);
+  if (window.applyDashboardLayout) window.applyDashboardLayout();
 }
 
 // ═══════════════════════════════════════════════
