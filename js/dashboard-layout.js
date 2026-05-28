@@ -1,7 +1,7 @@
 // dashboard-layout.js — Finance OS
-// Versio: 20260528-3
+// Versio: 20260528-4
 // Vastuu: korttijarjestys, leveys, drag & drop
-// Korjaukset: Safari auto-scroll (ei setPointerCapture), mobiili 1-sarake
+// Korjaukset: Safari auto-scroll, mobiili 1-sarake, mobiili kosketus-drag
 
 (function() {
 'use strict';
@@ -114,9 +114,8 @@ function hideDropIndicator() {
 if (dropIndicator) dropIndicator.style.display = 'none';
 }
 
-// ── SCROLL-SAILIO (Safari: #os-main scrollaa, ei window) ─────────────────
+// ── SCROLL-SAILIO ────────────────────────────────────────────────────────
 function getScrollContainer() {
-// Desktop: #os-main on scroll-sailio. Mobiili: window/document.
 const main = document.getElementById('os-main');
 if (main) {
 const cs = getComputedStyle(main);
@@ -124,7 +123,7 @@ if ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && main.scrollHeight 
 return main;
 }
 }
-return null; // null = kayta window
+return null;
 }
 
 function doScrollBy(dy) {
@@ -154,7 +153,6 @@ if (!scrollRAF && scrollSpeed !== 0) {
 function doScroll() {
 if (scrollSpeed === 0 || !dragging) { scrollRAF = null; return; }
 doScrollBy(scrollSpeed);
-// Paivita raahatun kortin paikka ja indikaattori reagoimaan uuteen kohtaan
 if (_lastMoveE) { repositionDuringScroll(); }
 showDropIndicator();
 scrollRAF = requestAnimationFrame(doScroll);
@@ -171,17 +169,21 @@ if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
 function repositionDuringScroll() {
 if (!dragging || !_lastMoveE) return;
 const e = _lastMoveE;
+updatePlaceholderPosition(e.clientX, e.clientY);
+}
+
+function updatePlaceholderPosition(x, y) {
 const grid = getGrid(); if (!grid) return;
 let best = null, bestDist = Infinity;
 getCards().forEach(card => {
 if (card === dragging) return;
 const r = card.getBoundingClientRect();
-const dist = Math.hypot(e.clientX - (r.left + r.width/2), e.clientY - (r.top + r.height/2));
+const dist = Math.hypot(x - (r.left + r.width/2), y - (r.top + r.height/2));
 if (dist < bestDist) { bestDist = dist; best = card; }
 });
 if (best) {
 const r = best.getBoundingClientRect();
-if (e.clientY < r.top + r.height / 2) { grid.insertBefore(placeholder, best); }
+if (y < r.top + r.height / 2) { grid.insertBefore(placeholder, best); }
 else { best.after(placeholder); }
 }
 }
@@ -203,14 +205,15 @@ handle.className = 'drag-handle';
 handle.innerHTML = '\u2823';
 handle.title = 'Raahaa';
 handle.style.cssText = [
-'position:absolute','top:8px','left:8px','cursor:grab',
-'color:var(--text3,#8abdd4)','font-size:16px','line-height:1',
-'padding:6px','border-radius:4px','user-select:none',
-'-webkit-user-select:none','touch-action:none','z-index:10',
-'opacity:0.5','transition:opacity .15s'
+'position:absolute','top:6px','left:6px','cursor:grab',
+'color:var(--text3,#8abdd4)','font-size:18px','line-height:1',
+'padding:10px','border-radius:6px','user-select:none',
+'-webkit-user-select:none','-webkit-touch-callout:none',
+'touch-action:none','z-index:10','opacity:0.55',
+'transition:opacity .15s,background .15s'
 ].join(';');
 handle.addEventListener('pointerover', () => { handle.style.opacity = '1'; });
-handle.addEventListener('pointerout', () => { handle.style.opacity = '0.5'; });
+handle.addEventListener('pointerout', () => { if (!dragging) handle.style.opacity = '0.55'; });
 card.style.position = 'relative';
 card.prepend(handle);
 });
@@ -219,7 +222,7 @@ document.removeEventListener('pointermove', onPointerMove);
 document.removeEventListener('pointerup', onPointerUp);
 document.removeEventListener('pointercancel', onPointerUp);
 grid.addEventListener('pointerdown', onPointerDown);
-document.addEventListener('pointermove', onPointerMove);
+document.addEventListener('pointermove', onPointerMove, { passive: false });
 document.addEventListener('pointerup', onPointerUp);
 document.addEventListener('pointercancel', onPointerUp);
 }
@@ -230,9 +233,12 @@ if (!handle) return;
 const card = handle.closest('[data-item-id]');
 if (!card) return;
 e.preventDefault();
-// HUOM: EI setPointerCapture -- se estaa Safarissa auto-scrollin
+e.stopPropagation();
 activePointerId = e.pointerId;
 _lastMoveE = e;
+// Esta sivun scroll raahauksen ajaksi (mobiili)
+document.body.style.overflow = 'hidden';
+document.body.style.touchAction = 'none';
 const rect = card.getBoundingClientRect();
 offsetX = e.clientX - rect.left;
 offsetY = e.clientY - rect.top;
@@ -246,43 +252,36 @@ card.style.top = rect.top + 'px';
 card.style.width = rect.width + 'px';
 card.style.height = rect.height + 'px';
 card.style.zIndex = '1000';
-card.style.opacity = '0.88';
+card.style.opacity = '0.9';
 card.style.pointerEvents = 'none';
 card.style.transition = 'none';
 card.style.boxShadow = '0 16px 48px rgba(0,0,0,0.55)';
 card.style.transform = 'scale(1.03)';
 card.after(placeholder);
 dragging = card;
+// Tarinapalaute mobiilissa
+if (navigator.vibrate) { try { navigator.vibrate(15); } catch(e) {} }
 }
 
 function onPointerMove(e) {
 if (!dragging) return;
 if (activePointerId !== null && e.pointerId !== activePointerId) return;
-e.preventDefault();
+if (e.cancelable) e.preventDefault();
 _lastMoveE = e;
 dragging.style.left = (e.clientX - offsetX) + 'px';
 dragging.style.top = (e.clientY - offsetY) + 'px';
 startAutoScroll(e.clientY);
-const grid = getGrid(); if (!grid) return;
-let best = null, bestDist = Infinity;
-getCards().forEach(card => {
-if (card === dragging) return;
-const r = card.getBoundingClientRect();
-const dist = Math.hypot(e.clientX - (r.left + r.width/2), e.clientY - (r.top + r.height/2));
-if (dist < bestDist) { bestDist = dist; best = card; }
-});
-if (best) {
-const r = best.getBoundingClientRect();
-if (e.clientY < r.top + r.height / 2) { grid.insertBefore(placeholder, best); }
-else { best.after(placeholder); }
+updatePlaceholderPosition(e.clientX, e.clientY);
 requestAnimationFrame(showDropIndicator);
-}
 }
 
 function onPointerUp(e) {
 if (!dragging) return;
 stopAutoScroll();
 hideDropIndicator();
+// Palauta sivun scroll
+document.body.style.overflow = '';
+document.body.style.touchAction = '';
 dragging.style.position = 'relative';
 dragging.style.left = '';
 dragging.style.top = '';
@@ -308,7 +307,6 @@ function injectCSS() {
 if (document.getElementById('layout-module-css')) return;
 const style = document.createElement('style');
 style.id = 'layout-module-css';
-// Mobiili (alle 900px): 1 sarake. Desktop: 3 saraketta.
 style.textContent = [
 '#db-content{display:grid;grid-template-columns:1fr;grid-auto-flow:row;gap:12px}',
 '@media (min-width:900px){#db-content{grid-template-columns:repeat(3,1fr)}}',
@@ -316,7 +314,8 @@ style.textContent = [
 '@media (max-width:899px){.card-normal{grid-column:1/-1}.card-wide{grid-column:1/-1}}',
 '@media (min-width:900px){.card-normal{grid-column:auto}}',
 '.drag-placeholder{background:rgba(0,200,255,0.07);border:2px dashed rgba(0,200,255,0.35);border-radius:12px;min-height:60px;transition:height .15s}',
-'#db-content>[data-item-id]{position:relative!important}'
+'#db-content>[data-item-id]{position:relative!important}',
+'.drag-handle:active{cursor:grabbing;background:rgba(0,200,255,0.15)}'
 ].join('');
 document.head.appendChild(style);
 }
