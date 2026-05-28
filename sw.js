@@ -1,4 +1,4 @@
-// Finance OS — Service Worker v26
+// Finance OS — Service Worker v27
 // Passiivinen: ei välimuistia, kaikki suoraan verkosta
 
 const CACHE_NAME = 'finance-os-v26';
