@@ -777,7 +777,7 @@
 <body>
 <script>
 (function() {
-  if (localStorage.getItem('sw_reset_v41') !== '1') {
+  if (localStorage.getItem('sw_reset_v42') !== '1') {
     window.addEventListener('load', function() {
   setTimeout(function() {
     if (typeof updateRightPanel === 'function') updateRightPanel();
@@ -794,10 +794,10 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
         var had = regs.length > 0;
         regs.forEach(function(r) { r.unregister(); });
-        localStorage.setItem('sw_reset_v41', '1');
+        localStorage.setItem('sw_reset_v42', '1');
         if (had) location.reload(true);
       });
-    } else { localStorage.setItem('sw_reset_v41', '1'); }
+    } else { localStorage.setItem('sw_reset_v42', '1'); }
   }
 })();
 </script>
@@ -1092,15 +1092,15 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + '</div>';
 }
 </script>
-<script src="js/db.js?v=41"></script>
-<script src="js/calculations.js?v=41"></script>
-<script src="js/signals.js?v=41"></script>
-<script src="js/import.js?v=41"></script>
+<script src="js/db.js?v=42"></script>
+<script src="js/calculations.js?v=42"></script>
+<script src="js/signals.js?v=42"></script>
+<script src="js/import.js?v=42"></script>
 <script src="js/demo-data.js"></script>
-<script src="js/ui2-v2.js?v=41"></script>
-<script src="js/dashboard-layout.js?v=41"></script>
+<script src="js/ui2-v2.js?v=42"></script>
+<script src="js/dashboard-layout.js?v=42"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=41"></script>
+<script src="js/app.js?v=42"></script>
 
 <div id="chart-tooltip"></div>
 
