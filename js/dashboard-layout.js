@@ -335,10 +335,10 @@
 
   // Julkinen API
   window.initLayout    = initLayout;
-  window.applyAllSizes = applyAllSizes;
+  window.applyDashboardLayout = applyAllSizes;
 
   // Kuuntele renderDashboard-signaalia
   // ui2-v2.js kutsuu window.onDashboardRendered() jos se on määritelty
-  window.onDashboardRendered = initLayout;
+  window.applyDashboardLayout = function() { applyOrder(); applyAllSizes(); initDragging(); };
 
 })();

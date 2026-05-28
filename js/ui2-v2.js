@@ -358,19 +358,19 @@ function _pref(card, key, def) {
 
 window.toggleCardDetail = function(card) {
   _setCardPref(card, 'expanded', !_pref(card, 'expanded', true));
-  renderDashboard();
+  renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
 };
 window.toggleCardPct = function(card) {
   _setCardPref(card, 'showPct', !_pref(card, 'showPct', true));
-  renderDashboard();
+  renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
 };
 window.toggleCardRow = function(card, row) {
   _setCardPref(card, 'row_'+row, !_pref(card, 'row_'+row, true));
-  renderDashboard();
+  renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
 };
 window.toggleCardVisible = function(card) {
   _setCardPref(card, 'visible', !_pref(card, 'visible', true));
-  renderDashboard();
+  renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
 };
 
 // Settingsi-popover — DOM-manipulaatiolla, ei innerHTML-escaping-ongelmia
@@ -1765,7 +1765,7 @@ async function saveDayFromHoldings() {
   alert(`Päivä tallennettu: ${today}`);
   showView('dashboard');
   requestAnimationFrame(() => {
-    renderDashboard();
+    renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
     window.scrollTo({ top: 0, behavior: 'instant' });
   });
 }
@@ -1942,7 +1942,7 @@ async function confirmRestore() {
   cancelRestore();
   alert(`Palautettu: ${_restoreData.snapshots?.length ?? 0} snapshottia.`);
   showView('dashboard');
-  renderDashboard();
+  renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
 }
 
 function cancelRestore() {
@@ -2491,7 +2491,7 @@ async function rollbackLatestSnapshot() {
   alert('Rollback valmis. Tila palautettu ' + prevFi + '.');
 
   // Refresh views
-  if (document.getElementById('view-dashboard')?.classList.contains('active')) renderDashboard();
+  if (document.getElementById('view-dashboard')?.classList.contains('active')) renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
   if (document.getElementById('view-historia')?.classList.contains('active')) renderHistoria();
   if (document.getElementById('view-ledger')?.classList.contains('active')) renderLedger();
 }
@@ -2690,7 +2690,7 @@ document.getElementById('btn-clear').addEventListener('click', async () => {
   document.getElementById('import-mapping').style.display = 'none';
   alert('Data tyhjennetty.');
   showView('dashboard');
-  renderDashboard();
+  renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
 });
 
 // ═══════════════════════════════════════════════
@@ -3710,7 +3710,7 @@ async function saveEntrySnapshot() {
   setTimeout(() => {
     showView('dashboard');
     requestAnimationFrame(() => {
-      renderDashboard();
+      renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
       window.scrollTo({ top: 0, behavior: 'instant' });
       const main = document.getElementById('db-content') || document.querySelector('.main-content') || document.querySelector('.view.active');
       if (main) main.scrollTop = 0;
