@@ -1,5 +1,5 @@
 // dashboard-layout.js — Finance OS
-// Versio: 20260528-4
+// Versio: 20260528-5
 // Vastuu: korttijarjestys, leveys, drag & drop
 // Korjaukset: Safari auto-scroll, mobiili 1-sarake, mobiili kosketus-drag
 
@@ -202,18 +202,21 @@ getCards().forEach(card => {
 if (card.querySelector('.drag-handle')) return;
 const handle = document.createElement('div');
 handle.className = 'drag-handle';
-handle.innerHTML = '\u2823';
+handle.innerHTML = '\u2630';
 handle.title = 'Raahaa';
 handle.style.cssText = [
-'position:absolute','top:6px','left:6px','cursor:grab',
-'color:var(--text3,#8abdd4)','font-size:18px','line-height:1',
-'padding:10px','border-radius:6px','user-select:none',
-'-webkit-user-select:none','-webkit-touch-callout:none',
-'touch-action:none','z-index:10','opacity:0.55',
-'transition:opacity .15s,background .15s'
+'position:absolute','top:8px','left:8px','cursor:grab',
+'display:flex','align-items:center','justify-content:center',
+'width:30px','height:30px',
+'color:#0a1a22','font-size:15px','font-weight:700','line-height:1',
+'background:rgba(0,200,255,0.85)','border-radius:8px',
+'box-shadow:0 2px 8px rgba(0,0,0,0.4)',
+'user-select:none','-webkit-user-select:none','-webkit-touch-callout:none',
+'touch-action:none','z-index:10','opacity:0.92',
+'transition:opacity .15s,background .15s,transform .1s'
 ].join(';');
 handle.addEventListener('pointerover', () => { handle.style.opacity = '1'; });
-handle.addEventListener('pointerout', () => { if (!dragging) handle.style.opacity = '0.55'; });
+handle.addEventListener('pointerout', () => { if (!dragging) handle.style.opacity = '0.92'; });
 card.style.position = 'relative';
 card.prepend(handle);
 });
