@@ -701,7 +701,7 @@
 
     /* ══ DESKTOP 3-KOLUMNI LAYOUT ══════════════════════════════════════════ */
     #os-layout { display: block; }
-    #db-content { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+    #db-content { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; }
     .db-date, #freeze-status, #layout-toolbar { grid-column: 1 / -1; }
     #os-sidebar { display: none; }
     #os-panel   { display: none; }
@@ -727,6 +727,7 @@
         overflow-y: auto;
         height: 100vh;
       }
+      #db-content { grid-template-columns: repeat(3, 1fr); }
       #os-panel {
         display: block;
         background: var(--surface);
