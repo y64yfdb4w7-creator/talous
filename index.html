@@ -698,7 +698,9 @@
 
 
     /* ══ DESKTOP 3-KOLUMNI LAYOUT ══════════════════════════════════════════ */
-    #os-layout { display: block; } #db-content { display: block; }
+    #os-layout { display: block; }
+    #db-content { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+    .db-date, #freeze-status, #layout-toolbar { grid-column: 1 / -1; }
     #os-sidebar { display: none; }
     #os-panel   { display: none; }
 
