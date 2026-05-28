@@ -675,7 +675,7 @@ async function renderDashboard() {
     </div>
 
     <div id="layout-toolbar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;"></div>
-    <div id="all-cards-container" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;align-items:start;">
+
 
       <!-- 1. SIJOITUKSET -->
       <div class="db-item card" data-item-id="inv">
@@ -841,7 +841,7 @@ async function renderDashboard() {
           + '</div><div id="period-breakdown" style="margin-top:12px;padding:12px 14px;border-radius:9px;background:rgba(0,200,255,0.03);border:1px solid var(--border);"><div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;" id="breakdown-title">Napauta ajanjaksoa nähdäksesi erittely</div><div id="breakdown-rows"></div></div>' : ''}
       </div>
 
-    </div>
+
 
       <div class="db-item" data-item-id="heartbeat">${renderHeartbeatCard(sig)}</div>
 
@@ -3975,7 +3975,7 @@ function initCardDrag() {
     return getSizes()[id] === 'wide';
   }
   window.applyAllSizes = function applyAllSizes() {
-    document.getElementById('all-cards-container')?.querySelectorAll('[data-item-id]').forEach(el => {
+    document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => {
       el.classList.toggle('card-wide', isWide(el.dataset.itemId)); el.classList.toggle('card-normal', !isWide(el.dataset.itemId));
       const btn = el.querySelector('.size-toggle-btn');
       if (btn) {
@@ -3985,7 +3985,7 @@ function initCardDrag() {
       }
     });
     // Pakota Safari redraw
-    const grid = document.getElementById('all-cards-container');
+    const grid = document.getElementById('db-content');
     if (grid) { grid.style.display='none'; void grid.offsetHeight; grid.style.display=''; }
   }
 
@@ -4003,7 +4003,7 @@ function initCardDrag() {
     const order = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (order && order.length > 0) {
       const map = {};
-      document.getElementById('all-cards-container')?.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
+      document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
       order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     }
   } catch(e) {}
@@ -4055,7 +4055,7 @@ function initCardDrag() {
   }
   function stopScroll() { if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; } }
 
-  document.getElementById('all-cards-container')?.querySelectorAll('[data-item-id]').forEach(el => {
+  document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => {
     const handle = addHandle(el);
     // Lisää koko-nappi pieniin kortteihin
     const ALWAYS_WIDE = ['netto','heartbeat','historia','muuttui','tapahtumat'];
@@ -4082,7 +4082,7 @@ function initCardDrag() {
     let dropTarget = null, dropBefore = true;
 
     function getItems() {
-      return [...document.getElementById('all-cards-container')?.querySelectorAll('[data-item-id]')].filter(t => t !== el);
+      return [...document.getElementById('db-content')?.querySelectorAll('[data-item-id]')].filter(t => t !== el);
     }
 
     function findDrop(cx, cy) {
@@ -4136,7 +4136,7 @@ function initCardDrag() {
         dropBefore ? container.insertBefore(el, dropTarget) : container.insertBefore(el, dropTarget.nextSibling);
         // Palauta koot drag-siirron jälkeen
         window.applyAllSizes();
-        const newOrder = [...document.getElementById('all-cards-container')?.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
+        const newOrder = [...document.getElementById('db-content')?.querySelectorAll('[data-item-id]')].map(c => c.dataset.itemId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
       }
       dropTarget = null;
@@ -4169,14 +4169,14 @@ function initLayoutToolbar() {
     localStorage.setItem(LAYOUTS_KEY, JSON.stringify(layouts));
   }
   function getCurrentOrder() {
-    return [...document.getElementById('all-cards-container')?.querySelectorAll('[data-item-id]')].map(el => el.dataset.itemId);
+    return [...document.getElementById('db-content')?.querySelectorAll('[data-item-id]')].map(el => el.dataset.itemId);
   }
   function applyLayout(order) {
     const map = {};
-    document.getElementById('all-cards-container')?.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
+    document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(el => map[el.dataset.itemId] = el);
     order.forEach(id => { if (map[id]) container.appendChild(map[id]); });
     if (window.applyAllSizes) window.applyAllSizes();
-    else document.getElementById('all-cards-container')?.querySelectorAll('[data-item-id]').forEach(item => {
+    else document.getElementById('db-content')?.querySelectorAll('[data-item-id]').forEach(item => {
       item.style.gridColumn = ['netto','heartbeat','historia','muuttui','tapahtumat'].includes(item.dataset.itemId) ? '1/-1' : 'auto';
     });
     localStorage.setItem(CURRENT_KEY, JSON.stringify(order));
