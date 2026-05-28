@@ -1,7 +1,7 @@
-// Finance OS — Service Worker v28
+// Finance OS — Service Worker v29
 // Passiivinen: ei vaalimuistia, kaikki suoraan verkosta
 
-const CACHE_NAME = 'finance-os-v28';
+const CACHE_NAME = 'finance-os-v29';
 
 self.addEventListener('install', event => {
 self.skipWaiting();
@@ -15,7 +15,6 @@ caches.keys()
 );
 });
 
-// Kaikki pyynnot suoraan verkosta - ei vaalimuistia, pakota tuore versio
 self.addEventListener('fetch', event => {
 const url = event.request.url;
 const isScript = url.includes('/js/') && url.endsWith('.js');
