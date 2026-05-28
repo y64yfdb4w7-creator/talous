@@ -1,6 +1,7 @@
 // dashboard-layout.js — Finance OS
-// Versio: 20260528-2
+// Versio: 20260528-3
 // Vastuu: korttijarjestys, leveys, drag & drop
+// Korjaukset: Safari auto-scroll (ei setPointerCapture), mobiili 1-sarake
 
 (function() {
 'use strict';
@@ -81,12 +82,8 @@ if (dropIndicator) return;
 dropIndicator = document.createElement('div');
 dropIndicator.id = 'drop-indicator';
 dropIndicator.style.cssText = [
-'position:fixed',
-'pointer-events:none',
-'z-index:999',
-'display:none',
-'border-radius:10px',
-'background:rgba(0,200,255,0.13)',
+'position:fixed','pointer-events:none','z-index:999','display:none',
+'border-radius:10px','background:rgba(0,200,255,0.13)',
 'border:2px dashed rgba(0,200,255,0.7)',
 'box-shadow:0 0 0 4px rgba(0,200,255,0.15),0 0 18px rgba(0,200,255,0.25)',
 'transition:top .1s cubic-bezier(.4,0,.2,1),left .1s,width .1s,height .1s',
@@ -94,11 +91,9 @@ dropIndicator.style.cssText = [
 const label = document.createElement('div');
 label.textContent = 'Laske tahan';
 label.style.cssText = [
-'position:absolute','top:50%','left:50%',
-'transform:translate(-50%,-50%)',
-'color:rgba(0,200,255,0.85)','font-size:11px',
-'font-weight:600','letter-spacing:.05em','pointer-events:none',
-'white-space:nowrap'
+'position:absolute','top:50%','left:50%','transform:translate(-50%,-50%)',
+'color:rgba(0,200,255,0.85)','font-size:11px','font-weight:600',
+'letter-spacing:.05em','pointer-events:none','white-space:nowrap'
 ].join(';');
 dropIndicator.appendChild(label);
 document.body.appendChild(dropIndicator);
@@ -119,14 +114,33 @@ function hideDropIndicator() {
 if (dropIndicator) dropIndicator.style.display = 'none';
 }
 
+// ── SCROLL-SAILIO (Safari: #os-main scrollaa, ei window) ─────────────────
+function getScrollContainer() {
+// Desktop: #os-main on scroll-sailio. Mobiili: window/document.
+const main = document.getElementById('os-main');
+if (main) {
+const cs = getComputedStyle(main);
+if ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && main.scrollHeight > main.clientHeight) {
+return main;
+}
+}
+return null; // null = kayta window
+}
+
+function doScrollBy(dy) {
+const c = getScrollContainer();
+if (c) { c.scrollTop += dy; }
+else { window.scrollBy(0, dy); }
+}
+
 // ── AUTO-SCROLL ─────────────────────────────────────────────────────────
 let scrollRAF = null;
 let scrollSpeed = 0;
 let _lastMoveE = null;
 
 function startAutoScroll(clientY) {
-const margin = 100;
-const maxSpeed = 18;
+const margin = 110;
+const maxSpeed = 20;
 const vh = window.innerHeight;
 if (clientY < margin) {
 scrollSpeed = -Math.round(maxSpeed * (1 - clientY / margin));
@@ -134,13 +148,14 @@ scrollSpeed = -Math.round(maxSpeed * (1 - clientY / margin));
 scrollSpeed = Math.round(maxSpeed * (1 - (vh - clientY) / margin));
 } else {
 scrollSpeed = 0;
-if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
 return;
 }
-if (!scrollRAF) {
+if (!scrollRAF && scrollSpeed !== 0) {
 function doScroll() {
 if (scrollSpeed === 0 || !dragging) { scrollRAF = null; return; }
-window.scrollBy(0, scrollSpeed);
+doScrollBy(scrollSpeed);
+// Paivita raahatun kortin paikka ja indikaattori reagoimaan uuteen kohtaan
+if (_lastMoveE) { repositionDuringScroll(); }
 showDropIndicator();
 scrollRAF = requestAnimationFrame(doScroll);
 }
@@ -153,11 +168,30 @@ scrollSpeed = 0;
 if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
 }
 
+function repositionDuringScroll() {
+if (!dragging || !_lastMoveE) return;
+const e = _lastMoveE;
+const grid = getGrid(); if (!grid) return;
+let best = null, bestDist = Infinity;
+getCards().forEach(card => {
+if (card === dragging) return;
+const r = card.getBoundingClientRect();
+const dist = Math.hypot(e.clientX - (r.left + r.width/2), e.clientY - (r.top + r.height/2));
+if (dist < bestDist) { bestDist = dist; best = card; }
+});
+if (best) {
+const r = best.getBoundingClientRect();
+if (e.clientY < r.top + r.height / 2) { grid.insertBefore(placeholder, best); }
+else { best.after(placeholder); }
+}
+}
+
 // ── DRAG & DROP ─────────────────────────────────────────────────────────
 let dragging = null;
 let placeholder = null;
 let offsetX = 0;
 let offsetY = 0;
+let activePointerId = null;
 
 function initDragging() {
 const grid = getGrid(); if (!grid) return;
@@ -170,9 +204,10 @@ handle.innerHTML = '\u2823';
 handle.title = 'Raahaa';
 handle.style.cssText = [
 'position:absolute','top:8px','left:8px','cursor:grab',
-'color:var(--text3,#8abdd4)','font-size:14px','line-height:1',
-'padding:4px','border-radius:4px','user-select:none',
-'touch-action:none','z-index:10','opacity:0.5','transition:opacity .15s'
+'color:var(--text3,#8abdd4)','font-size:16px','line-height:1',
+'padding:6px','border-radius:4px','user-select:none',
+'-webkit-user-select:none','touch-action:none','z-index:10',
+'opacity:0.5','transition:opacity .15s'
 ].join(';');
 handle.addEventListener('pointerover', () => { handle.style.opacity = '1'; });
 handle.addEventListener('pointerout', () => { handle.style.opacity = '0.5'; });
@@ -182,9 +217,11 @@ card.prepend(handle);
 grid.removeEventListener('pointerdown', onPointerDown);
 document.removeEventListener('pointermove', onPointerMove);
 document.removeEventListener('pointerup', onPointerUp);
+document.removeEventListener('pointercancel', onPointerUp);
 grid.addEventListener('pointerdown', onPointerDown);
 document.addEventListener('pointermove', onPointerMove);
 document.addEventListener('pointerup', onPointerUp);
+document.addEventListener('pointercancel', onPointerUp);
 }
 
 function onPointerDown(e) {
@@ -193,8 +230,9 @@ if (!handle) return;
 const card = handle.closest('[data-item-id]');
 if (!card) return;
 e.preventDefault();
-handle.setPointerCapture(e.pointerId);
-_lastMoveE = null;
+// HUOM: EI setPointerCapture -- se estaa Safarissa auto-scrollin
+activePointerId = e.pointerId;
+_lastMoveE = e;
 const rect = card.getBoundingClientRect();
 offsetX = e.clientX - rect.left;
 offsetY = e.clientY - rect.top;
@@ -202,7 +240,6 @@ const col = getComputedStyle(card).gridColumn;
 placeholder = document.createElement('div');
 placeholder.className = 'drag-placeholder';
 placeholder.style.cssText = ['pointer-events:none', 'grid-column:' + col, 'height:' + rect.height + 'px'].join(';');
-// Aseta dragging-tyyli lisaamalla vain tarvittavat -- ei cssText-ylikirjoitusta
 card.style.position = 'fixed';
 card.style.left = rect.left + 'px';
 card.style.top = rect.top + 'px';
@@ -220,6 +257,8 @@ dragging = card;
 
 function onPointerMove(e) {
 if (!dragging) return;
+if (activePointerId !== null && e.pointerId !== activePointerId) return;
+e.preventDefault();
 _lastMoveE = e;
 dragging.style.left = (e.clientX - offsetX) + 'px';
 dragging.style.top = (e.clientY - offsetY) + 'px';
@@ -244,7 +283,6 @@ function onPointerUp(e) {
 if (!dragging) return;
 stopAutoScroll();
 hideDropIndicator();
-// BUGFIX: palauta position:relative -- ei '' joka antaisi static
 dragging.style.position = 'relative';
 dragging.style.left = '';
 dragging.style.top = '';
@@ -260,6 +298,7 @@ if (placeholder && placeholder.parentElement) { placeholder.replaceWith(dragging
 placeholder = null;
 dragging = null;
 _lastMoveE = null;
+activePointerId = null;
 saveOrder(captureOrder());
 applyAllSizes();
 }
@@ -269,8 +308,16 @@ function injectCSS() {
 if (document.getElementById('layout-module-css')) return;
 const style = document.createElement('style');
 style.id = 'layout-module-css';
-// position:relative !important varmuudeksi jos inline-tyyli jostain syyst\u00e4 tyhjenee
-style.textContent = '#db-content{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-flow:row;gap:12px}.card-wide{grid-column:1/-1}.card-normal{grid-column:auto}.drag-placeholder{background:rgba(0,200,255,0.07);border:2px dashed rgba(0,200,255,0.35);border-radius:12px;min-height:60px;transition:height .15s}#db-content>[data-item-id]{position:relative!important}';
+// Mobiili (alle 900px): 1 sarake. Desktop: 3 saraketta.
+style.textContent = [
+'#db-content{display:grid;grid-template-columns:1fr;grid-auto-flow:row;gap:12px}',
+'@media (min-width:900px){#db-content{grid-template-columns:repeat(3,1fr)}}',
+'.card-wide{grid-column:1/-1}',
+'@media (max-width:899px){.card-normal{grid-column:1/-1}.card-wide{grid-column:1/-1}}',
+'@media (min-width:900px){.card-normal{grid-column:auto}}',
+'.drag-placeholder{background:rgba(0,200,255,0.07);border:2px dashed rgba(0,200,255,0.35);border-radius:12px;min-height:60px;transition:height .15s}',
+'#db-content>[data-item-id]{position:relative!important}'
+].join('');
 document.head.appendChild(style);
 }
 
