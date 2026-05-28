@@ -7,7 +7,7 @@
   'use strict';
 
   const STORAGE_KEY = 'fin_layout_state';
-  const GRID_ID     = 'os-layout';
+  const GRID_ID     = 'db-content';
 
   // Kortit jotka ovat aina leveitä — nappi piilotetaan
   const ALWAYS_WIDE = ['heartbeat','historia','muuttui','tapahtumat','netto'];
