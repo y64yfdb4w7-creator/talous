@@ -1,7 +1,6 @@
 // dashboard-layout.js — Finance OS
-// Versio: 20260528-1
+// Versio: 20260528-2
 // Vastuu: korttijarjestys, leveys, drag & drop
-// Ei closureja, ei timeouteja, ei inline-tyylejä.
 
 (function() {
 'use strict';
@@ -49,7 +48,7 @@ if (btn) {
 if (ALWAYS_WIDE.includes(id)) { btn.style.display = 'none'; }
 else {
 btn.style.display = '';
-btn.textContent = wide ? '⊟' : '⊞';
+btn.textContent = wide ? '\u229f' : '\u229e';
 btn.title = wide ? 'Tee pieneksi' : 'Tee leveaksi';
 }
 }
@@ -167,7 +166,7 @@ getCards().forEach(card => {
 if (card.querySelector('.drag-handle')) return;
 const handle = document.createElement('div');
 handle.className = 'drag-handle';
-handle.innerHTML = '⠣';
+handle.innerHTML = '\u2823';
 handle.title = 'Raahaa';
 handle.style.cssText = [
 'position:absolute','top:8px','left:8px','cursor:grab',
@@ -177,7 +176,7 @@ handle.style.cssText = [
 ].join(';');
 handle.addEventListener('pointerover', () => { handle.style.opacity = '1'; });
 handle.addEventListener('pointerout', () => { handle.style.opacity = '0.5'; });
-card.style.position = card.style.position || 'relative';
+card.style.position = 'relative';
 card.prepend(handle);
 });
 grid.removeEventListener('pointerdown', onPointerDown);
@@ -203,19 +202,18 @@ const col = getComputedStyle(card).gridColumn;
 placeholder = document.createElement('div');
 placeholder.className = 'drag-placeholder';
 placeholder.style.cssText = ['pointer-events:none', 'grid-column:' + col, 'height:' + rect.height + 'px'].join(';');
-card.style.cssText += [
-';position:fixed',
-'left:' + rect.left + 'px',
-'top:' + rect.top + 'px',
-'width:' + rect.width + 'px',
-'height:' + rect.height + 'px',
-'z-index:1000',
-'opacity:0.88',
-'pointer-events:none',
-'transition:none',
-'box-shadow:0 16px 48px rgba(0,0,0,0.55)',
-'transform:scale(1.03)',
-].join(';');
+// Aseta dragging-tyyli lisaamalla vain tarvittavat -- ei cssText-ylikirjoitusta
+card.style.position = 'fixed';
+card.style.left = rect.left + 'px';
+card.style.top = rect.top + 'px';
+card.style.width = rect.width + 'px';
+card.style.height = rect.height + 'px';
+card.style.zIndex = '1000';
+card.style.opacity = '0.88';
+card.style.pointerEvents = 'none';
+card.style.transition = 'none';
+card.style.boxShadow = '0 16px 48px rgba(0,0,0,0.55)';
+card.style.transform = 'scale(1.03)';
 card.after(placeholder);
 dragging = card;
 }
@@ -246,7 +244,8 @@ function onPointerUp(e) {
 if (!dragging) return;
 stopAutoScroll();
 hideDropIndicator();
-dragging.style.position = '';
+// BUGFIX: palauta position:relative -- ei '' joka antaisi static
+dragging.style.position = 'relative';
 dragging.style.left = '';
 dragging.style.top = '';
 dragging.style.width = '';
@@ -270,7 +269,8 @@ function injectCSS() {
 if (document.getElementById('layout-module-css')) return;
 const style = document.createElement('style');
 style.id = 'layout-module-css';
-style.textContent = '#db-content{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-flow:row;gap:12px}.card-wide{grid-column:1/-1}.card-normal{grid-column:auto}.drag-placeholder{background:rgba(0,200,255,0.07);border:2px dashed rgba(0,200,255,0.35);border-radius:12px;min-height:60px;transition:height .15s}[data-item-id]{position:relative}';
+// position:relative !important varmuudeksi jos inline-tyyli jostain syyst\u00e4 tyhjenee
+style.textContent = '#db-content{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-flow:row;gap:12px}.card-wide{grid-column:1/-1}.card-normal{grid-column:auto}.drag-placeholder{background:rgba(0,200,255,0.07);border:2px dashed rgba(0,200,255,0.35);border-radius:12px;min-height:60px;transition:height .15s}#db-content>[data-item-id]{position:relative!important}';
 document.head.appendChild(style);
 }
 
