@@ -701,7 +701,7 @@
 
     /* ══ DESKTOP 3-KOLUMNI LAYOUT ══════════════════════════════════════════ */
     #os-layout { display: block; }
-    #db-content { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; }
+    #db-content { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; padding: 0 14px; box-sizing: border-box; } #db-content > [data-item-id] { min-width: 0; }
     .db-date, #freeze-status, #layout-toolbar { grid-column: 1 / -1; }
     #os-sidebar { display: none; }
     #os-panel   { display: none; }
@@ -727,7 +727,7 @@
         overflow-y: auto;
         height: 100vh;
       }
-      #db-content { grid-template-columns: repeat(3, 1fr); }
+      #db-content { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; }
       #os-panel {
         display: block;
         background: var(--surface);
@@ -777,7 +777,7 @@
 <body>
 <script>
 (function() {
-  if (localStorage.getItem('sw_reset_v45') !== '1') {
+  if (localStorage.getItem('sw_reset_v46') !== '1') {
     window.addEventListener('load', function() {
   setTimeout(function() {
     if (typeof updateRightPanel === 'function') updateRightPanel();
@@ -794,10 +794,10 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
         var had = regs.length > 0;
         regs.forEach(function(r) { r.unregister(); });
-        localStorage.setItem('sw_reset_v45', '1');
+        localStorage.setItem('sw_reset_v46', '1');
         if (had) location.reload(true);
       });
-    } else { localStorage.setItem('sw_reset_v45', '1'); }
+    } else { localStorage.setItem('sw_reset_v46', '1'); }
   }
 })();
 </script>
@@ -1092,15 +1092,15 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + '</div>';
 }
 </script>
-<script src="js/db.js?v=45"></script>
-<script src="js/calculations.js?v=45"></script>
-<script src="js/signals.js?v=45"></script>
-<script src="js/import.js?v=45"></script>
+<script src="js/db.js?v=46"></script>
+<script src="js/calculations.js?v=46"></script>
+<script src="js/signals.js?v=46"></script>
+<script src="js/import.js?v=46"></script>
 <script src="js/demo-data.js"></script>
-<script src="js/ui2-v2.js?v=45"></script>
-<script src="js/dashboard-layout.js?v=45"></script>
+<script src="js/ui2-v2.js?v=46"></script>
+<script src="js/dashboard-layout.js?v=46"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=45"></script>
+<script src="js/app.js?v=46"></script>
 
 <div id="chart-tooltip"></div>
 
