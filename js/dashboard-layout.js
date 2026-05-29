@@ -1,5 +1,5 @@
 // dashboard-layout.js — Finance OS
-// Versio: 20260529-7
+// Versio: 20260529-8
 // Vastuu: korttijarjestys, leveys, drag & drop
 // Korjaukset: Safari auto-scroll, mobiili 1-sarake, mobiili kosketus-drag
 
@@ -367,6 +367,6 @@ setupEditToggle();
 }
 
 window.initLayout = initLayout;
-window.applyDashboardLayout = function() { applyOrder(); applyAllSizes(); initDragging(); };
+window.applyDashboardLayout = function() { injectCSS(); applyOrder(); applyAllSizes(); initDragging(); setupEditToggle(); };
 
 })();
