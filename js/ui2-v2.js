@@ -744,8 +744,8 @@ async function renderDashboard() {
           {key:'tavoitetili',label:'Tavoitetili'},
           {key:'elatustili', label:'Elatustili'},
         ])}
-        <div class="card-value" style="font-size:28px;color:var(--text2);">${fmt(cash)}</div>
-        ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Käyttövara '+(latest.tulotili&&latest.op_gold?fmt((latest.tulotili||0)-Math.abs(latest.op_gold||0)):'—')+'</div>' : ''}
+        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="font-size:28px;color:var(--text2);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="font-size:28px;color:'+_c+';">'+fmt(_kv)+'</div>'; })()}
+        ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
           ${(latest.tulotili !== undefined && _pref('cash','row_tulotili',true)) ? '<div class="sub-row"><span>Tulotili</span><span>' + fmt(latest.tulotili) + '</span></div>' : ''}
           ${(latest.s_pankki !== undefined && _pref('cash','row_spankki',true)) ? '<div class="sub-row"><span>S-Pankki</span><span>' + fmt(latest.s_pankki) + '</span></div>' : ''}
@@ -780,7 +780,7 @@ async function renderDashboard() {
             + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
             + '<span style="font-size:12px;color:var(--text2);font-weight:600;">Käyttövara</span>'
             + '<div style="text-align:right;">'
-            + '<span style="font-family:var(--mono);font-size:18px;font-weight:700;color:'+kv2Color+';">'+fmt(kayttovara)+'</span>'
+            + '<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:'+kv2Color+';">'+fmt(kayttovara)+'</span>'
             + (devEur2 !== null && Math.abs(devEur2) > 50
               ? '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:1px;">'
                 +(devEur2>0?'+':'')+fmt(devEur2)+' vs. normaali</div>'
