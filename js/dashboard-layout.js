@@ -1,5 +1,5 @@
 // dashboard-layout.js — Finance OS
-// Versio: 20260529-9
+// Versio: 20260529-10
 // Vastuu: korttijarjestys, leveys, drag & drop
 // Korjaukset: Safari auto-scroll, mobiili 1-sarake, mobiili kosketus-drag
 
@@ -206,7 +206,7 @@ handle.innerHTML = '\u2630';
 handle.title = 'Raahaa';
 handle.style.cssText = [
 'position:absolute','top:10px','right:10px','cursor:grab',
-'display:flex','align-items:center','justify-content:center',
+'align-items:center','justify-content:center',
 'width:26px','height:26px',
 'color:rgba(255,255,255,0.55)','font-size:13px','font-weight:400','line-height:1',
 'background:rgba(255,255,255,0.06)','border:1px solid rgba(255,255,255,0.12)','border-radius:7px',
@@ -318,7 +318,7 @@ style.textContent = [
 '.drag-placeholder{background:rgba(0,200,255,0.07);border:2px dashed rgba(0,200,255,0.35);border-radius:12px;min-height:60px;transition:height .15s}',
 '#db-content>[data-item-id]{position:relative!important;min-width:0}',
 '.drag-handle:active{cursor:grabbing;background:rgba(255,255,255,0.18)}',
-'.drag-handle{display:none}','#db-content.dl-edit .drag-handle{display:flex}',
+'.drag-handle{display:none!important}','#db-content.dl-edit .drag-handle{display:flex!important}',
 '#db-content.dl-edit>[data-item-id]{outline:1px dashed rgba(255,255,255,0.12);outline-offset:-1px}'
 ].join('');
 document.head.appendChild(style);
