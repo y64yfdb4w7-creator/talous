@@ -1,5 +1,5 @@
 // dashboard-layout.js — Finance OS
-// Versio: 20260528-5
+// Versio: 20260529-6
 // Vastuu: korttijarjestys, leveys, drag & drop
 // Korjaukset: Safari auto-scroll, mobiili 1-sarake, mobiili kosketus-drag
 
@@ -311,13 +311,13 @@ if (document.getElementById('layout-module-css')) return;
 const style = document.createElement('style');
 style.id = 'layout-module-css';
 style.textContent = [
-'#db-content{display:grid;grid-template-columns:1fr;grid-auto-flow:row;gap:12px}',
-'@media (min-width:900px){#db-content{grid-template-columns:repeat(3,1fr)}}',
+'#db-content{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-flow:row;gap:12px}',
+'@media (min-width:900px){#db-content{grid-template-columns:repeat(3,minmax(0,1fr))}}',
 '.card-wide{grid-column:1/-1}',
 '@media (max-width:899px){.card-normal{grid-column:1/-1}.card-wide{grid-column:1/-1}}',
 '@media (min-width:900px){.card-normal{grid-column:auto}}',
 '.drag-placeholder{background:rgba(0,200,255,0.07);border:2px dashed rgba(0,200,255,0.35);border-radius:12px;min-height:60px;transition:height .15s}',
-'#db-content>[data-item-id]{position:relative!important}',
+'#db-content>[data-item-id]{position:relative!important;min-width:0}',
 '.drag-handle:active{cursor:grabbing;background:rgba(0,200,255,0.15)}'
 ].join('');
 document.head.appendChild(style);
