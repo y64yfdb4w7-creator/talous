@@ -1,5 +1,5 @@
 // dashboard-layout.js — Finance OS
-// Versio: 20260529-6
+// Versio: 20260529-7
 // Vastuu: korttijarjestys, leveys, drag & drop
 // Korjaukset: Safari auto-scroll, mobiili 1-sarake, mobiili kosketus-drag
 
@@ -205,18 +205,17 @@ handle.className = 'drag-handle';
 handle.innerHTML = '\u2630';
 handle.title = 'Raahaa';
 handle.style.cssText = [
-'position:absolute','top:8px','left:8px','cursor:grab',
-'display:flex','align-items:center','justify-content:center',
-'width:30px','height:30px',
-'color:#0a1a22','font-size:15px','font-weight:700','line-height:1',
-'background:rgba(0,200,255,0.85)','border-radius:8px',
-'box-shadow:0 2px 8px rgba(0,0,0,0.4)',
+'position:absolute','top:10px','right:10px','cursor:grab',
+'display:none','align-items:center','justify-content:center',
+'width:26px','height:26px',
+'color:rgba(255,255,255,0.55)','font-size:13px','font-weight:400','line-height:1',
+'background:rgba(255,255,255,0.06)','border:1px solid rgba(255,255,255,0.12)','border-radius:7px',
 'user-select:none','-webkit-user-select:none','-webkit-touch-callout:none',
-'touch-action:none','z-index:10','opacity:0.92',
-'transition:opacity .15s,background .15s,transform .1s'
+'touch-action:none','z-index:10',
+'transition:opacity .15s,background .15s,color .15s'
 ].join(';');
-handle.addEventListener('pointerover', () => { handle.style.opacity = '1'; });
-handle.addEventListener('pointerout', () => { if (!dragging) handle.style.opacity = '0.92'; });
+handle.addEventListener('pointerover', () => { handle.style.background = 'rgba(255,255,255,0.14)'; handle.style.color = 'rgba(255,255,255,0.85)'; });
+handle.addEventListener('pointerout', () => { handle.style.background = 'rgba(255,255,255,0.06)'; handle.style.color = 'rgba(255,255,255,0.55)'; });
 card.style.position = 'relative';
 card.prepend(handle);
 });
@@ -318,18 +317,53 @@ style.textContent = [
 '@media (min-width:900px){.card-normal{grid-column:auto}}',
 '.drag-placeholder{background:rgba(0,200,255,0.07);border:2px dashed rgba(0,200,255,0.35);border-radius:12px;min-height:60px;transition:height .15s}',
 '#db-content>[data-item-id]{position:relative!important;min-width:0}',
-'.drag-handle:active{cursor:grabbing;background:rgba(0,200,255,0.15)}'
+'.drag-handle:active{cursor:grabbing;background:rgba(255,255,255,0.18)}',
+'#db-content.dl-edit .drag-handle{display:flex}',
+'#db-content.dl-edit>[data-item-id]{outline:1px dashed rgba(255,255,255,0.12);outline-offset:-1px}'
 ].join('');
 document.head.appendChild(style);
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────
+function setEditMode(on) {
+const grid = getGrid(); if (!grid) return;
+grid.classList.toggle('dl-edit', !!on);
+const btn = document.getElementById('dl-edit-toggle');
+if (btn) {
+btn.textContent = on ? '\u2713 Valmis' : '\u270e Muokkaa';
+btn.style.background = on ? 'rgba(0,200,255,0.15)' : 'rgba(255,255,255,0.05)';
+btn.style.color = on ? 'rgba(0,200,255,0.9)' : 'rgba(255,255,255,0.55)';
+}
+}
+window.setEditMode = setEditMode;
+
+function setupEditToggle() {
+const tb = document.getElementById('layout-toolbar');
+if (!tb || document.getElementById('dl-edit-toggle')) return;
+const btn = document.createElement('button');
+btn.id = 'dl-edit-toggle';
+btn.type = 'button';
+btn.textContent = '\u270e Muokkaa';
+btn.style.cssText = [
+'padding:5px 12px','font-size:12px','font-weight:500','cursor:pointer',
+'background:rgba(255,255,255,0.05)','color:rgba(255,255,255,0.55)',
+'border:1px solid rgba(255,255,255,0.12)','border-radius:7px',
+'transition:background .15s,color .15s','-webkit-tap-highlight-color:transparent'
+].join(';');
+btn.addEventListener('click', function() {
+const grid = getGrid();
+setEditMode(!(grid && grid.classList.contains('dl-edit')));
+});
+tb.appendChild(btn);
+}
+
 function initLayout() {
 const grid = getGrid(); if (!grid) return;
 injectCSS();
 applyOrder();
 applyAllSizes();
 initDragging();
+setupEditToggle();
 }
 
 window.initLayout = initLayout;
