@@ -421,6 +421,17 @@ window.openCardSettings = function(card, title, rows, evt) {
   pctLbl.appendChild(pctCb); pctLbl.appendChild(document.createTextNode('Muutosprosentit'));
   div.appendChild(pctLbl);
 
+  // Yksityiskohdat auki/piiloon
+  var detLbl = document.createElement('label');
+  detLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+  var detCb = document.createElement('input');
+  detCb.type = 'checkbox'; detCb.checked = _pref(card, 'expanded', true);
+  detCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);';
+  detCb.addEventListener('change', function() { toggleCardDetail(card); });
+  detLbl.appendChild(detCb);
+  detLbl.appendChild(document.createTextNode('Yksityiskohdat'));
+  div.appendChild(detLbl);
+
   // Näytä kortti toggle
   var visLbl = document.createElement('label');
   visLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
@@ -468,23 +479,9 @@ function _cardHeader(label, cardKey, settingsRows) {
   return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
     + '<div class="card-label" style="margin-bottom:0;">' + label + '</div>'
     + '<div style="display:flex;gap:3px;align-items:center;">'
-    // % toggle
-    + '<button onclick="event.stopPropagation();toggleCardPct(\'' + cardKey + '\')" '
-    + 'title="Muutosprosentit" style="font-size:10px;padding:2px 7px;border-radius:4px;'
-    + 'border:1px solid var(--border);cursor:pointer;'
-    + 'background:'+(pct?'rgba(0,200,255,0.1)':'transparent')+';'
-    + 'color:'+(pct?'var(--cyan)':'var(--text3)')+';transition:all .12s;">%</button>'
-    // Asetukset-ikoni
-    + (rows.length > 0
-      ? '<button onclick="event.stopPropagation();openCardSettings(\'' + cardKey + '\',\'' + label + '\',' + rowsJSON + ')" '
+    + '<button onclick="event.stopPropagation();openCardSettings(\'' + cardKey + '\',\'' + label + '\',' + rowsJSON + ')" '
         + 'title="Asetukset" style="font-size:11px;padding:2px 7px;border-radius:4px;'
         + 'border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;">⋯</button>'
-      : '')
-    // Expand/collapse
-    + '<button onclick="event.stopPropagation();toggleCardDetail(\'' + cardKey + '\')" '
-    + 'title="Laajenna/tiivistä" style="font-size:12px;padding:2px 7px;border-radius:4px;'
-    + 'border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;'
-    + 'transition:all .12s;">'+(exp?'●':'○')+'</button>'
     + '</div></div>';
 }
 
