@@ -2600,6 +2600,42 @@ async function downloadBackupNow() {
   URL.revokeObjectURL(url);
 }
 
+// ══════════════════════════════════════════════
+// PAIVAKIRJA (paper diary row view)  v1
+// ══════════════════════════════════════════════
+async function renderPaivakirja(){
+  var host = document.getElementById('paivakirja-content');
+  if(!host) return;
+  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if(!snaps.length){ host.innerHTML = '<div class="pk-empty">Ei tilannekuvia viel\u00e4.</div>'; return; }
+  var WD = ['Su','Ma','Ti','Ke','To','Pe','La'];
+  function nw(s){ try{ return calculateNetWorth(s); }catch(e){ return null; } }
+  function kvOf(s){ return (s.tulotili||0) - Math.abs(s.op_gold||0); }
+  function fmtDate(iso){ var p=iso.split('-'); var d=new Date(iso); return p[2]+'.'+p[1]+'.'+p[0]; }
+  function wd(iso){ var d=new Date(iso); return WD[d.getDay()]; }
+  function col(v){ return v>=0 ? 'var(--pk-pos)' : 'var(--pk-neg)'; }
+  var html = '';
+  for(var i=snaps.length-1; i>=0; i--){
+    var s=snaps[i], prev=snaps[i-1];
+    var n=nw(s); if(!n) continue;
+    var kv=kvOf(s), osa=n.investments, lai=n.longTermDebt, net=n.netWorth;
+    var dnet = (prev && nw(prev)) ? (net - nw(prev).netWorth) : null;
+    var note = (s._note||'').trim();
+    var deltaStr = dnet==null ? '' : '<span class="pk-delta" style="color:'+col(dnet)+';">'+(dnet>=0?'+':'')+fmt(dnet)+'</span>';
+    html += '<div class="pk-row">'
+      + '<div class="pk-date"><span class="pk-d">'+fmtDate(s.date)+'</span> <span class="pk-wd">'+wd(s.date)+'</span></div>'
+      + '<div class="pk-figs">'
+        + '<span class="pk-fig"><span class="pk-lbl">K\u00e4ytt\u00f6vara</span><span class="pk-val" style="color:'+col(kv)+';">'+fmt(kv)+'</span></span>'
+        + '<span class="pk-fig"><span class="pk-lbl">Osakkeet</span><span class="pk-val">'+fmt(osa)+'</span></span>'
+        + '<span class="pk-fig"><span class="pk-lbl">Lainat</span><span class="pk-val">'+fmt(-Math.abs(lai))+'</span></span>'
+        + '<span class="pk-fig"><span class="pk-lbl">Netto</span><span class="pk-val pk-net">'+fmt(net)+'</span>'+deltaStr+'</span>'
+      + '</div>'
+      + (note ? '<div class="pk-note">\ud83d\udccc '+note.replace(/</g,'&lt;')+'</div>' : '')
+      + '</div>';
+  }
+  host.innerHTML = html;
+}
+
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -2626,6 +2662,7 @@ function showView(name) {
   if (name === 'salkku')        requestAnimationFrame(() => renderSalkku());
   if (name === 'likviditeetti') requestAnimationFrame(() => renderLikviditeetti());
   if (name === 'ledger')        requestAnimationFrame(() => renderLedger());
+  if (name === 'paivakirja')    requestAnimationFrame(() => renderPaivakirja());
   if (name === 'myynnit')      requestAnimationFrame(() => renderMyynnit());
 }
 
