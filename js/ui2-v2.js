@@ -2615,9 +2615,16 @@ async function renderPaivakirja(){
   function wd(iso){ var d=new Date(iso); return WD[d.getDay()]; }
   function col(v){ return v>=0 ? 'var(--pk-pos)' : 'var(--pk-neg)'; }
   var html = '';
+  var MN = ['tammikuu','helmikuu','maaliskuu','huhtikuu','toukokuu','kesäkuu','heinäkuu','elokuu','syyskuu','lokakuu','marraskuu','joulukuu'];
+  function isoWeek(dd){ var dt=new Date(Date.UTC(dd.getFullYear(),dd.getMonth(),dd.getDate())); var dn=dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-dn); var ys=new Date(Date.UTC(dt.getUTCFullYear(),0,1)); return Math.ceil((((dt-ys)/86400000)+1)/7); }
+  var _ly=null, _lm=null, _lw=null;
   for(var i=snaps.length-1; i>=0; i--){
     var s=snaps[i], prev=snaps[i-1];
     var n=nw(s); if(!n) continue;
+    var _dt=new Date(s.date); var _y=_dt.getFullYear(), _mo=_dt.getMonth(), _wk=isoWeek(_dt);
+    if(_y!==_ly){ html += '<div class="pk-year">'+_y+'</div>'; _ly=_y; _lm=null; _lw=null; }
+    if(_mo!==_lm){ html += '<div class="pk-month">'+MN[_mo]+' '+_y+'</div>'; _lm=_mo; _lw=null; }
+    if(_wk!==_lw){ html += '<div class="pk-week">Vko '+_wk+'</div>'; _lw=_wk; }
     var kv=kvOf(s), osa=n.investments, lai=n.longTermDebt, net=n.netWorth;
     var dnet = (prev && nw(prev)) ? (net - nw(prev).netWorth) : null;
     var note = (s._note||'').trim();
