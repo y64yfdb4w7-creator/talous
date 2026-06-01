@@ -2630,13 +2630,13 @@ async function renderPaivakirja(){
     var note = (s._note||'').trim();
     var deltaStr = dnet==null ? '' : '<span class="pk-delta" style="color:'+col(dnet)+';">'+(dnet>=0?'+':'')+fmt(dnet)+'</span>';
     html += '<div class="pk-row">'
-      + '<div class="pk-date"><span class="pk-d">'+fmtDate(s.date)+'</span> <span class="pk-wd">'+wd(s.date)+'</span></div>'
+      + '<div class="pk-date"><span class="pk-wd">'+wd(s.date)+'</span> <span class="pk-d">'+fmtDate(s.date)+'</span></div>'
       + '<div class="pk-figs">'
         + '<span class="pk-fig"><span class="pk-lbl">K\u00e4ytt\u00f6vara</span><span class="pk-val" style="color:'+col(kv)+';">'+fmt(kv)+'</span></span>'
         + '<span class="pk-fig"><span class="pk-lbl">Osakkeet</span><span class="pk-val">'+fmt(osa)+'</span></span>'
         + '<span class="pk-fig"><span class="pk-lbl">Lainat</span><span class="pk-val">'+fmt(-Math.abs(lai))+'</span></span>'
-        + '<span class="pk-fig"><span class="pk-lbl">Netto</span><span class="pk-val pk-net">'+fmt(net)+'</span>'+deltaStr+'</span>'
       + '</div>'
+      + '<div class="pk-summary"><span class="pk-lbl">Netto</span><span class="pk-val pk-net">'+fmt(net)+'</span>'+deltaStr+'</div>'
       + (note ? '<div class="pk-note">\ud83d\udccc '+note.replace(/</g,'&lt;')+'</div>' : '')
       + '</div>';
   }
