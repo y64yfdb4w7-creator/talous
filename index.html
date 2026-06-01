@@ -773,11 +773,33 @@
 .card-wide { grid-column: 1 / -1; }
 .card-normal { grid-column: auto; }
 </style>
+<style>
+#view-paivakirja{
+  --pk-bg:#F3F1EC; --pk-text:#2D2D2D; --pk-muted:#8a8378;
+  --pk-pos:#4D6A57; --pk-neg:#8B6F4E; --pk-line:rgba(45,45,45,0.08);
+  background:var(--pk-bg); color:var(--pk-text);
+  min-height:100vh; padding:8px 0 80px;
+  font-family:'Inter','SF Pro Text',-apple-system,system-ui,sans-serif;
+}
+#paivakirja-content{ max-width:680px; margin:0 auto; padding:0 18px; }
+.pk-empty{ padding:60px 20px; text-align:center; color:var(--pk-muted); }
+.pk-row{ padding:16px 0; border-bottom:1px solid var(--pk-line); }
+.pk-date{ margin-bottom:8px; }
+.pk-d{ font-size:15px; font-weight:600; color:var(--pk-text); letter-spacing:.01em; }
+.pk-wd{ font-size:13px; color:var(--pk-muted); margin-left:4px; }
+.pk-figs{ display:flex; flex-wrap:wrap; gap:18px 26px; }
+.pk-fig{ display:flex; flex-direction:column; gap:1px; }
+.pk-lbl{ font-size:11px; color:var(--pk-muted); letter-spacing:.02em; }
+.pk-val{ font-family:'Inter','SF Mono',ui-monospace,monospace; font-size:15px; font-weight:600; color:var(--pk-text); font-variant-numeric:tabular-nums; }
+.pk-net{ font-weight:700; }
+.pk-delta{ font-size:12px; font-weight:600; margin-left:7px; font-variant-numeric:tabular-nums; }
+.pk-note{ margin-top:9px; font-family:'Charter','Georgia',serif; font-size:14.5px; line-height:1.45; color:var(--pk-text); }
+</style>
 </head>
 <body>
 <script>
 (function() {
-  if (localStorage.getItem('sw_reset_v53') !== '1') {
+  if (localStorage.getItem('sw_reset_v54') !== '1') {
     window.addEventListener('load', function() {
   setTimeout(function() {
     if (typeof updateRightPanel === 'function') updateRightPanel();
@@ -794,10 +816,10 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
         var had = regs.length > 0;
         regs.forEach(function(r) { r.unregister(); });
-        localStorage.setItem('sw_reset_v53', '1');
+        localStorage.setItem('sw_reset_v54', '1');
         if (had) location.reload(true);
       });
-    } else { localStorage.setItem('sw_reset_v53', '1'); }
+    } else { localStorage.setItem('sw_reset_v54', '1'); }
   }
 })();
 </script>
@@ -807,6 +829,7 @@ if ('serviceWorker' in navigator) {
   <span class="nav-logo">Finance OS</span>
   <button class="nav-btn" id="btn-syota" onclick="showView('syota')" style="font-weight:600;color:var(--gold);">+ Päivitä</button>
   <button class="nav-btn" id="btn-dashboard" onclick="showView('dashboard')">Dashboard</button>
+  <button class="nav-btn" id="btn-paivakirja" onclick="showView('paivakirja')">Päiväkirja</button>
   <button class="nav-btn" id="btn-salkku" onclick="showView('salkku')">Salkku</button>
   <button class="nav-btn" id="btn-likviditeetti" onclick="showView('likviditeetti')">Kassavirta</button>
   <button class="nav-btn" id="btn-historia" onclick="showView('historia')">Historia</button>
@@ -864,6 +887,13 @@ if ('serviceWorker' in navigator) {
       <div class="empty-icon">📊</div>
       <div class="empty-title">Ladataan...</div>
     </div>
+  </div>
+</div>
+
+<!-- PAIVAKIRJA VIEW -->
+<div id="view-paivakirja" class="view">
+  <div id="paivakirja-content">
+    <div class="pk-empty">Ladataan…</div>
   </div>
 </div>
 
@@ -1092,15 +1122,15 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + '</div>';
 }
 </script>
-<script src="js/db.js?v=53"></script>
-<script src="js/calculations.js?v=53"></script>
-<script src="js/signals.js?v=53"></script>
-<script src="js/import.js?v=53"></script>
+<script src="js/db.js?v=54"></script>
+<script src="js/calculations.js?v=54"></script>
+<script src="js/signals.js?v=54"></script>
+<script src="js/import.js?v=54"></script>
 <script src="js/demo-data.js"></script>
-<script src="js/ui2-v2.js?v=53"></script>
-<script src="js/dashboard-layout.js?v=53"></script>
+<script src="js/ui2-v2.js?v=54"></script>
+<script src="js/dashboard-layout.js?v=54"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=53"></script>
+<script src="js/app.js?v=54"></script>
 
 <div id="chart-tooltip"></div>
 
