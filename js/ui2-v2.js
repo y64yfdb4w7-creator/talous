@@ -2631,17 +2631,38 @@ async function renderPaivakirja(){
     var deltaStr = dnet==null ? '' : '<span class="pk-delta" style="color:'+col(dnet)+';">'+(dnet>=0?'+':'')+fmt(dnet)+'</span>';
     var tt = (s.tulotili||0), og = Math.abs(s.op_gold||0), tot = tt+og;
     var ttPct = tot>0 ? Math.round(tt/tot*100) : 50;
-    html += '<div class="pk-row">'
-      + '<span class="pk-date"><span class="pk-wd">'+wd(s.date)+'</span> <span class="pk-d">'+fmtDate(s.date)+'</span></span>'
-      + '<span class="pk-figs">'
-        + '<span class="pk-fig pk-fig-kv"><span class="pk-lbl">K\u00e4ytt\u00f6vara</span><span class="pk-val" style="color:'+col(kv)+';">'+fmt(kv)+'</span><span class="pk-bar"><span class="pk-bar-tt" style="width:'+ttPct+'%"></span><span class="pk-bar-og" style="width:'+(100-ttPct)+'%"></span></span></span>'
-        + '<span class="pk-fig"><span class="pk-lbl">Osakkeet</span><span class="pk-val">'+fmt(osa)+'</span></span>'
-        + '<span class="pk-fig"><span class="pk-lbl">Lainat</span><span class="pk-val">'+fmt(-Math.abs(lai))+'</span></span>'
-      + '</span>'
+    var br = n.brokers||{};
+    var brNn = (br.nordnet&&br.nordnet.investments)||0, brOp = (br.op&&br.op.investments)||0, brSp = (br.spankki&&br.spankki.investments)||0;
+    var lAs = -Math.abs(s.asuntolaina||0), lAu = -Math.abs(s.autolaina||0), lRe = -Math.abs(s.asuntolaina_remontti||0);
+    var detail = '<div class="pk-detail">'
+      + '<div class="pk-dcol"><div class="pk-dh">Kassa</div>'
+        + '<div class="pk-dr"><span>Tulotili</span><span>'+fmt(tt)+'</span></div>'
+        + '<div class="pk-dr"><span>OP Gold</span><span>'+fmt(-og)+'</span></div>'
+        + '<div class="pk-dr pk-dr-sum"><span>Netto</span><span>'+fmt(net)+'</span></div></div>'
+      + '<div class="pk-dcol"><div class="pk-dh">Osakkeet</div>'
+        + '<div class="pk-dr"><span>Nordnet</span><span>'+fmt(brNn)+'</span></div>'
+        + '<div class="pk-dr"><span>OP</span><span>'+fmt(brOp)+'</span></div>'
+        + '<div class="pk-dr"><span>S-Pankki</span><span>'+fmt(brSp)+'</span></div></div>'
+      + '<div class="pk-dcol"><div class="pk-dh">Lainat</div>'
+        + '<div class="pk-dr"><span>Asuntolaina</span><span>'+fmt(lAs)+' \u2192 2029</span></div>'
+        + '<div class="pk-dr"><span>Autolaina</span><span>'+fmt(lAu)+' \u2192 2027</span></div>'
+        + '<div class="pk-dr"><span>Remonttilaina</span><span>'+fmt(lRe)+' \u2192 2026</span></div></div>'
+      + '</div>';
+    html += '<div class="pk-row" data-pk="1">'
+      + '<div class="pk-line">'
+        + '<span class="pk-date"><span class="pk-wd">'+wd(s.date)+'</span> <span class="pk-d">'+fmtDate(s.date)+'</span></span>'
+        + '<span class="pk-grid">'
+          + '<span class="pk-cell"><span class="pk-lbl">Kassa</span><span class="pk-val" style="color:'+col(kv)+';">'+fmt(kv)+'</span><span class="pk-bar"><span class="pk-bar-tt" style="width:'+ttPct+'%"></span><span class="pk-bar-og" style="width:'+(100-ttPct)+'%"></span></span></span>'
+          + '<span class="pk-cell"><span class="pk-lbl">Osakkeet</span><span class="pk-val">'+fmt(osa)+'</span></span>'
+          + '<span class="pk-cell"><span class="pk-lbl">Lainat</span><span class="pk-val">'+fmt(-Math.abs(lai))+'</span></span>'
+        + '</span>'
+      + '</div>'
+      + detail
       + (note ? '<div class="pk-note">\ud83d\udccc '+note.replace(/</g,'&lt;')+'</div>' : '')
       + '</div>';
   }
   host.innerHTML = html;
+  host.onclick = function(ev){ var line = ev.target.closest && ev.target.closest('.pk-line'); if(!line) return; var row = line.parentElement; if(row && row.classList) row.classList.toggle('pk-open'); };
 }
 
 function showView(name) {
