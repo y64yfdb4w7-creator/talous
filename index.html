@@ -784,6 +784,10 @@
 #paivakirja-content{ max-width:680px; margin:0 auto; padding:0 18px; }
 .pk-empty{ padding:60px 20px; text-align:center; color:var(--pk-muted); }
 .pk-row{ padding:16px 0; border-bottom:1px solid var(--pk-line); }
+.pk-year{ margin:40px 0 4px; padding-bottom:6px; border-bottom:2px solid var(--pk-text); font-family:'Inter',sans-serif; font-size:26px; font-weight:700; letter-spacing:.02em; color:var(--pk-text); }
+.pk-month{ margin:26px 0 2px; font-family:'Inter',sans-serif; font-size:15px; font-weight:600; text-transform:uppercase; letter-spacing:.14em; color:var(--pk-muted); display:flex; align-items:center; gap:12px; }
+.pk-month::after{ content:''; flex:1; height:1px; background:var(--pk-line); }
+.pk-week{ margin:16px 0 0; font-family:'Inter',sans-serif; font-size:12px; font-weight:500; letter-spacing:.1em; color:var(--pk-muted); opacity:.7; }
 .pk-date{ margin-bottom:8px; }
 .pk-d{ font-size:15px; font-weight:600; color:var(--pk-text); letter-spacing:.01em; }
 .pk-wd{ font-size:13px; color:var(--pk-muted); margin-left:4px; }
@@ -799,7 +803,7 @@
 <body>
 <script>
 (function() {
-  if (localStorage.getItem('sw_reset_v54') !== '1') {
+  if (localStorage.getItem('sw_reset_v55') !== '1') {
     window.addEventListener('load', function() {
   setTimeout(function() {
     if (typeof updateRightPanel === 'function') updateRightPanel();
@@ -816,10 +820,10 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
         var had = regs.length > 0;
         regs.forEach(function(r) { r.unregister(); });
-        localStorage.setItem('sw_reset_v54', '1');
+        localStorage.setItem('sw_reset_v55', '1');
         if (had) location.reload(true);
       });
-    } else { localStorage.setItem('sw_reset_v54', '1'); }
+    } else { localStorage.setItem('sw_reset_v55', '1'); }
   }
 })();
 </script>
@@ -1122,15 +1126,15 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + '</div>';
 }
 </script>
-<script src="js/db.js?v=54"></script>
-<script src="js/calculations.js?v=54"></script>
-<script src="js/signals.js?v=54"></script>
-<script src="js/import.js?v=54"></script>
+<script src="js/db.js?v=55"></script>
+<script src="js/calculations.js?v=55"></script>
+<script src="js/signals.js?v=55"></script>
+<script src="js/import.js?v=55"></script>
 <script src="js/demo-data.js"></script>
-<script src="js/ui2-v2.js?v=54"></script>
-<script src="js/dashboard-layout.js?v=54"></script>
+<script src="js/ui2-v2.js?v=55"></script>
+<script src="js/dashboard-layout.js?v=55"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=54"></script>
+<script src="js/app.js?v=55"></script>
 
 <div id="chart-tooltip"></div>
 
