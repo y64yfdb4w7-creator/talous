@@ -2629,14 +2629,20 @@ async function renderPaivakirja(){
     var dnet = (prev && nw(prev)) ? (net - nw(prev).netWorth) : null;
     var note = (s._note||'').trim();
     var deltaStr = dnet==null ? '' : '<span class="pk-delta" style="color:'+col(dnet)+';">'+(dnet>=0?'+':'')+fmt(dnet)+'</span>';
+    var tt = (s.tulotili||0), og = Math.abs(s.op_gold||0), tot = tt+og;
+    var ttPct = tot>0 ? Math.round(tt/tot*100) : 50;
     html += '<div class="pk-row">'
       + '<div class="pk-date"><span class="pk-wd">'+wd(s.date)+'</span> <span class="pk-d">'+fmtDate(s.date)+'</span></div>'
+      + '<div class="pk-kv">'
+        + '<div class="pk-kv-head"><span class="pk-lbl">K\u00e4ytt\u00f6vara</span><span class="pk-kv-val" style="color:'+col(kv)+';">'+fmt(kv)+'</span></div>'
+        + '<div class="pk-bar"><span class="pk-bar-tt" style="width:'+ttPct+'%"></span><span class="pk-bar-og" style="width:'+(100-ttPct)+'%"></span></div>'
+        + '<div class="pk-bar-lbl"><span>Tulotili '+fmt(tt)+'</span><span>OP Gold '+fmt(og)+'</span></div>'
+      + '</div>'
       + '<div class="pk-figs">'
-        + '<span class="pk-fig"><span class="pk-lbl">K\u00e4ytt\u00f6vara</span><span class="pk-val" style="color:'+col(kv)+';">'+fmt(kv)+'</span></span>'
         + '<span class="pk-fig"><span class="pk-lbl">Osakkeet</span><span class="pk-val">'+fmt(osa)+'</span></span>'
         + '<span class="pk-fig"><span class="pk-lbl">Lainat</span><span class="pk-val">'+fmt(-Math.abs(lai))+'</span></span>'
+        + '<span class="pk-fig pk-fig-netto"><span class="pk-lbl">netto</span><span class="pk-val pk-net">'+fmt(net)+'</span>'+deltaStr+'</span>'
       + '</div>'
-      + '<div class="pk-summary"><span class="pk-lbl">Netto</span><span class="pk-val pk-net">'+fmt(net)+'</span>'+deltaStr+'</div>'
       + (note ? '<div class="pk-note">\ud83d\udccc '+note.replace(/</g,'&lt;')+'</div>' : '')
       + '</div>';
   }
