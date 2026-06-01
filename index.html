@@ -795,18 +795,24 @@
 .pk-fig{ display:flex; flex-direction:column; gap:1px; }
 .pk-lbl{ font-size:11px; color:var(--pk-muted); letter-spacing:.02em; }
 .pk-val{ font-family:'Inter','SF Mono',ui-monospace,monospace; font-size:15px; font-weight:600; color:var(--pk-text); font-variant-numeric:tabular-nums; }
-.pk-net{ font-weight:700; }
-.pk-summary{ display:flex; align-items:baseline; justify-content:flex-end; gap:8px; margin-top:12px; padding-top:10px; border-top:1px solid var(--pk-line); }
-.pk-summary .pk-lbl{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--pk-muted); margin-right:2px; }
-.pk-summary .pk-net{ font-family:'Inter','SF Mono',ui-monospace,monospace; font-size:19px; font-weight:700; color:var(--pk-text); font-variant-numeric:tabular-nums; }
-.pk-delta{ font-size:12px; font-weight:600; margin-left:7px; font-variant-numeric:tabular-nums; }
+.pk-net{ font-weight:600; font-size:15px; }
+.pk-kv{ margin:14px 0 16px; max-width:340px; }
+.pk-kv-head{ display:flex; align-items:baseline; justify-content:space-between; }
+.pk-kv-head .pk-lbl{ font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--pk-muted); }
+.pk-kv-val{ font-family:'Inter','SF Mono',ui-monospace,monospace; font-size:21px; font-weight:700; font-variant-numeric:tabular-nums; }
+.pk-bar{ display:flex; height:6px; border-radius:3px; overflow:hidden; margin:7px 0 4px; background:var(--pk-line); }
+.pk-bar-tt{ background:var(--pk-pos); opacity:.55; }
+.pk-bar-og{ background:var(--pk-neg); opacity:.55; }
+.pk-bar-lbl{ display:flex; justify-content:space-between; font-size:11px; color:var(--pk-muted); font-variant-numeric:tabular-nums; }
+.pk-fig-netto .pk-lbl{ text-transform:none; }
+.pk-fig-netto .pk-val{ font-weight:500; color:var(--pk-muted); }
 .pk-note{ margin-top:9px; font-family:'Charter','Georgia',serif; font-size:14.5px; line-height:1.45; color:var(--pk-text); }
 </style>
 </head>
 <body>
 <script>
 (function() {
-  if (localStorage.getItem('sw_reset_v56') !== '1') {
+  if (localStorage.getItem('sw_reset_v57') !== '1') {
     window.addEventListener('load', function() {
   setTimeout(function() {
     if (typeof updateRightPanel === 'function') updateRightPanel();
@@ -823,10 +829,10 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
         var had = regs.length > 0;
         regs.forEach(function(r) { r.unregister(); });
-        localStorage.setItem('sw_reset_v56', '1');
+        localStorage.setItem('sw_reset_v57', '1');
         if (had) location.reload(true);
       });
-    } else { localStorage.setItem('sw_reset_v56', '1'); }
+    } else { localStorage.setItem('sw_reset_v57', '1'); }
   }
 })();
 </script>
@@ -1129,15 +1135,15 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + '</div>';
 }
 </script>
-<script src="js/db.js?v=56"></script>
-<script src="js/calculations.js?v=56"></script>
-<script src="js/signals.js?v=56"></script>
-<script src="js/import.js?v=56"></script>
+<script src="js/db.js?v=57"></script>
+<script src="js/calculations.js?v=57"></script>
+<script src="js/signals.js?v=57"></script>
+<script src="js/import.js?v=57"></script>
 <script src="js/demo-data.js"></script>
-<script src="js/ui2-v2.js?v=56"></script>
-<script src="js/dashboard-layout.js?v=56"></script>
+<script src="js/ui2-v2.js?v=57"></script>
+<script src="js/dashboard-layout.js?v=57"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=56"></script>
+<script src="js/app.js?v=57"></script>
 
 <div id="chart-tooltip"></div>
 
