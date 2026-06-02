@@ -771,7 +771,7 @@ async function renderDashboard() {
           ${(latest.tavoitetili !== undefined && _pref('cash','row_tavoitetili',true)) ? '<div class="sub-row"><span>Tavoitetili</span><span>' + fmt(latest.tavoitetili) + '</span></div>' : ''}
           ${(latest.elatustili !== undefined && _pref('cash','row_elatustili',true)) ? '<div class="sub-row"><span>Elatustili</span><span>' + fmt(latest.elatustili) + '</span></div>' : ''}
         </div>
-        ${(()=>{
+        ${_pref('cash','expanded',true) ? (()=>{
           if (latest.op_gold === undefined) return '';
           var opGold2    = Math.abs(latest.op_gold ?? 0);
           var tulotili2  = latest.tulotili ?? 0;
@@ -821,7 +821,7 @@ async function renderDashboard() {
               +'tulorytmi ~'+Math.round(tlot2).toLocaleString('fi-FI')+' €/kk</div>';
           }
           return html2;
-        })()}
+        })() : ''}
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
