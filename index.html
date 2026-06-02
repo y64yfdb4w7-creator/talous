@@ -792,9 +792,9 @@
 .pk-cell{ display:flex; flex-direction:column; gap:1px; min-width:0; }
 .pk-lbl{ font-size:10px; color:var(--pk-muted); letter-spacing:.03em; }
 .pk-val{ font-family:'Inter','SF Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:var(--pk-text); font-variant-numeric:tabular-nums; white-space:nowrap; }
-.pk-bar{ display:flex; align-items:center; width:36px; height:4px; margin-top:4px; gap:1px; }
-.pk-bar-tt{ background:var(--pk-pos); opacity:1; min-width:4px; height:4px; border-radius:2px; }
-.pk-bar-og{ background:var(--pk-neg); opacity:.38; height:3px; border-radius:1.5px; }
+.pk-bar{ display:flex; align-items:stretch; width:44px; height:6px; margin-top:5px; gap:2px; border-radius:3px; overflow:hidden; }
+.pk-bar-tt{ background:var(--pk-pos); opacity:1; min-width:3px; height:6px; border-radius:0; }
+.pk-bar-og{ background:var(--pk-neg); opacity:.72; height:6px; border-radius:0; }
 .pk-detail{ display:none; padding:4px 0 12px 96px; }
 .pk-row.pk-open .pk-detail{ display:flex; flex-wrap:wrap; gap:18px 28px; }
 .pk-dcol{ min-width:120px; }
