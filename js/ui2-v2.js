@@ -760,9 +760,11 @@ async function renderDashboard() {
           {key:'spankki',    label:'S-Pankki'},
           {key:'tavoitetili',label:'Tavoitetili'},
           {key:'elatustili', label:'Elatustili'},
+          {key:'op_gold',    label:'OP Gold'},
         ])}
         ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="font-size:28px;color:var(--text2);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="font-size:28px;color:'+_c+';">'+fmt(_kv)+'</div>'; })()}
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
+        <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
           ${(latest.tulotili !== undefined && _pref('cash','row_tulotili',true)) ? '<div class="sub-row"><span>Tulotili</span><span>' + fmt(latest.tulotili) + '</span></div>' : ''}
           ${(latest.s_pankki !== undefined && _pref('cash','row_spankki',true)) ? '<div class="sub-row"><span>S-Pankki</span><span>' + fmt(latest.s_pankki) + '</span></div>' : ''}
@@ -782,17 +784,23 @@ async function renderDashboard() {
 
           var html2 = '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">'
             // Tulotili-rivi
-            + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">'
-            + '<span style="font-size:12px;color:var(--text3);">Tulotili</span>'
-            + '<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili2)+'</span>'
-            + '</div>'
+            +(_pref('cash','row_tulotili',true)
+              ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">'
+              + '<span style="font-size:12px;color:var(--text3);">Tulotili</span>'
+              + '<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili2)+'</span>'
+              + '</div>'
+              : '')
             // OP Gold -rivi
-            + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-            + '<span style="font-size:12px;color:var(--text3);">OP Gold</span>'
-            + '<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold2)+'</span>'
-            + '</div>'
-            // Viiva
-            + '<div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:8px;"></div>'
+            +(_pref('cash','row_op_gold',true)
+              ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
+              + '<span style="font-size:12px;color:var(--text3);">OP Gold</span>'
+              + '<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold2)+'</span>'
+              + '</div>'
+              : '')
+            // Viiva — piilotetaan jos molemmat rivit piilossa
+            +(_pref('cash','row_tulotili',true)||_pref('cash','row_op_gold',true)
+              ? '<div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:8px;"></div>'
+              : '')
             // Käyttövara
             + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
             + '<span style="font-size:12px;color:var(--text2);font-weight:600;">Käyttövara</span>'
