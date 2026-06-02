@@ -423,20 +423,22 @@ window.openCardSettings = function(card, title, rows, evt) {
     div.appendChild(lbl);
   });
 
-  // Viiva
-  var hr = document.createElement('div');
-  hr.style.cssText = 'height:1px;background:var(--border);margin:8px 0;';
-  div.appendChild(hr);
+  if (card !== 'cash') {
+    // Viiva
+    var hr = document.createElement('div');
+    hr.style.cssText = 'height:1px;background:var(--border);margin:8px 0;';
+    div.appendChild(hr);
 
-  // % toggle
-  var pctLbl = document.createElement('label');
-  pctLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
-  var pctCb = document.createElement('input');
-  pctCb.type = 'checkbox'; pctCb.checked = _pref(card, 'showPct', true);
-  pctCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);';
-  pctCb.addEventListener('change', function() { toggleCardPct(card); });
-  pctLbl.appendChild(pctCb); pctLbl.appendChild(document.createTextNode('Muutosprosentit'));
-  div.appendChild(pctLbl);
+    // % toggle
+    var pctLbl = document.createElement('label');
+    pctLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+    var pctCb = document.createElement('input');
+    pctCb.type = 'checkbox'; pctCb.checked = _pref(card, 'showPct', true);
+    pctCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);';
+    pctCb.addEventListener('change', function() { toggleCardPct(card); });
+    pctLbl.appendChild(pctCb); pctLbl.appendChild(document.createTextNode('Muutosprosentit'));
+    div.appendChild(pctLbl);
+  }
 
   // Yksityiskohdat auki/piiloon
   var detLbl = document.createElement('label');
@@ -449,15 +451,17 @@ window.openCardSettings = function(card, title, rows, evt) {
   detLbl.appendChild(document.createTextNode('Yksityiskohdat'));
   div.appendChild(detLbl);
 
-  // Näytä kortti toggle
-  var visLbl = document.createElement('label');
-  visLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
-  var visCb = document.createElement('input');
-  visCb.type = 'checkbox'; visCb.checked = _pref(card, 'visible', true);
-  visCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);';
-  visCb.addEventListener('change', function() { toggleCardVisible(card); });
-  visLbl.appendChild(visCb); visLbl.appendChild(document.createTextNode('Näytä dashboardissa'));
-  div.appendChild(visLbl);
+  if (card !== 'cash') {
+    // Näytä kortti toggle
+    var visLbl = document.createElement('label');
+    visLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+    var visCb = document.createElement('input');
+    visCb.type = 'checkbox'; visCb.checked = _pref(card, 'visible', true);
+    visCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);';
+    visCb.addEventListener('change', function() { toggleCardVisible(card); });
+    visLbl.appendChild(visCb); visLbl.appendChild(document.createTextNode('Näytä dashboardissa'));
+    div.appendChild(visLbl);
+  }
 
   // Sulje-nappi
   var btn = document.createElement('button');
