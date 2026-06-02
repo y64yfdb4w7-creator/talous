@@ -685,8 +685,8 @@ async function renderDashboard() {
       <div class="db-item card" data-item-id="inv">
         ${_cardHeader('Sijoitukset', 'inv', [
           {key:'nordnet',label:'Nordnet'},
-          {key:'op',     label:'OP Osakkeet'},
-          {key:'spankki',label:'S-Pankki'},
+          {key:'op_osakkeet',label:'OP Osakkeet'},
+          {key:'tapiola',    label:'S-Pankki'},
         ])}
         <div class="card-value" style="margin-top:0;">${fmt(inv)}</div>
         ${!_pref('inv','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
