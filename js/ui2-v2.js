@@ -3148,17 +3148,16 @@ function renderTulotItems() {
     window._tulotItems = [{ id: Date.now(), type: 'palkka', label: '', amount: '' }];
   }
   return window._tulotItems.map(function(item, i) {
-    return '<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;'
-      +'align-items:center;margin-bottom:7px;">'
-      +'<select id="tulot-type-'+i+'" '
+    return '<div class="tulot-row">'
+      +'<select id="tulot-type-'+i+'" onchange="window._tulotItems['+i+'].type=this.value" '
       +'style="font-size:12px;padding:5px 7px;background:var(--surface2);'
       +'border:1px solid var(--border);border-radius:6px;color:var(--text2);">'
       +_typeOpts(item.type)+'</select>'
-      +'<input type="text" id="tulot-lbl-'+i+'" value="'+(item.label||'')+'" placeholder="Nimi (vapaaehtoinen)"'
+      +'<input type="text" id="tulot-lbl-'+i+'" oninput="window._tulotItems['+i+'].label=this.value" value="'+(item.label||'')+'" placeholder="Nimi (vapaaehtoinen)"'
       +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
       +'border-radius:6px;color:var(--text);font-size:14px;">'
       +'<input type="number" id="tulot-amt-'+i+'" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
-      +' onchange="refreshRytmiYhteenveto()" oninput="refreshRytmiYhteenveto()"'
+      +' onchange="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()" oninput="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
       +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
       +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
       +'font-family:var(--mono);font-size:16px;text-align:right;">'
