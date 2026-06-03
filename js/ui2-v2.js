@@ -9,7 +9,7 @@ function renderVertailuCard(snaps, latest){
   function shift(iso,y,m){ var d=new Date(iso); d.setFullYear(d.getFullYear()+y); d.setMonth(d.getMonth()+m); return d.getTime(); }
   var yAgo=nearest(shift(latest.date,-1,0)), mAgo=nearest(shift(latest.date,0,-1));
   function deltaSpan(now,then){ if(now==null||then==null) return ''; var d=now-then; var c=d>=0?'var(--green)':'#b8956a'; var sign=d>=0?'+':''; return '<span style="font-family:var(--mono);font-size:12px;color:'+c+';">'+sign+fmt(d)+'</span>'; }
-  function rowCmp(label,nowV,thenV){ return '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;"><span style="font-size:12px;color:var(--text3);">'+label+'</span><span style="display:flex;gap:10px;align-items:baseline;"><span style="font-family:var(--mono);font-size:12px;color:var(--text3);">'+fmt(thenV)+'</span>'+deltaSpan(nowV,thenV)+'</span></div>'; }
+  function rowCmp(label,nowV,thenV){ return '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;"><span style="font-size:12px;color:var(--text3);">'+label+'</span><span style="display:flex;gap:10px;align-items:baseline;"><span style="font-family:var(--mono);font-size:12px;color:var(--text);">'+fmt(thenV)+'</span>'+deltaSpan(nowV,thenV)+'</span></div>'; }
   function block(label,valFn){ var now=valFn(latest); var rows='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;"><span style="font-size:12px;color:var(--text3);">Nyt</span><span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text2);">'+fmt(now)+'</span></div>'; if(yAgo) rows+=rowCmp('Vuosi sitten',now,valFn(yAgo)); if(mAgo) rows+=rowCmp('Viime kuussa',now,valFn(mAgo)); return '<div style="margin-bottom:14px;"><div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px;">'+label+'</div>'+rows+'</div>'; }
   var inner = block('Nettovarallisuus',nettoOf) + block('Käyttövara',kvOf);
   return _cardHeader('Vertailu','heartbeat',[]) + inner;
@@ -144,7 +144,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       {key:'autolaina',   label:'Autolaina'},
       {key:'asremontti',  label:'As.remontti'},
     ])
-    + '<div style="font-family:var(--mono);font-size:26px;font-weight:700;'
+    + '<div style="font-family:var(--mono);font-size:28px;font-weight:600;'
     + 'color:#6b7280;margin-bottom:12px;">'+fmt(-ltDebt)+lainatBadge+'</div>'
     + (_pref('debt','expanded',true) ? loanRows
        : '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
