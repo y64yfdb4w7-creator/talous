@@ -334,6 +334,8 @@ btn.textContent = on ? '\u2713 Valmis' : '\u270e Muokkaa';
 btn.style.background = on ? 'rgba(0,200,255,0.15)' : 'rgba(255,255,255,0.05)';
 btn.style.color = on ? 'rgba(0,200,255,0.9)' : 'rgba(255,255,255,0.55)';
 }
+const tb2 = document.getElementById('layout-toolbar');
+if (tb2) tb2.style.display = on ? 'flex' : 'none';
 }
 window.setEditMode = setEditMode;
 
@@ -354,7 +356,8 @@ btn.addEventListener('click', function() {
 const grid = getGrid();
 setEditMode(!(grid && grid.classList.contains('dl-edit')));
 });
-tb.appendChild(btn);
+const wrap = document.getElementById('dl-edit-btn-wrap');
+(wrap || tb).appendChild(btn);
 }
 
 function initLayout() {
