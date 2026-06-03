@@ -675,6 +675,7 @@ async function renderDashboard() {
           background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);
           border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);"
           title="Palauta edellinen snapshot">↩ rollback</button>
+      <span id="dl-edit-btn-wrap" style="display:inline-flex;margin-left:4px;"></span>
       </span>
     </div>
     <div id="freeze-status" style="display:none;margin:8px 0 12px;padding:8px 12px;
@@ -682,7 +683,6 @@ async function renderDashboard() {
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
 
-    <span id="dl-edit-btn-wrap" style="display:inline-flex;"></span>
     <div id="layout-toolbar" style="display:none;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;"></div>
 
 
