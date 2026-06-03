@@ -145,7 +145,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       {key:'asremontti',  label:'As.remontti'},
     ])
     + '<div style="font-family:var(--mono);font-size:28px;font-weight:600;'
-    + 'color:#6b7280;margin-bottom:12px;">'+fmt(-ltDebt)+lainatBadge+'</div>'
+    + 'color:var(--text);margin-bottom:12px;">'+fmt(-ltDebt)+lainatBadge+'</div>'
     + (_pref('debt','expanded',true) ? loanRows
        : '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
          + loanDefs.filter(l=>latest[l.key]&&Math.abs(latest[l.key])>10)
@@ -766,7 +766,7 @@ async function renderDashboard() {
           {key:'elatustili', label:'Elatustili'},
           {key:'op_gold',    label:'OP Gold'},
         ])}
-        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="font-size:28px;color:var(--text2);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="font-size:28px;color:'+_c+';">'+fmt(_kv)+'</div>'; })()}
+        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="font-size:28px;color:var(--text);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="font-size:28px;color:var(--text);>'+fmt(_kv)+'</div>'; })()}
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
