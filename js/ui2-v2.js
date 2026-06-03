@@ -805,17 +805,11 @@ async function renderDashboard() {
             +(_pref('cash','row_tulotili',true)||_pref('cash','row_op_gold',true)
               ? '<div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:8px;"></div>'
               : '')
-            // Käyttövara
-            + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-            + '<span style="font-size:12px;color:var(--text2);font-weight:600;">Käyttövara</span>'
-            + '<div style="text-align:right;">'
-            + '<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:'+kv2Color+';">'+fmt(kayttovara)+'</span>'
+            // vs. normaali (käyttövara-delta; pääluku näkyy jo kortin otsikossa)
             + (devEur2 !== null && Math.abs(devEur2) > 50
-              ? '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:1px;">'
+              ? '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:4px;">'
                 +(devEur2>0?'+':'')+fmt(devEur2)+' vs. normaali</div>'
               : '')
-            + '</div>'
-            + '</div>'
             + '</div>';
 
           // Tulorytmi-vihje
