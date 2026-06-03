@@ -682,7 +682,8 @@ async function renderDashboard() {
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
     </div>
 
-    <div id="layout-toolbar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;"></div>
+    <span id="dl-edit-btn-wrap" style="display:inline-flex;"></span>
+    <div id="layout-toolbar" style="display:none;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;"></div>
 
 
       <!-- 1. SIJOITUKSET -->
@@ -726,7 +727,7 @@ async function renderDashboard() {
               return '<div style="display:flex;justify-content:space-between;'
                 +'align-items:baseline;margin-bottom:5px;min-width:0;">'
                 +'<span style="font-size:11px;color:var(--text2);white-space:nowrap;'
-                +'flex-shrink:0;margin-right:6px;">'+r.l+'</span>'
+                +'flex-shrink:0;margin-right:6px;border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;">'+r.l+'</span>'
                 +'<span style="display:flex;align-items:baseline;gap:5px;flex-shrink:0;">'
                 +(_pref('inv','showPct',true)&&p1d!==null?'<span style="font-size:10px;color:'+pclr(p1d)+';white-space:nowrap;">'+pfmt(p1d)+'</span>':'')
                 +(_pref('inv','showPct',true)&&p1mo!==null?'<span style="font-size:10px;color:'+pclr(p1mo)+';white-space:nowrap;">'+pfmt(p1mo)+'</span>':'')
@@ -789,14 +790,14 @@ async function renderDashboard() {
             // Tulotili-rivi
             +(_pref('cash','row_tulotili',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">'
-              + '<span style="font-size:12px;color:var(--text3);">Tulotili</span>'
+              + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;display:block;">Tulotili</span>'
               + '<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili2)+'</span>'
               + '</div>'
               : '')
             // OP Gold -rivi
             +(_pref('cash','row_op_gold',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-              + '<span style="font-size:12px;color:var(--text3);">OP Gold</span>'
+              + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;display:block;">OP Gold</span>'
               + '<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold2)+'</span>'
               + '</div>'
               : '')
