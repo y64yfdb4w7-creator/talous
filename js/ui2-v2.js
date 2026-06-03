@@ -677,7 +677,6 @@ async function renderDashboard() {
           title="Palauta edellinen snapshot">↩ rollback</button>
       </span>
     </div>
-    <span id="dl-edit-btn-wrap" style="display:inline-flex;align-items:center;margin:0 0 10px 0;"></span>
     <div id="freeze-status" style="display:none;margin:8px 0 12px;padding:8px 12px;
       border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;
       background:rgba(90,158,106,.08);border:1px solid rgba(90,158,106,.25);color:#5a9e6a;">
