@@ -759,7 +759,7 @@ async function renderDashboard() {
 
       <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
       <div class="db-item card kpi-compact" data-item-id="cash">
-        ${_cardHeader('Käyttötilit &amp; rytmi', 'cash', [
+        ${_cardHeader('Kassa', 'cash', [
           {key:'tulotili',   label:'Tulotili'},
           {key:'spankki',    label:'S-Pankki'},
           {key:'tavoitetili',label:'Tavoitetili'},
