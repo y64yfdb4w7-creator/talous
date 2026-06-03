@@ -770,12 +770,11 @@ async function renderDashboard() {
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
-          ${(latest.tulotili !== undefined && _pref('cash','row_tulotili',true)) ? '<div class="sub-row"><span>Tulotili</span><span>' + fmt(latest.tulotili) + '</span></div>' : ''}
           ${(latest.s_pankki !== undefined && _pref('cash','row_spankki',true)) ? '<div class="sub-row"><span>S-Pankki</span><span>' + fmt(latest.s_pankki) + '</span></div>' : ''}
           ${(latest.tavoitetili !== undefined && _pref('cash','row_tavoitetili',true)) ? '<div class="sub-row"><span>Tavoitetili</span><span>' + fmt(latest.tavoitetili) + '</span></div>' : ''}
           ${(latest.elatustili !== undefined && _pref('cash','row_elatustili',true)) ? '<div class="sub-row"><span>Elatustili</span><span>' + fmt(latest.elatustili) + '</span></div>' : ''}
         </div>
-        ${_pref('cash','expanded',true) ? (()=>{
+        (()=>{
           if (latest.op_gold === undefined) return '';
           var opGold2    = Math.abs(latest.op_gold ?? 0);
           var tulotili2  = latest.tulotili ?? 0;
@@ -819,7 +818,7 @@ async function renderDashboard() {
               +'tulorytmi ~'+Math.round(tlot2).toLocaleString('fi-FI')+' €/kk</div>';
           }
           return html2;
-        })() : ''}
+        })()}
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
