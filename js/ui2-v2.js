@@ -774,7 +774,7 @@ async function renderDashboard() {
           ${(latest.tavoitetili !== undefined && _pref('cash','row_tavoitetili',true)) ? '<div class="sub-row"><span>Tavoitetili</span><span>' + fmt(latest.tavoitetili) + '</span></div>' : ''}
           ${(latest.elatustili !== undefined && _pref('cash','row_elatustili',true)) ? '<div class="sub-row"><span>Elatustili</span><span>' + fmt(latest.elatustili) + '</span></div>' : ''}
         </div>
-        (()=>{
+        ${(()=>{
           if (latest.op_gold === undefined) return '';
           var opGold2    = Math.abs(latest.op_gold ?? 0);
           var tulotili2  = latest.tulotili ?? 0;
