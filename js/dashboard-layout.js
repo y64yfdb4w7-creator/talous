@@ -356,8 +356,8 @@ btn.addEventListener('click', function() {
 const grid = getGrid();
 setEditMode(!(grid && grid.classList.contains('dl-edit')));
 });
-const wrap = document.getElementById('dl-edit-btn-wrap');
-(wrap || tb).appendChild(btn);
+const rollbackRow = document.querySelector('.db-date > span:nth-child(2)');
+(rollbackRow || tb).appendChild(btn);
 }
 
 function initLayout() {
