@@ -766,7 +766,7 @@ async function renderDashboard() {
           {key:'elatustili', label:'Elatustili'},
           {key:'op_gold',    label:'OP Gold'},
         ])}
-        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="font-size:28px;color:var(--text);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="font-size:28px;color:var(--text);>'+fmt(_kv)+'</div>'; })()}
+        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="font-size:28px;color:var(--text);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="font-size:28px;color:var(--text);">'+fmt(_kv)+'</div>'; })()}
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
