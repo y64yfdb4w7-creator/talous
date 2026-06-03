@@ -845,8 +845,8 @@ if ('serviceWorker' in navigator) {
 <!-- MOBIILI NAV (piilossa desktopissa) -->
 <nav id="nav">
   <span class="nav-logo">Finance OS</span>
-  <button class="nav-btn" id="btn-syota" onclick="showView('syota')" style="font-weight:600;color:var(--gold);">+ Päivitä</button>
-  <button class="nav-btn" id="btn-dashboard" onclick="showView('dashboard')">Dashboard</button>
+  <button class="nav-btn" id="btn-syota" onclick="showView('syota')" style="font-weight:600;color:var(--gold);">Syötä</button>
+  <button class="nav-btn" id="btn-dashboard" onclick="showView('dashboard')">Etusivu</button>
   <button class="nav-btn" id="btn-paivakirja" onclick="showView('paivakirja')">Päiväkirja</button>
   <button class="nav-btn" id="btn-salkku" onclick="showView('salkku')">Salkku</button>
   <button class="nav-btn" id="btn-likviditeetti" onclick="showView('likviditeetti')">Kassavirta</button>
@@ -1100,6 +1100,7 @@ if ('serviceWorker' in navigator) {
 
 <style>
 @media (max-width: 899px) {
+  .nav-logo { display: none; }
   .btn-freeze-nav-el { display: none !important; }
   #btn-freeze-float  { display: flex !important; }
 }
