@@ -344,6 +344,7 @@ const tb = document.getElementById('layout-toolbar');
 if (!tb || document.getElementById('dl-edit-toggle')) return;
 const btn = document.createElement('button');
 btn.id = 'dl-edit-toggle';
+btn.className = 'db-admin-item'; // hidden on mobile, shown in panel
 btn.type = 'button';
 btn.textContent = '\u270e Muokkaa';
 btn.style.cssText = [
