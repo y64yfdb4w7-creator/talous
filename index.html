@@ -1106,6 +1106,10 @@ if ('serviceWorker' in navigator) {
 }
 @media (min-width: 900px) {
   #btn-freeze-float  { display: none !important; }
+  /* Mobile admin menu */
+  .db-admin-item { display: none; }
+  #db-menu-btn { display: block !important; }
+  #db-admin-panel { position: fixed; top: 52px; right: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; z-index: 200; min-width: 180px; font-size: 12px; font-family: var(--mono); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
 }
 </style>
 
