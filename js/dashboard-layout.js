@@ -357,7 +357,21 @@ const grid = getGrid();
 setEditMode(!(grid && grid.classList.contains('dl-edit')));
 });
 const rollbackRow = document.querySelector('.db-date > span:nth-child(2)');
+// On desktop: append to rollback row; on mobile: also add to admin panel
 (rollbackRow || tb).appendChild(btn);
+const adminPanel = document.getElementById('db-admin-panel');
+if (adminPanel) {
+  const btnClone = btn.cloneNode(true);
+  btnClone.addEventListener('click', function() { _setEditMode(!document.body.classList.contains('dl-edit')); });
+  adminPanel.appendChild(btnClone);
+  // Show ⋯ button on mobile
+  const menuBtn = document.getElementById('db-menu-btn');
+  if (menuBtn) menuBtn.style.display = '';
+  // Click-outside to close panel
+  document.addEventListener('click', function(e) {
+    if (!adminPanel.contains(e.target) && e.target.id !== 'db-menu-btn') adminPanel.style.display = 'none';
+  }, {capture: false});
+}
 }
 
 function initLayout() {
