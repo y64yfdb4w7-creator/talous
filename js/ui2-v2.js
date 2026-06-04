@@ -828,8 +828,8 @@ async function renderDashboard() {
               +'tulorytmi ~'+Math.round(tlot2).toLocaleString('fi-FI')+' €/kk</div>';
           }
           return html2;
-        </div>
                 })()}
+        </div>
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
