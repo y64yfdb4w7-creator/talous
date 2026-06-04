@@ -1110,11 +1110,11 @@ if ('serviceWorker' in navigator) {
 }
 @media (max-width:899px){
   /* 2-col card layout */
-  .db-item.card { display:grid; grid-template-columns:max-content 1fr; grid-template-rows:auto auto; column-gap:12px; align-items:start; }
-  .db-item.card .card-header-row { grid-column:1/-1; }
+  .db-item.card { display:flex; flex-wrap:wrap; overflow:hidden; }
   .db-item.card .drag-handle { display:none; }
-  .db-item.card .card-left { grid-column:1; align-self:center; }
-  .db-item.card .card-right { grid-column:2; align-self:start; }
+  .db-item.card .card-header-row { flex:0 0 100%; }
+  .db-item.card .card-left { flex:0 0 auto; align-self:center; padding-right:10px; }
+  .db-item.card .card-right { flex:1; min-width:0; }
 }
 @media (min-width: 900px) {
   #btn-freeze-float  { display: none !important; }
@@ -1153,16 +1153,16 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + '</div>';
 }
 </script>
-<script src="js/db.js?v=69"></script>
-<script src="js/calculations.js?v=69"></script>
-<script src="js/signals.js?v=69"></script>
-<script src="js/import.js?v=69"></script>
+<script src="js/db.js?v=70"></script>
+<script src="js/calculations.js?v=70"></script>
+<script src="js/signals.js?v=70"></script>
+<script src="js/import.js?v=70"></script>
 <script src="js/demo-data.js"></script>
-<script src="js/ui2-v2.js?v=69"></script>
-<script src="js/dashboard-layout.js?v=69"></script>
+<script src="js/ui2-v2.js?v=70"></script>
+<script src="js/dashboard-layout.js?v=70"></script>
 <script src="js/swipe-nav.js?v=1"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=69"></script>
+<script src="js/app.js?v=70"></script>
 
 <div id="chart-tooltip"></div>
 
