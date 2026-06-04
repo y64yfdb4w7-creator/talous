@@ -787,15 +787,15 @@ async function renderDashboard() {
           var html2 = '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">'
             // Tulotili-rivi
             +(_pref('cash','row_tulotili',true)
-              ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">'
-              + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;display:block;">Tulotili</span>'
+              ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">'
+              + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">Tulotili</span>'
               + '<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili2)+'</span>'
               + '</div>'
               : '')
             // OP Gold -rivi
             +(_pref('cash','row_op_gold',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-              + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;display:block;">OP Gold</span>'
+              + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
               + '<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold2)+'</span>'
               + '</div>'
               : '')
