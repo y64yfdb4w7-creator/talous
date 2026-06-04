@@ -144,12 +144,16 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       {key:'autolaina',   label:'Autolaina'},
       {key:'asremontti',  label:'As.remontti'},
     ])
+    + '<div class="card-left">'
     + '<div class="card-value" style="color:var(--text);margin-bottom:12px;">'+fmt(-ltDebt)+'</div>'+lainatBadge
+    + '</div>'
+    + '<div class="card-right">'
     + (_pref('debt','expanded',true) ? loanRows
        : '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
          + loanDefs.filter(l=>latest[l.key]&&Math.abs(latest[l.key])>10)
              .map(l=>'→ '+l.endsYear).join(' · ')
          + '</div>')
+    + '</div>'
     + '</div>';
 }
 
@@ -496,7 +500,7 @@ function _cardHeader(label, cardKey, settingsRows) {
   var pct = _pref(cardKey, 'showPct', true);
   var rows = settingsRows || [];
   var rowsJSON = JSON.stringify(rows).replace(/"/g, '&quot;');
-  return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+  return '<div class="card-header-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
     + '<div class="card-label" style="margin-bottom:0;">' + label + '</div>'
     + '<div style="display:flex;gap:3px;align-items:center;">'
     + '<button onclick="event.stopPropagation();openCardSettings(\'' + cardKey + '\',\'' + label + '\',' + rowsJSON + ')" '
@@ -697,10 +701,10 @@ async function renderDashboard() {
           {key:'op_osakkeet',label:'OP Osakkeet'},
           {key:'tapiola',    label:'S-Pankki'},
         ])}
-        <div class="card-value" style="margin-top:0;">${fmt(inv)}</div>
+<div class="card-left">        <div class="card-value" style="margin-top:0;">${fmt(inv)}</div></div>
         ${!_pref('inv','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
           +(latest.nordnet?'Nordnet':'')+(latest.op_osakkeet?' · OP':'')+(latest.tapiola?' · S-Pankki':'')+'</div>' : ''}
-        <div class="sub-rows" style="display:${_pref('inv','expanded',true)?'block':'none'}">
+<div class="card-right">        <div class="sub-rows" style="display:${_pref('inv','expanded',true)?'block':'none'}">
           ${(()=>{
             const invRows = [
               { f:'nordnet',     l:'Nordnet',  abbr:'NN'  },
@@ -740,7 +744,7 @@ async function renderDashboard() {
                 +'</span></div>';
             }).join('');
           })()}
-        </div>
+</div>        </div>
       </div>
 
       <!-- 2. SITOUMUKSET -->
@@ -771,10 +775,11 @@ async function renderDashboard() {
           {key:'elatustili', label:'Elatustili'},
           {key:'op_gold',    label:'OP Gold'},
         ])}
-        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="color:var(--text);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="color:var(--text);">'+fmt(_kv)+'</div>'; })()}
+<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="color:var(--text);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="color:var(--text);">'+fmt(_kv)+'</div>'; })()}</div>
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
-        <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
+        <div class="card-right">
+                <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
           ${(latest.s_pankki !== undefined && _pref('cash','row_spankki',true)) ? '<div class="sub-row"><span>S-Pankki</span><span>' + fmt(latest.s_pankki) + '</span></div>' : ''}
           ${(latest.tavoitetili !== undefined && _pref('cash','row_tavoitetili',true)) ? '<div class="sub-row"><span>Tavoitetili</span><span>' + fmt(latest.tavoitetili) + '</span></div>' : ''}
           ${(latest.elatustili !== undefined && _pref('cash','row_elatustili',true)) ? '<div class="sub-row"><span>Elatustili</span><span>' + fmt(latest.elatustili) + '</span></div>' : ''}
@@ -823,7 +828,8 @@ async function renderDashboard() {
               +'tulorytmi ~'+Math.round(tlot2).toLocaleString('fi-FI')+' €/kk</div>';
           }
           return html2;
-        })()}
+        </div>
+                })()}
       </div>
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
