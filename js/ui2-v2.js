@@ -144,7 +144,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       {key:'autolaina',   label:'Autolaina'},
       {key:'asremontti',  label:'As.remontti'},
     ])
-    + '<div class="card-value" style="color:var(--text);margin-bottom:12px;">'+fmt(-ltDebt)+lainatBadge+'</div>'
+    + '<div class="card-value" style="color:var(--text);margin-bottom:12px;">'+fmt(-ltDebt)+'</div>'+lainatBadge
     + (_pref('debt','expanded',true) ? loanRows
        : '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
          + loanDefs.filter(l=>latest[l.key]&&Math.abs(latest[l.key])>10)
