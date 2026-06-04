@@ -665,11 +665,11 @@ async function renderDashboard() {
   const evts = (await DB.getAll('events')).sort((a,b) => b.date.localeCompare(a.date)).slice(0, 5);
 
   c.innerHTML = `
-    <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
       <span>${fmtDate(latest.date)}</span>
       <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;">
         <span class="db-admin-item">${backupStatusBadge()}</span>
-        <span class="db-sync-dot" style="color:#5a9e6a;font-size:14px;">&#9679;</span><span class="db-admin-item">${syncStatusBadge()}</span>
+        <span class="db-sync-dot" style="color:#5a9e6a;font-size:14px;">&#9679; Sync</span><span class="db-admin-item">${syncStatusBadge()}</span>
         <span class="db-admin-item"><button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
           background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);
           border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);"
