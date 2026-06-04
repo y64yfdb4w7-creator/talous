@@ -667,14 +667,20 @@ async function renderDashboard() {
   c.innerHTML = `
     <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <span>${fmtDate(latest.date)} &nbsp;·&nbsp; ${cnt.toLocaleString('fi-FI')} snapshottia &nbsp;·&nbsp; ${snaps[0].date.slice(0,4)}–${latest.date.slice(0,4)}</span>
-      <span style="display:flex;gap:8px;align-items:center;">
-        ${backupStatusBadge()}
+      <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;">
+        <span class="db-admin-item">${backupStatusBadge()}</span>
         ${syncStatusBadge()}
-        <button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
+        <span class="db-admin-item"><button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
           background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);
           border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);"
-          title="Palauta edellinen snapshot">↩ rollback</button>
+          title="Palauta edellinen snapshot">↩ rollback</button></span>
+        <button id="db-menu-btn" onclick="(function(){var p=document.getElementById('db-admin-panel');if(p)p.style.display=p.style.display==='none'?'':'none';})()" style="display:none;font-size:14px;background:none;border:none;color:var(--text2);cursor:pointer;padding:2px 6px;" title="Menu">⋯</button>
       </span>
+    </div>
+    <div id="db-admin-panel" style="display:none;position:absolute;top:52px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;z-index:200;min-width:180px;font-size:12px;font-family:var(--mono);">
+      <div style="margin-bottom:8px;">${backupStatusBadge()}</div>
+      <div style="margin-bottom:8px;">${syncStatusBadge()}</div>
+      <button onclick="rollbackLatestSnapshot();document.getElementById('db-admin-panel').style.display='none';" style="display:block;width:100%;text-align:left;font-size:11px;padding:6px 8px;background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);margin-bottom:6px;" title="Palauta edellinen snapshot">↩ rollback</button>
     </div>
     <div id="freeze-status" style="display:none;margin:8px 0 12px;padding:8px 12px;
       border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;
