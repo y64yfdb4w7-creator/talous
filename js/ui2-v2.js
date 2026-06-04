@@ -669,7 +669,7 @@ async function renderDashboard() {
       <span>${fmtDate(latest.date)} &nbsp;·&nbsp; ${cnt.toLocaleString('fi-FI')} snapshottia &nbsp;·&nbsp; ${snaps[0].date.slice(0,4)}–${latest.date.slice(0,4)}</span>
       <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;">
         <span class="db-admin-item">${backupStatusBadge()}</span>
-        ${syncStatusBadge()}
+        <span class="db-sync-dot" style="color:#5a9e6a;font-size:10px;">&#9679;</span><span class="db-admin-item">${syncStatusBadge()}</span>
         <span class="db-admin-item"><button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
           background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);
           border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);"
