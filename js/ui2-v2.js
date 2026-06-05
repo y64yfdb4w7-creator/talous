@@ -671,7 +671,7 @@ async function renderDashboard() {
   c.innerHTML = `
     <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
       <span>${fmtDateWd(latest.date)}</span>
-      <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;"><button id="db-privacy-btn" onclick="(function(){var h=document.body.classList.toggle('hide-amounts');localStorage.setItem('privacy_mode',h?'1':'0');var b=document.getElementById('db-privacy-btn');if(b)b.style.opacity=h?'1':'0.4';})()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--text3);padding:0 2px;opacity:0.4;" title="Piilota summat">👁</button>
+      <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;"><button id="db-privacy-btn" onclick="(function(){var h=document.body.classList.toggle('hide-amounts');localStorage.setItem('privacy_mode',h?'1':'0');var b=document.getElementById('db-privacy-btn');if(b)b.style.opacity=h?'1':'0.35';})()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);padding:4px 8px;line-height:1;opacity:0.35;white-space:nowrap;" title="Piilota summat">👁 Summat</button>
         <span class="db-admin-item">${backupStatusBadge()}</span>
         <span class="db-sync-dot" style="color:#5a9e6a;font-size:14px;">&#9679; Sync</span><span class="db-admin-item">${syncStatusBadge()}</span>
         <span class="db-admin-item"><button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
