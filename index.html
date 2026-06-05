@@ -1119,7 +1119,8 @@ if ('serviceWorker' in navigator) {
 
   .db-date { margin-bottom:4px; }
 
-  .db-date > span:first-child { color:var(--text); font-weight:500; }  #db-content { gap:6px; }
+  .db-date > span:first-child { font-size:13px; font-weight:600; color:rgba(255,255,255,0.85); }
+  #db-content { gap:6px; }
 
   .db-item.card { padding-top:14px; padding-bottom:14px; }
   .db-item.card .card-header-row { margin-bottom:6px; }
@@ -1151,6 +1152,45 @@ if ('serviceWorker' in navigator) {
 
   /* Kassa separator block: reduce gap */
   .db-item.card .card-right > div:not(.sub-rows) { margin-top:8px !important; padding-top:6px !important; }
+
+  /* Header pills */
+  #db-privacy-btn {
+    background:rgba(255,255,255,0.07) !important;
+    border:1px solid rgba(255,255,255,0.13) !important;
+    border-radius:20px !important;
+    font-size:11px !important;
+    color:rgba(255,255,255,0.55) !important;
+    padding:3px 9px !important;
+    line-height:1.4;
+    cursor:pointer;
+    font-family:var(--mono);
+  }
+  body.hide-amounts #db-privacy-btn {
+    background:rgba(255,255,255,0.14) !important;
+    border-color:rgba(255,255,255,0.28) !important;
+    color:rgba(255,255,255,0.9) !important;
+    opacity:1 !important;
+  }
+  .db-sync-dot {
+    background:rgba(255,255,255,0.06) !important;
+    border:1px solid rgba(255,255,255,0.10) !important;
+    border-radius:20px !important;
+    font-size:11px !important;
+    padding:3px 8px !important;
+    line-height:1.4;
+    cursor:pointer;
+  }
+  #db-menu-btn {
+    background:rgba(255,255,255,0.07) !important;
+    border:1px solid rgba(255,255,255,0.13) !important;
+    border-radius:20px !important;
+    font-size:13px !important;
+    color:rgba(255,255,255,0.55) !important;
+    padding:2px 8px !important;
+    line-height:1.4;
+    font-family:var(--mono);
+  }
+  #db-admin-wrap { gap:5px !important; }
 }
 @media (min-width: 900px) {
   #btn-freeze-float  { display: none !important; }
@@ -1194,11 +1234,11 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-<script src="js/ui2-v2.js?v=84"></script>
+<script src="js/ui2-v2.js?v=85"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=84"></script>
+<script src="js/app.js?v=85"></script>
 
 <script>
 (function(){
