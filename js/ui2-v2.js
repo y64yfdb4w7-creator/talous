@@ -670,8 +670,8 @@ async function renderDashboard() {
 
   c.innerHTML = `
     <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-      <span>${fmtDate(latest.date)}</span>
-      <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;">
+      <span>${fmtDateWd(latest.date)}</span>
+      <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;"><button id="db-privacy-btn" onclick="(function(){var h=document.body.classList.toggle('hide-amounts');localStorage.setItem('privacy_mode',h?'1':'0');var b=document.getElementById('db-privacy-btn');if(b)b.style.opacity=h?'1':'0.4';})()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--text3);padding:0 2px;opacity:0.4;" title="Piilota summat">👁</button>
         <span class="db-admin-item">${backupStatusBadge()}</span>
         <span class="db-sync-dot" style="color:#5a9e6a;font-size:14px;">&#9679; Sync</span><span class="db-admin-item">${syncStatusBadge()}</span>
         <span class="db-admin-item"><button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
@@ -732,16 +732,15 @@ async function renderDashboard() {
               const p1mo = (v1mo && v1mo !== 0) ? ((cur-v1mo)/Math.abs(v1mo))*100 : null;
               const pclr = p => p===null?'var(--text3)':Math.abs(p)<0.01?'var(--text3)':p>=0?'var(--green)':'var(--red)';
               const pfmt = p => p===null?'':((p>=0?'+':'')+p.toFixed(1)+'%');
-              return '<div class="inv-row" style="display:flex;justify-content:space-between;'
-                +'align-items:baseline;margin-bottom:5px;min-width:0;">'
-                +'<span style="font-size:11px;color:var(--text2);white-space:nowrap;'
-                +'flex-shrink:0;margin-right:6px;border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;">'+r.l+'</span>'
-                +'<span style="display:flex;align-items:baseline;gap:5px;flex-shrink:0;">'
-                +(_pref('inv','showPct',true)&&p1d!==null?'<span style="font-size:10px;color:'+pclr(p1d)+';white-space:nowrap;">'+pfmt(p1d)+'</span>':'')
-                +(_pref('inv','showPct',true)&&p1mo!==null?'<span style="font-size:10px;color:'+pclr(p1mo)+';white-space:nowrap;">'+pfmt(p1mo)+'</span>':'')
-                +'<span class="inv-amt" style="font-family:var(--mono);font-size:11px;white-space:nowrap;'
-                +'color:var(--text);">'+fmt(cur)+'</span>'
-                +'</span></div>';
+              return '<div class="inv-row">'
+                +'<span class="inv-name" style="font-size:11px;color:var(--text2);border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;">'+r.l+'</span>'
+                +'<span class="inv-amt" style="font-family:var(--mono);font-size:11px;white-space:nowrap;color:var(--text);">'+fmt(cur)+'</span>'
+                +'<span class="inv-pcts" style="font-size:10px;">'
+                +(_pref('inv','showPct',true)&&p1d!==null?'<span style="color:'+pclr(p1d)+';white-space:nowrap;">ed. '+pfmt(p1d)+'</span>':'')
+                +((_pref('inv','showPct',true)&&p1d!==null)&&p1mo!==null?'<span style="color:var(--text3);margin:0 4px;">·</span>':'')
+                +(_pref('inv','showPct',true)&&p1mo!==null?'<span style="color:'+pclr(p1mo)+';white-space:nowrap;">1kk '+pfmt(p1mo)+'</span>':'')
+                +'</span>'
+                +'</div>';
             }).join('');
           })()}
 </div>        </div>
