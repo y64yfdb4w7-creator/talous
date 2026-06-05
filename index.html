@@ -1129,10 +1129,15 @@ if ('serviceWorker' in navigator) {
   #db-admin-panel .db-admin-item { display:block; }
 
   /* Sijoitukset: 2-line mobile row */
-  .inv-row { display:grid !important; grid-template-columns:1fr auto; grid-template-areas:"name amt" "pcts pcts"; row-gap:2px; column-gap:4px; }
-  .inv-row > span:first-child { grid-area:name; }
-  .inv-row .inv-amt { grid-area:amt; text-align:right; }
-  .inv-row > span:nth-child(2):not(.inv-amt) { grid-area:pcts; }
+  .inv-row { display:grid !important; grid-template-columns:1fr auto; grid-template-areas:"name amt" "pcts pcts"; row-gap:2px; column-gap:4px; margin-bottom:5px; min-width:0; }
+  .inv-row .inv-name { grid-area:name; font-size:11px; color:var(--text2); border-left:2px solid rgba(255,255,255,0.08); padding-left:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .inv-row .inv-amt  { grid-area:amt;  text-align:right; font-family:var(--mono); font-size:11px; white-space:nowrap; }
+  .inv-row .inv-pcts { grid-area:pcts; font-size:10px; display:flex; gap:6px; align-items:center; }
+
+  /* Privacy mode: hide euro amounts */
+  body.hide-amounts .card-value { visibility:hidden; }
+  body.hide-amounts .inv-amt    { visibility:hidden; }
+
 
   /* Kassa separator block: reduce gap */
   .db-item.card .card-right > div:not(.sub-rows) { margin-top:8px !important; padding-top:6px !important; }
@@ -1175,16 +1180,27 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 }
 </script>
 <script src="js/db.js?v=75"></script>
-<script src="js/calculations.js?v=75"></script>
+<script src="js/calculations.js?v=83"></script>
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-<script src="js/ui2-v2.js?v=75"></script>
+<script src="js/ui2-v2.js?v=83"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=82"></script>
+<script src="js/app.js?v=83"></script>
 
+<script>
+(function(){
+  if(localStorage.getItem('privacy_mode')==='1'){
+    document.body.classList.add('hide-amounts');
+    window.addEventListener('DOMContentLoaded',function(){
+      var b=document.getElementById('db-privacy-btn');
+      if(b) b.style.opacity='1';
+    });
+  }
+})();
+</script>
 <div id="chart-tooltip"></div>
 
 <!-- SETTINGS PANEL -->
