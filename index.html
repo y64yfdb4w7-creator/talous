@@ -1129,7 +1129,7 @@ if ('serviceWorker' in navigator) {
   #db-admin-panel .db-admin-item { display:block; }
 
   /* Sijoitukset: 2-line mobile row */
-  .inv-row { display:grid; grid-template-columns:1fr auto; grid-template-areas:"name amt" "pcts pcts"; row-gap:2px; column-gap:4px; }
+  .inv-row { display:grid !important; grid-template-columns:1fr auto; grid-template-areas:"name amt" "pcts pcts"; row-gap:2px; column-gap:4px; }
   .inv-row > span:first-child { grid-area:name; }
   .inv-row .inv-amt { grid-area:amt; text-align:right; }
   .inv-row > span:nth-child(2):not(.inv-amt) { grid-area:pcts; }
@@ -1183,7 +1183,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
 <script src="js/sync2.js?v=1"></script>
-<script src="js/app.js?v=81"></script>
+<script src="js/app.js?v=82"></script>
 
 <div id="chart-tooltip"></div>
 
