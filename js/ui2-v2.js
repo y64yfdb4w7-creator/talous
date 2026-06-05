@@ -732,14 +732,14 @@ async function renderDashboard() {
               const p1mo = (v1mo && v1mo !== 0) ? ((cur-v1mo)/Math.abs(v1mo))*100 : null;
               const pclr = p => p===null?'var(--text3)':Math.abs(p)<0.01?'var(--text3)':p>=0?'var(--green)':'var(--red)';
               const pfmt = p => p===null?'':((p>=0?'+':'')+p.toFixed(1)+'%');
-              return '<div style="display:flex;justify-content:space-between;'
+              return '<div class="inv-row" style="display:flex;justify-content:space-between;'
                 +'align-items:baseline;margin-bottom:5px;min-width:0;">'
                 +'<span style="font-size:11px;color:var(--text2);white-space:nowrap;'
                 +'flex-shrink:0;margin-right:6px;border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;">'+r.l+'</span>'
                 +'<span style="display:flex;align-items:baseline;gap:5px;flex-shrink:0;">'
                 +(_pref('inv','showPct',true)&&p1d!==null?'<span style="font-size:10px;color:'+pclr(p1d)+';white-space:nowrap;">'+pfmt(p1d)+'</span>':'')
                 +(_pref('inv','showPct',true)&&p1mo!==null?'<span style="font-size:10px;color:'+pclr(p1mo)+';white-space:nowrap;">'+pfmt(p1mo)+'</span>':'')
-                +'<span style="font-family:var(--mono);font-size:11px;white-space:nowrap;'
+                +'<span class="inv-amt" style="font-family:var(--mono);font-size:11px;white-space:nowrap;'
                 +'color:var(--text);">'+fmt(cur)+'</span>'
                 +'</span></div>';
             }).join('');
