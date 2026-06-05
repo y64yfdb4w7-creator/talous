@@ -363,7 +363,7 @@ const rollbackRow = document.querySelector('.db-date > span:nth-child(2)');
 const adminPanel = document.getElementById('db-admin-panel');
 if (adminPanel) {
   const btnClone = btn.cloneNode(true);
-  btnClone.addEventListener('click', function() { _setEditMode(!document.body.classList.contains('dl-edit')); });
+  btnClone.addEventListener('click', function() { setEditMode(!document.getElementById('db-content').classList.contains('dl-edit')); });
   adminPanel.appendChild(btnClone);
   // Show ⋯ button on mobile
   const menuBtn = document.getElementById('db-menu-btn');
