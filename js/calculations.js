@@ -19,6 +19,14 @@ function fmtDate(iso) {
   return `${d}.${m}.${y}`;
 }
 
+function fmtDateWd(iso) {
+  if (!iso) return '—';
+  var WD = ['Su','Ma','Ti','Ke','To','Pe','La'];
+  var [y,m,d] = iso.split('-');
+  var day = new Date(iso).getDay();
+  return WD[day]+' '+d+'.'+m+'.'+y;
+}
+
 function dcls(n) {
   if (!n || Math.abs(n) < 0.5) return 'neu';
   return n > 0 ? 'pos' : 'neg';
