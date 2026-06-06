@@ -759,7 +759,7 @@ async function renderDashboard() {
                 html += '<div style="'+G+'margin-bottom:2px;margin-top:-1px;">';
                 html +=   '<span style="font-size:9px;color:var(--text3);padding-left:20px;">käteinen</span>';
                 html +=   '<span></span><span></span>';
-                html +=   '<span class="inv-amt" style="'+amtStyle+'font-size:10px;">'+fmt(nordnetCash)+'</span>';
+                html +=   '<span class="cash-amt" style="'+amtStyle+'font-size:10px;">'+fmt(nordnetCash)+'</span>';
                 html += '</div>';
               }
               return html;
@@ -1795,7 +1795,7 @@ async function saveDayFromHoldings() {
     elatustili:           latest?.elatustili,
     tavoitetili:          latest?.tavoitetili,
     s_pankki:             latest?.s_pankki,
-    nordnet_cash:         parseFloat(document.getElementById('nordnet-cash-input')?.value) || latest?.nordnet_cash || null,
+    nordnet_cash:         (() => { const _v = parseFloat(document.getElementById('nordnet-cash-input')?.value); return Number.isFinite(_v) ? _v : (latest?.nordnet_cash ?? null); })(),
     tulot_kk:             latest?.tulot_kk,
     tulot_pvm:            latest?.tulot_pvm,
     muut_tulot:           latest?.muut_tulot,
