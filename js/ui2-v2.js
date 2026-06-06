@@ -717,7 +717,7 @@ async function renderDashboard() {
             const snap1mo = snapBefore(snaps, daysAgoISO(30));
             // Deduploi: näytä vain ensimmäinen löytyvä
             const shown = new Set();
-            return invRows.filter(r => {
+            const _rows = invRows.filter(r => {
               if (!latest[r.f] || shown.has(r.l)) return false;
               shown.add(r.l); return true;
             }).filter(r => {
@@ -730,18 +730,47 @@ async function renderDashboard() {
               const v1mo = snap1mo ? snap1mo[r.f] : null;
               const p1d  = (v1d && v1d !== 0) ? ((cur-v1d)/Math.abs(v1d))*100 : null;
               const p1mo = (v1mo && v1mo !== 0) ? ((cur-v1mo)/Math.abs(v1mo))*100 : null;
-              const pclr = p => p===null?'var(--text3)':Math.abs(p)<0.01?'var(--text3)':p>=0?'var(--green)':'var(--red)';
+              // Porrastettu värilogiikka: 4 tasoa
+              const pclr = p => {
+                if (p===null||Math.abs(p)<0.01) return 'var(--text3)';
+                const a=Math.abs(p), pos=p>=0;
+                if(a<0.5)  return pos?'rgba(106,184,122,0.40)':'rgba(192,90,90,0.40)';
+                if(a<1.0)  return pos?'rgba(106,184,122,0.65)':'rgba(192,90,90,0.65)';
+                if(a<2.0)  return pos?'#6ab87a':'#c05a5a';
+                return pos?'#8ed49e':'#e07070';
+              };
               const pfmt = p => p===null?'':((p>=0?'+':'')+p.toFixed(1)+'%');
-              return '<div class="inv-row">'
-                +'<span class="inv-name" style="font-size:11px;color:var(--text2);border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;">'+r.l+'</span>'
-                +'<span class="inv-amt" style="font-family:var(--mono);font-size:11px;white-space:nowrap;color:var(--text);">'+fmt(cur)+'</span>'
-                +'<span class="inv-pcts" style="font-size:10px;">'
-                +(_pref('inv','showPct',true)&&p1d!==null?'<span style="color:'+pclr(p1d)+';white-space:nowrap;">ed. '+pfmt(p1d)+'</span>':'')
-                +((_pref('inv','showPct',true)&&p1d!==null)&&p1mo!==null?'<span style="color:var(--text3);margin:0 4px;">·</span>':'')
-                +(_pref('inv','showPct',true)&&p1mo!==null?'<span style="color:'+pclr(p1mo)+';white-space:nowrap;">1kk '+pfmt(p1mo)+'</span>':'')
-                +'</span>'
-                +'</div>';
+              const isNordnet = r.f === 'nordnet';
+              const nordnetCash = isNordnet ? (latest.nordnet_cash||0) : 0;
+              // Joustava grid: 1fr = nimi, 40px = ed%, 44px = 1kk%, 56px = €
+              const G = 'display:grid;grid-template-columns:1fr 40px 44px 56px;align-items:center;gap:0;';
+              const nameStyle = 'font-size:11px;color:var(--text2);border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;';
+              const amtStyle  = 'font-family:var(--mono);font-size:11px;text-align:right;white-space:nowrap;color:var(--text);';
+              const pStyle    = (clr) => 'font-size:10px;font-weight:600;color:'+clr+';text-align:right;padding-right:3px;white-space:nowrap;';
+              let html = '';
+              html += '<div style="'+G+'margin-bottom:2px;">';
+              html +=   '<span style="'+nameStyle+'">'+r.l+'</span>';
+              html +=   '<span style="'+pStyle(pclr(p1d))+'">'+pfmt(p1d)+'</span>';
+              html +=   '<span style="'+pStyle(pclr(p1mo))+'">'+pfmt(p1mo)+'</span>';
+              html +=   '<span class="inv-amt" style="'+amtStyle+'">'+fmt(cur)+'</span>';
+              html += '</div>';
+              // Käteisrivi Nordnetin alla — vain jos > 0
+              if(nordnetCash>0){
+                html += '<div style="'+G+'margin-bottom:2px;margin-top:-1px;">';
+                html +=   '<span style="font-size:9px;color:var(--text3);padding-left:20px;">käteinen</span>';
+                html +=   '<span></span><span></span>';
+                html +=   '<span class="inv-amt" style="'+amtStyle+'font-size:10px;">'+fmt(nordnetCash)+'</span>';
+                html += '</div>';
+              }
+              return html;
             }).join('');
+            const _hG='display:grid;grid-template-columns:1fr 40px 44px 56px;align-items:center;gap:0;';
+            return '<div style="'+_hG+'margin-bottom:3px;">'
+              +'<span></span>'
+              +'<span style="font-size:9px;color:var(--text3);text-align:right;padding-right:3px;white-space:nowrap;">ed.</span>'
+              +'<span style="font-size:9px;color:var(--text3);text-align:right;padding-right:3px;white-space:nowrap;">1kk</span>'
+              +'<span></span>'
+              +'</div>'+_rows;
           })()}
 </div>        </div>
       </div>
