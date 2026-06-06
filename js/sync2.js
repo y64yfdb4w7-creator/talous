@@ -424,11 +424,13 @@ async function syncFromSupabase(showStatus) {
       lastSyncedAt: remoteUpdatedAt || new Date().toISOString(),
       lastDevice:   data._financeOS ? 'Finance OS' : 'Talous-appi',
       snapCount:    remoteSnaps.length,
+      syncFailed:   false,
     });
 
     return { ok: true, imported: toImport.length, total: remoteSnaps.length };
   } catch(e) {
     console.warn('Supabase sync error:', e.message);
+    saveSyncMeta({...getSyncMeta(), syncFailed: true, lastSyncedAt: getSyncMeta().lastSyncedAt});
     return { ok: false, reason: e.message };
   }
 }
@@ -501,10 +503,12 @@ async function syncToSupabase(newSnap) {
       lastSyncedAt: nowISO,
       lastDevice:   navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Mac',
       snapCount:    convertedSnaps.length,
+      syncFailed:   false,
     });
     console.log('Supabase upload OK — ' + convertedSnaps.length + ' snapshottia');
   } catch(e) {
     console.warn('Supabase upload error:', e.message);
+    saveSyncMeta({...getSyncMeta(), syncFailed: true, lastSyncedAt: getSyncMeta().lastSyncedAt});
   }
 }
 
