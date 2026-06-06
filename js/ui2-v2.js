@@ -671,14 +671,14 @@ async function renderDashboard() {
   c.innerHTML = `
     <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
       <span>${fmtDateWd(latest.date)}</span>
-      <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;"><button id="db-privacy-btn" onclick="(function(){var h=document.body.classList.toggle('hide-amounts');localStorage.setItem('privacy_mode',h?'1':'0');var b=document.getElementById('db-privacy-btn');if(b)b.style.opacity=h?'1':'0.35';})()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);padding:4px 8px;line-height:1;opacity:0.35;white-space:nowrap;" title="Piilota summat">👁 Summat</button>
+      <span id="db-admin-wrap" style="display:flex;gap:5px;align-items:center;"><button id="db-privacy-btn" onclick="(function(){var h=document.body.classList.toggle('hide-amounts');localStorage.setItem('privacy_mode',h?'1':'0');var b=document.getElementById('db-privacy-btn');if(b){b.style.opacity=h?'1':'0.45';b.style.border=h?'1px solid rgba(255,255,255,0.35)':'1px solid rgba(255,255,255,0.1)';b.style.color=h?'rgba(255,255,255,0.9)':'var(--text2)';}})()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;cursor:pointer;font-size:11px;color:var(--text2);padding:3px 9px;line-height:1.4;opacity:0.45;white-space:nowrap;" title="Piilota summat">👁 Summat</button>
         <span class="db-admin-item">${backupStatusBadge()}</span>
         <span class="db-sync-dot" style="color:${fmtSyncLabel().color};font-size:14px;">${fmtSyncLabel().text}</span>
         <span class="db-admin-item"><button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
           background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);
           border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);"
           title="Palauta edellinen snapshot">↩ rollback</button></span>
-        <button id="db-menu-btn" onclick="(function(){var p=document.getElementById('db-admin-panel');if(p)p.style.display=p.style.display==='none'?'':'none';})()" style="display:none;font-size:14px;background:none;border:none;color:var(--text2);cursor:pointer;padding:2px 6px;" title="Menu">⋯</button>
+        <button id="db-menu-btn" onclick="(function(){var p=document.getElementById('db-admin-panel');if(p)p.style.display=p.style.display==='none'?'':'none';})()" style="display:none;font-size:13px;background:none;border:none;color:var(--text2);cursor:pointer;padding:2px 6px;" title="Valikko">☰</button>
       </span>
     </div>
     <div id="db-admin-panel" style="display:none;position:absolute;top:52px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;z-index:200;min-width:180px;font-size:12px;font-family:var(--mono);">
