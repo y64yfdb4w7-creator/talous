@@ -673,7 +673,7 @@ async function renderDashboard() {
       <span>${fmtDateWd(latest.date)}</span>
       <span id="db-admin-wrap" style="display:flex;gap:8px;align-items:center;"><button id="db-privacy-btn" onclick="(function(){var h=document.body.classList.toggle('hide-amounts');localStorage.setItem('privacy_mode',h?'1':'0');var b=document.getElementById('db-privacy-btn');if(b)b.style.opacity=h?'1':'0.35';})()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);padding:4px 8px;line-height:1;opacity:0.35;white-space:nowrap;" title="Piilota summat">👁 Summat</button>
         <span class="db-admin-item">${backupStatusBadge()}</span>
-        <span class="db-sync-dot" style="color:#5a9e6a;font-size:14px;">&#9679; Sync</span><span class="db-admin-item">${syncStatusBadge()}</span>
+        <span class="db-sync-dot" style="color:${fmtSyncLabel().color};font-size:14px;">${fmtSyncLabel().text}</span>
         <span class="db-admin-item"><button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
           background:rgba(255,100,100,0.06);border:1px solid rgba(255,100,100,0.15);
           border-radius:5px;color:#a07070;cursor:pointer;font-family:var(--mono);"
@@ -1795,6 +1795,29 @@ async function saveDayFromHoldings() {
 // ═══════════════════════════════════════════════
 const APP_VERSION    = '1.0.0';
 const SCHEMA_VERSION = 4;
+
+function fmtSyncLabel() {
+  const meta = getSyncMeta();
+  if (!meta) return { text: '● Ei synkronoitu', color: '#c05a5a' };
+  if (meta.syncFailed) return { text: '● Synkronointi epäonnistui', color: '#c05a5a' };
+  if (!meta.lastSyncedAt) return { text: '● Ei synkronoitu', color: '#c05a5a' };
+  const d = new Date(meta.lastSyncedAt);
+  const now = new Date();
+  const sameDay = d.getFullYear() === now.getFullYear()
+               && d.getMonth()    === now.getMonth()
+               && d.getDate()     === now.getDate();
+  let label;
+  if (sameDay) {
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    label = '● Synkattu ' + hh + ':' + mm;
+  } else {
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mo = String(d.getMonth()+1).padStart(2,'0');
+    label = '● Synkattu ' + dd + '.' + mo + '.' + d.getFullYear();
+  }
+  return { text: label, color: '#5a9e6a' };
+}
 
 function syncStatusBadge() {
   const meta = getSyncMeta();
