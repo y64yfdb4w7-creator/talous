@@ -49,7 +49,7 @@ function calculateNetWorth(snap) {
   const spankki_inv  = (snap.tapiola ?? 0) + (snap.s_sijoitus ?? 0) + (snap.rahastot ?? 0);
 
   // ── Aggregaatit ──────────────────────────────────────────
-  const investments = nordnetInv + opInv + spankki_inv;
+  const investments = nordnetTotal + opInv + spankki_inv; // nordnetTotal = nordnetInv + nordnetCash
   const brokerCash  = nordnetCash;   // laajennettavissa myöhemmin
 
   const cash =
@@ -58,7 +58,7 @@ function calculateNetWorth(snap) {
     (snap.tavoitetili ?? 0) +
     (snap.elatustili  ?? 0);
 
-  const assets = investments + brokerCash + cash;
+  const assets = investments + cash;              // brokerCash sisältyy nordnetTotal:iin → ei tuplalaskentaa
 
   // Short-term liabilities
   const shortTermDebt = Math.abs(
