@@ -458,6 +458,15 @@
                    margin: 20px 0 8px; }
     .acct-name  { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text2); }
     .acct-total { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+  /* Nordnet-käteinen Salkku-sivulla */
+  .nordnet-cash-row { display: flex; align-items: center; gap: 8px;
+    padding: 4px 0 6px 0; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .nordnet-cash-lbl { font-size: 10px; color: var(--text3); padding-left: 16px; flex: 1; }
+  .nordnet-cash-val { font-family: var(--mono); font-size: 11px; color: var(--text2); min-width: 70px; text-align: right; }
+  .nordnet-cash-input { width: 90px; padding: 3px 6px; border: 1px solid var(--border);
+    border-radius: 6px; background: rgba(255,255,255,0.04); color: var(--text);
+    font-family: var(--mono); font-size: 13px; text-align: right; }
+  .nordnet-cash-input:focus { border-color: var(--cyan); outline: none; }
 
     .holding-form { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
                     padding: 20px; margin-bottom: 20px; }
@@ -1230,11 +1239,11 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 }
 </script>
 <script src="js/db.js?v=75"></script>
-<script src="js/calculations.js?v=83"></script>
+<script src="js/calculations.js?v=84"></script>
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=88"></script>
+    <script src="js/ui2-v2.js?v=89"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=2"></script>
