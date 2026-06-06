@@ -467,6 +467,16 @@
     border-radius: 6px; background: rgba(255,255,255,0.04); color: var(--text);
     font-family: var(--mono); font-size: 13px; text-align: right; }
   .nordnet-cash-input:focus { border-color: var(--cyan); outline: none; }
+  /* cash-amt: käteisrivin summa Etusivulla — ei privacy-inv-amt:n 20px-override */
+  .cash-amt { font-family: var(--mono); font-size: 10px; text-align: right;
+    white-space: nowrap; color: var(--text); }
+  body.hide-amounts .cash-amt { font-size: 0 !important; }
+  body.hide-amounts .cash-amt::before { content: "••••"; font-size: 10px;
+    color: var(--text3); font-family: var(--mono); }
+  /* iPhone Safari: estä automaattinen zoom koskettaessa (≥16px estää zoomauksen) */
+  @media (max-width: 899px) {
+    .nordnet-cash-input { font-size: 16px; }
+  }
 
     .holding-form { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
                     padding: 20px; margin-bottom: 20px; }
@@ -1243,7 +1253,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=89"></script>
+    <script src="js/ui2-v2.js?v=90"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=2"></script>
