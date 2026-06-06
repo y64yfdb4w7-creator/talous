@@ -1580,7 +1580,11 @@ let _editingId = null;
 
 async function renderSalkku() {
   const c = document.getElementById('salkku-content');
-  const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false);
+  const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false)
+  // Nordnet-käteinen: luetaan viimeisimmästä snapshotista
+  const _snaps      = (await DB.getAll('snapshots')).sort((a,b) => a.date.localeCompare(b.date))
+  const _latest     = _snaps[_snaps.length - 1]
+  const nordnetCashVal = (_latest?.nordnet_cash) || 0;
   holdings.sort((a, b) => (a.account > b.account ? 1 : -1));
 
   // Compute totals per account
@@ -1588,7 +1592,7 @@ async function renderSalkku() {
   for (const h of holdings) {
     (byAccount[h.account] = byAccount[h.account] || []).push(h);
   }
-  const grandTotal = holdings.reduce((s, h) => s + (h.quantity || 0) * (h.last_price || 0), 0);
+  const grandTotal = holdings.reduce((s, h) => s + (h.quantity || 0) * (h.last_price || 0), 0) + nordnetCashVal;
 
   const acctOpts = ACCOUNTS.map(a => `<option value="${a.id}">${a.label}</option>`).join('');
 
@@ -1652,8 +1656,16 @@ async function renderSalkku() {
       return `
         <div class="acct-header">
           <span class="acct-name">${a.label}</span>
-          <span class="acct-total">${fmt(total)}</span>
+          <span class="acct-total">${fmt(total + (a.id==='nordnet' ? nordnetCashVal : 0))}</span>
         </div>
+        ${a.id === 'nordnet' ? `
+        <div class="nordnet-cash-row">
+          <span class="nordnet-cash-lbl">käteinen</span>
+          <span class="nordnet-cash-val">${nordnetCashVal > 0 ? fmt(nordnetCashVal) : ''}</span>
+          <input id="nordnet-cash-input" class="nordnet-cash-input" type="number"
+            placeholder="0" value="${nordnetCashVal > 0 ? nordnetCashVal : ''}"
+            oninput="updateNordnetCashDisplay(this.value)">
+        </div>` : ''}
         <div class="holding-table">
           <div class="holding-hd">
             <div>Ticker</div><div>Nimi</div><div style="text-align:right">Kpl</div>
@@ -1685,6 +1697,11 @@ async function renderSalkku() {
         </div>`;
     }).join('')}
   `;
+}
+
+function updateNordnetCashDisplay(val) {
+  const disp = document.querySelector('.nordnet-cash-val')
+  if (disp) disp.textContent = val && parseFloat(val) > 0 ? fmt(parseFloat(val)) : ''
 }
 
 function toggleAddForm() {
@@ -1778,7 +1795,7 @@ async function saveDayFromHoldings() {
     elatustili:           latest?.elatustili,
     tavoitetili:          latest?.tavoitetili,
     s_pankki:             latest?.s_pankki,
-    nordnet_cash:         latest?.nordnet_cash,
+    nordnet_cash:         parseFloat(document.getElementById('nordnet-cash-input')?.value) || latest?.nordnet_cash || null,
     tulot_kk:             latest?.tulot_kk,
     tulot_pvm:            latest?.tulot_pvm,
     muut_tulot:           latest?.muut_tulot,
