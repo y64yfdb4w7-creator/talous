@@ -742,33 +742,27 @@ async function renderDashboard() {
               const pfmt = p => p===null?'':((p>=0?'+':'')+p.toFixed(1)+'%');
               const isNordnet = r.f === 'nordnet';
               const nordnetCash = isNordnet ? (latest.nordnet_cash||0) : 0;
-              // Joustava grid: 1fr = nimi, 40px = ed%, 44px = 1kk%, 56px = €
-              const G = 'display:grid;grid-template-columns:1fr 40px 44px 56px;align-items:center;gap:0;';
-              const nameStyle = 'font-size:11px;color:var(--text2);border-left:2px solid rgba(255,255,255,0.08);padding-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;';
-              const amtStyle  = 'font-family:var(--mono);font-size:11px;text-align:right;white-space:nowrap;color:var(--text);';
-              const pStyle    = (clr) => 'font-size:10px;font-weight:600;color:'+clr+';text-align:right;padding-right:3px;white-space:nowrap;';
-              let html = '';
-              html += '<div style="'+G+'margin-bottom:2px;">';
-              html +=   '<span style="'+nameStyle+'">'+r.l+'</span>';
-              html +=   '<span style="'+pStyle(pclr(p1d))+'">'+pfmt(p1d)+'</span>';
-              html +=   '<span style="'+pStyle(pclr(p1mo))+'">'+pfmt(p1mo)+'</span>';
-              html +=   '<span class="inv-amt" style="'+amtStyle+'">'+fmt(cur)+'</span>';
-              html += '</div>';
-              // Käteisrivi Nordnetin alla — vain jos > 0
+// Design B: nimi+summa ensin, käteinen alle, prosentit omalla rivillä (mobiili). Desktop = yksi rivi.
+              const edClr  = pclr(p1d);
+              const moClr  = pclr(p1mo);
+              const edTxt  = pfmt(p1d);
+              const moTxt  = pfmt(p1mo);
+              let html = '<div class="iv-grp">';
+              html +=   '<span class="iv-name">'+r.l+'</span>';
+              html +=   '<span class="iv-ed" style="color:'+edClr+'">'+edTxt+'</span>';
+              html +=   '<span class="iv-mo" style="color:'+moClr+'">'+moTxt+'</span>';
+              html +=   '<span class="iv-amt inv-amt">'+fmt(cur)+'</span>';
               if(nordnetCash>0){
-                html += '<div style="'+G+'margin-bottom:2px;margin-top:-1px;">';
-                html +=   '<span style="font-size:9px;color:var(--text3);padding-left:20px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">käteinen</span>';
-                html +=   '<span></span><span></span>';
-                html +=   '<span class="cash-amt" style="'+amtStyle+'font-size:10px;">'+fmt(nordnetCash)+'</span>';
-                html += '</div>';
+                html += '<span class="iv-cash">käteinen</span>';
+                html += '<span class="iv-camt cash-amt">'+fmt(nordnetCash)+'</span>';
               }
+              html +=   '<span class="iv-pctsm">ed. <b style="color:'+edClr+'">'+edTxt+'</b> · 1kk <b style="color:'+moClr+'">'+moTxt+'</b></span>';
+              html += '</div>';
               return html;
             }).join('');
-            const _hG='display:grid;grid-template-columns:1fr 40px 44px 56px;align-items:center;gap:0;';
-            return '<div style="'+_hG+'margin-bottom:3px;">'
-              +'<span></span>'
-              +'<span style="font-size:9px;color:var(--text3);text-align:right;padding-right:3px;white-space:nowrap;">ed.</span>'
-              +'<span style="font-size:9px;color:var(--text3);text-align:right;padding-right:3px;white-space:nowrap;">1kk</span>'
+            return '<div class="iv-hdr"><span></span>'
+              +'<span class="iv-h-ed">ed.</span>'
+              +'<span class="iv-h-mo">1kk</span>'
               +'<span></span>'
               +'</div>'+_rows;
           })()}
