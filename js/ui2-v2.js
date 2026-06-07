@@ -757,7 +757,7 @@ async function renderDashboard() {
               // Käteisrivi Nordnetin alla — vain jos > 0
               if(nordnetCash>0){
                 html += '<div style="'+G+'margin-bottom:2px;margin-top:-1px;">';
-                html +=   '<span style="font-size:9px;color:var(--text3);padding-left:20px;">käteinen</span>';
+                html +=   '<span style="font-size:9px;color:var(--text3);padding-left:20px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">käteinen</span>';
                 html +=   '<span></span><span></span>';
                 html +=   '<span class="cash-amt" style="'+amtStyle+'font-size:10px;">'+fmt(nordnetCash)+'</span>';
                 html += '</div>';
