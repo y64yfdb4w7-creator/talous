@@ -470,6 +470,17 @@
   /* cash-amt: käteisrivin summa Etusivulla — ei privacy-inv-amt:n 20px-override */
   .cash-amt { font-family: var(--mono); font-size: 10px; text-align: right;
     white-space: nowrap; color: var(--text); }
+  body.hide-amounts .card-value,
+  body.hide-amounts .inv-amt,
+  body.hide-amounts .iv-amt,
+  body.hide-amounts .iv-camt,
+  body.hide-amounts .acct-total { font-size:0 !important; }
+  body.hide-amounts .card-value::before,
+  body.hide-amounts .inv-amt::before,
+  body.hide-amounts .iv-amt::before,
+  body.hide-amounts .iv-camt::before { content:"•••••"; font-size:16px; color:var(--text3); font-family:var(--mono); letter-spacing:2px; }
+  body.hide-amounts .sub-row > span:last-child { font-size:0 !important; }
+  body.hide-amounts .sub-row > span:last-child::before { content:"••••"; font-size:11px; color:var(--text3); }
   body.hide-amounts .cash-amt { font-size: 0 !important; }
   body.hide-amounts .cash-amt::before { content: "••••"; font-size: 10px;
     color: var(--text3); font-family: var(--mono); }
@@ -1272,7 +1283,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=94"></script>
+    <script src="js/ui2-v2.js?v=95"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=2"></script>
