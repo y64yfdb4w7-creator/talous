@@ -47,7 +47,7 @@
       --green:    #6ab87a;
       --red:      #c05a5a;
       --blue:     #5b8db8;
-      --mono:     'IBM Plex Mono', monospace;
+      --mono:     -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
       --sans:     'Syne', sans-serif;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1272,7 +1272,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=93"></script>
+    <script src="js/ui2-v2.js?v=94"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=2"></script>
@@ -1308,19 +1308,19 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#67706c;margin-bottom:6px;">Supabase URL</div>
     <input id="s-url" type="text" placeholder="https://xxxx.supabase.co"
       style="width:100%;background:#1a1d1b;border:1px solid #222624;border-radius:7px;
-        padding:9px 12px;color:#dedad1;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;">
+        padding:9px 12px;color:#dedad1;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-size:12px;outline:none;">
   </div>
   <div style="margin-bottom:14px;">
     <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#67706c;margin-bottom:6px;">Supabase anon key (eyJ...)</div>
     <input id="s-key" type="password" placeholder="eyJ..."
       style="width:100%;background:#1a1d1b;border:1px solid #222624;border-radius:7px;
-        padding:9px 12px;color:#dedad1;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;">
+        padding:9px 12px;color:#dedad1;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-size:12px;outline:none;">
   </div>
   <div style="margin-bottom:20px;">
     <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#67706c;margin-bottom:6px;">Finnhub API key</div>
     <input id="s-fh" type="password" placeholder="d7k6..."
       style="width:100%;background:#1a1d1b;border:1px solid #222624;border-radius:7px;
-        padding:9px 12px;color:#dedad1;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;">
+        padding:9px 12px;color:#dedad1;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-size:12px;outline:none;">
   </div>
   <button onclick="saveSettings()"
     style="width:100%;background:#b8956a;color:#090906;font-family:'Syne',sans-serif;
@@ -1328,7 +1328,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     Tallenna
   </button>
   <div id="s-saved" style="display:none;text-align:center;margin-top:10px;
-    font-size:12px;color:#5a9e6a;font-family:'IBM Plex Mono',monospace;">✓ Tallennettu</div>
+    font-size:12px;color:#5a9e6a;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;">✓ Tallennettu</div>
   <div style="margin-top:24px;font-size:10px;color:#353d39;line-height:1.8;">
     Supabase URL löytyy:<br>supabase.com → projekti → Settings → API<br><br>
     Anon key löytyy:<br>Settings → API Keys → anon / public
