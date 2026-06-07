@@ -1161,7 +1161,14 @@ if ('serviceWorker' in navigator) {
   .iv-camt { grid-area:camt; font-family:var(--mono); font-size:10px; text-align:right; white-space:nowrap; color:var(--text); }
   .iv-ed, .iv-mo { display:none; }
   .iv-pctsm { grid-area:pcts; font-size:10px; color:var(--text3); padding-left:8px; white-space:nowrap; }
-  .iv-pctsm b { font-weight:600; }s [data-item-id="cash"] .card-right > div:not(.sub-rows) span:nth-child(2)::before { content:"••••"; font-size:11px; color:var(--text3); }
+  .iv-pctsm b { font-weight:600; }
+  /* Tavoite 1: käteinen hillityn sinertävä — erottuu sijoitetusta pääomasta */
+  .iv-cash { color: rgba(145,175,220,0.85); }
+  .iv-camt { color: rgba(145,175,220,0.85); }
+  /* Tavoite 2: järjestelmäfontti pienille riviteksteille — parempi luettavuus iPhonella */
+  .iv-name, .iv-cash, .iv-pctsm {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  }s [data-item-id="cash"] .card-right > div:not(.sub-rows) span:nth-child(2)::before { content:"••••"; font-size:11px; color:var(--text3); }
   body.hide-amounts [data-item-id="cash"] .card-right > div:not(.sub-rows) > div:last-child { visibility:hidden; }
   body.hide-amounts [data-item-id="debt"] .card-right > div > span:nth-child(2) { font-size:0 !important; }
   body.hide-amounts [data-item-id="debt"] .card-right > div > span:nth-child(2)::before { content:"••••"; font-size:11px; color:var(--text3); }
@@ -1265,7 +1272,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=92"></script>
+    <script src="js/ui2-v2.js?v=93"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=2"></script>
