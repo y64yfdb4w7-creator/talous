@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════════
 function renderVertailuCard(snaps, latest){
   if(!latest || !snaps || snaps.length===0) return '';
-  function nettoOf(s){ try{ return calculateNetWorth(s).netWorth; }catch(e){ return null; } }
+  function nettoOf(s){ try{ return calcuateNetWorth(s).netWorth; }catch(e){ return null; } }
   function kvOf(s){ return (s.tulotili||0) - Math.abs(s.op_gold||0); }
   function nearest(targetMs){ var best=null,bd=Infinity; for(var i=0;i<snaps.length;i++){ var d=Math.abs(new Date(snaps[i].date).getTime()-targetMs); if(d<bd){bd=d;best=snaps[i];} } return best; }
   function shift(iso,y,m){ var d=new Date(iso); d.setFullYear(d.getFullYear()+y); d.setMonth(d.getMonth()+m); return d.getTime(); }
@@ -3806,13 +3806,13 @@ async function saveEntrySnapshot() {
     // lasten
     lasten_sijoitus: prev.lasten_sijoitus || 0,
     // kassavirta — käytetään collectKassavirtaBeforeSave()-funktionkeräimiä
-    tulot_items: window._savedTulotItems || prev.tulot_items || [],
-    rytmi_items: window._savedRytmiItems || prev.rytmi_items || [],
+    tulot_items: (window._savedTulotItems && window._savedTulotItems.length > 0) ? window._savedTulotItems : (prev.tulot_items || []),
+    rytmi_items: (window._savedRytmiItems && window._savedRytmiItems.length > 0) ? window._savedRytmiItems : (prev.rytmi_items || []),
     tulot_kk:    window._savedTulotKk    || prev.tulot_kk    || null,
     menot_kk:    window._savedMenotKk    || prev.menot_kk    || null,
     menot_kk:    getRytmiYhteensa() || prev.menot_kk || null,
     tulot_pvm:   window._savedTulotPvm || document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
-    nordnet_cash: val('nordnet_cash') || prev.nordnet_cash || null,
+    nordnet_cash: val('nordnet_cash') !== null ? val('nordnet_cash') : (prev.nordnet_cash ?? null),
     note,
   };
 
