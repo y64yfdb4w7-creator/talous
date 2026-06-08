@@ -185,13 +185,13 @@ async function refreshAndFreeze() {
     await syncFromSupabase().catch(() => {});
 
     // Hae viimeisin snapshot baseline-arvoksi (tilit, lainat)
-    // TÄRKEÄÄ: käytä aina EILISTÄ tai vanhempaa — ei tänään luotua tyhjää snappia
+    // Hae viimeisin snapshot baseline-arvoksi.
+    // Käytetään UUSINTA snapshotia (myös tänään tallennettu),
+    // jotta käyttäjän samana päivänä syöttämät tulot/lainat säilyvät Päivitä-toiminnossa.
+    // Vanha filter(s.date < today) esti tämän ja aiheutti datan katoamisen.
     const allSnaps = (await DB.getAll('snapshots')).sort((a,b)=>a.date.localeCompare(b.date));
     const today    = new Date().toISOString().slice(0,10);
-    const prevSnaps = allSnaps.filter(s => s.date < today);
-    const latest   = prevSnaps.length > 0
-      ? prevSnaps[prevSnaps.length - 1]   // eilen tai vanhempi
-      : allSnaps[allSnaps.length - 1];    // fallback jos ei edellistä
+    const latest   = allSnaps[allSnaps.length - 1];
 
     const snap = {
       date: today,
