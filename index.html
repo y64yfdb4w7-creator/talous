@@ -1227,6 +1227,32 @@ if ('serviceWorker' in navigator) {
   }
   #db-admin-wrap { gap:5px !important; }
 }
+  /* === Syötä-sivu: iOS Safari zoom-esto + touch-target korjaus (mobiili) === */
+  /* iOS Safari zoomaa automaattisesti jos font-size < 16px */
+  #view-syota input,
+  #view-syota select,
+  #view-syota textarea {
+    font-size: 16px !important;
+  }
+  /* Parempi kosketusalue pienille lainakentille */
+  #view-syota input[type="number"] {
+    min-height: 36px;
+  }
+  /* Tulot-rivi: hienovarainen visuaalinen erottuvuus */
+  .tulot-row input,
+  .tulot-row select {
+    background: rgba(0,200,255,0.06) !important;
+    border: 1px solid rgba(0,200,255,0.18) !important;
+    border-radius: 8px !important;
+  }
+  .tulot-row input:focus,
+  .tulot-row select:focus,
+  #view-syota input:focus,
+  #view-syota textarea:focus {
+    border-color: var(--cyan) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(0,200,255,0.12) !important;
+  }
 @media (min-width: 900px) {
   #btn-freeze-float  { display: none !important; }
   /* iv-grp: Sijoitukset desktop — yksi rivi (nimi ed% 1kk% summa) */
@@ -1283,7 +1309,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=97"></script>
+    <script src="js/ui2-v2.js?v=98"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=3"></script>
