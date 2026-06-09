@@ -3228,12 +3228,12 @@ function renderTulotItems() {
   return window._tulotItems.map(function(item, i) {
     return '<div class="tulot-row">'
       +'<select id="tulot-type-'+i+'" onchange="window._tulotItems['+i+'].type=this.value" '
-      +'style="font-size:12px;padding:5px 7px;background:var(--surface2);'
+      +'style="font-size:16px;padding:10px 7px;background:var(--surface2);'
       +'border:1px solid var(--border);border-radius:6px;color:var(--text2);">'
       +_typeOpts(item.type)+'</select>'
       +'<input type="text" id="tulot-lbl-'+i+'" oninput="window._tulotItems['+i+'].label=this.value" value="'+(item.label||'')+'" placeholder="Nimi (vapaaehtoinen)"'
-      +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
-      +'border-radius:6px;color:var(--text);font-size:14px;">'
+      +' style="padding:10px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
+      +'border-radius:6px;color:var(--text);font-size:16px;">'
       +'<input type="number" id="tulot-amt-'+i+'" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
       +' onchange="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()" oninput="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
       +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
@@ -3254,8 +3254,8 @@ function renderRytmiItems() {
     return '<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;'
       +'align-items:center;margin-bottom:7px;">'
       +'<input type="text" id="rytmi-lbl-'+i+'" value="'+(item.label||'')+'" placeholder="OP Gold, puhelin…"'
-      +' style="padding:5px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
-      +'border-radius:6px;color:var(--text);font-size:14px;">'
+      +' style="padding:10px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
+      +'border-radius:6px;color:var(--text);font-size:16px;">'
       +'<input type="number" id="rytmi-amt-'+i+'" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
       +' onchange="refreshRytmiYhteenveto()" oninput="refreshRytmiYhteenveto()"'
       +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
@@ -3526,13 +3526,13 @@ async function renderEntryView() {
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
         <label style="font-size:12px;color:var(--text3);white-space:nowrap;">Summa</label>
         <input id="event-amount" type="number" placeholder="0"
-          style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:7px;
-          background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);font-size:14px;">
+          style="flex:1;padding:10px 10px;border:1px solid var(--border);border-radius:7px;
+          background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);font-size:16px;">
         <span style="font-size:12px;color:var(--text3);">€</span>
       </div>
       <textarea id="event-note" placeholder="Selitys poikkeamalle — vapaaehtoinen"
         rows="2" style="width:100%;border:1px solid var(--border);border-radius:7px;
-        background:rgba(0,200,255,0.04);color:var(--text);font-size:12px;padding:7px 10px;
+        background:rgba(0,200,255,0.04);color:var(--text);font-size:16px;padding:10px 10px;
         font-family:var(--sans);resize:none;"></textarea>
     </div>
   </div>
@@ -3631,13 +3631,13 @@ function entryLoan(label, id, val, endsYear, monthly) {
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <span style="font-size:10px;color:${yClr};white-space:nowrap;">→ päättyy</span>
       <input type="number" value="${ey}" min="2024" max="2060" step="1"
-        style="width:68px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;
+        style="width:72px;padding:8px 6px;border:1px solid var(--border);border-radius:5px;
         background:rgba(0,200,255,0.04);color:${yClr};font-family:var(--mono);font-size:16px;text-align:center;"
         onchange="saveLoanCfg('${id}','endsYear',parseInt(this.value));this.style.color='#5a9e6a'">
       <span style="font-size:10px;color:var(--text3);margin-left:4px;">lyhennys</span>
       <div style="display:flex;align-items:center;gap:3px;">
         <input type="number" value="${mon}" min="0" step="10"
-          style="width:68px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;
+          style="width:72px;padding:8px 6px;border:1px solid var(--border);border-radius:5px;
           background:rgba(0,200,255,0.04);color:#5a9e6a;font-family:var(--mono);font-size:16px;text-align:right;"
           onchange="saveLoanCfg('${id}','monthly',parseInt(this.value))">
         <span style="font-size:10px;color:var(--text3);">€/kk</span>
