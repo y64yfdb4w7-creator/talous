@@ -2744,7 +2744,10 @@ async function renderPaivakirja(){
 }
 
 function showView(name) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.view').forEa
+  // Hide Refresh button on Syötä — it does not belong there
+  const freezeFloat = document.getElementById('btn-freeze-float');
+  if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';ch(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
   const sbEl = document.getElementById('sb-' + name);
@@ -3184,27 +3187,32 @@ async function myyntiDelete(id) {
 }
 
 // ═══════════════════════════════════════════════
-// SYÖTÄ — Phase 1: Orientation + Accounts
-// Three-layer model: Orientation → Accounts → Structures
-// Design principles: Display First. Edit Second.
-// Cottage Principle: structures exist, they don't demand.
+// SYÖTÄ — Phase 1.1: UX refinement
+// Lighter atmosphere. Better typography. OP Gold in Accounts.
+// No Refresh button. Float save hidden until dirty.
 // ═══════════════════════════════════════════════
 
-// ── Account management state ─────────────────────────────────
-// Accounts are stored in localStorage so they persist across sessions.
-// Default accounts match the existing snapshot fields.
+// ── Account management ───────────────────────────────────────
+// OP Gold is included in accounts because it behaves like one:
+// its balance changes daily/weekly, unlike structural loans.
+// It is shown as a negative value to signal it is a liability.
 const DEFAULT_ACCOUNTS = [
-  { id: 'tulotili',       label: 'Tulotili',         field: 'tulotili' },
-  { id: 's_pankki',       label: 'S-Pankki',          field: 's_pankki' },
-  { id: 'tavoitetili',    label: 'Tavoitetili',        field: 'tavoitetili' },
-  { id: 'elatustili',     label: 'Elatustili',         field: 'elatustili' },
-  { id: 'nordnet_cash',   label: 'Nordnet käteinen',   field: 'nordnet_cash' },
+  { id: 'tulotili',     label: 'Tulotili',          field: 'tulotili',     sign: 1  },
+  { id: 's_pankki',     label: 'S-Pankki',           field: 's_pankki',     sign: 1  },
+  { id: 'tavoitetili',  label: 'Tavoitetili',         field: 'tavoitetili',  sign: 1  },
+  { id: 'elatustili',   label: 'Elatustili',          field: 'elatustili',   sign: 1  },
+  { id: 'nordnet_cash', label: 'Nordnet käteinen',    field: 'nordnet_cash', sign: 1  },
+  { id: 'op_gold',      label: 'OP Gold',             field: 'op_gold',      sign: -1 },
 ];
 
 function getAccounts() {
   try {
     const stored = JSON.parse(localStorage.getItem('finos_accounts') || 'null');
-    return stored && stored.length ? stored : DEFAULT_ACCOUNTS;
+    // If stored accounts don't have the op_gold entry, reset to default
+    if (!stored || !stored.length) return DEFAULT_ACCOUNTS;
+    const hasOpGold = stored.some(a => a.field === 'op_gold');
+    if (!hasOpGold) return DEFAULT_ACCOUNTS;
+    return stored;
   } catch(e) { return DEFAULT_ACCOUNTS; }
 }
 
@@ -3213,8 +3221,6 @@ function saveAccounts(accounts) {
 }
 
 // ── Dirty-state tracking ─────────────────────────────────────
-// Tracks which account fields have been changed since page open.
-// Only when dirty do we show the floating save button.
 window._entryDirtyFields = {};
 window._entryLatestSnap = null;
 
@@ -3230,19 +3236,25 @@ function clearDirty() {
 
 function showEntryFloatSave() {
   const btn = document.getElementById('entry-float-save');
-  if (btn && btn.style.display === 'none') {
+  if (!btn) return;
+  if (btn.style.display === 'none' || !btn.style.display) {
     btn.style.display = 'flex';
-    requestAnimationFrame(() => { btn.style.opacity = '1'; btn.style.transform = 'translateY(0)'; });
+    // Use setTimeout to allow display:flex to apply before transition
+    setTimeout(() => {
+      btn.style.opacity = '1';
+      btn.style.transform = 'translateX(-50%) translateY(0)';
+    }, 10);
   }
 }
 
 function hideEntryFloatSave() {
   const btn = document.getElementById('entry-float-save');
-  if (btn) {
-    btn.style.opacity = '0';
-    btn.style.transform = 'translateY(8px)';
-    setTimeout(() => { if (btn) btn.style.display = 'none'; }, 200);
-  }
+  if (!btn) return;
+  btn.style.opacity = '0';
+  btn.style.transform = 'translateX(-50%) translateY(8px)';
+  setTimeout(() => {
+    if (btn.style.opacity === '0') btn.style.display = 'none';
+  }, 220);
 }
 
 // ── Natural language date ────────────────────────────────────
@@ -3254,12 +3266,17 @@ function entryDateLabel() {
   return days[d.getDay()] + ' ' + d.getDate() + '. ' + months[d.getMonth()];
 }
 
-// ── Format helpers (local, safe) ─────────────────────────────
-function _entryFmt(val) {
-  if (val === null || val === undefined || val === 0 || val === '') return '—';
+// ── Number formatting (local) ────────────────────────────────
+function _entryFmt(val, sign) {
+  // sign: 1 = positive asset, -1 = negative liability
+  // Returns formatted string with sign indicator for liabilities
+  if (val === null || val === undefined || val === '') return '—';
   const n = typeof val === 'number' ? val : parseFloat(val);
   if (isNaN(n) || n === 0) return '—';
-  return Math.abs(n).toLocaleString('fi-FI', { maximumFractionDigits: 0 }) + ' €';
+  const abs = Math.abs(n);
+  const formatted = abs.toLocaleString('fi-FI', { maximumFractionDigits: 0 }) + ' €';
+  if (sign === -1) return '−' + formatted;
+  return formatted;
 }
 
 // ── Main render ──────────────────────────────────────────────
@@ -3267,45 +3284,57 @@ async function renderEntryView() {
   const el = document.getElementById('syota-content');
   if (!el) return;
 
-  // Reset dirty state on each render
   window._entryDirtyFields = {};
 
-  // Load data
   const snaps = (await DB.getAll('snapshots')).sort((a, b) => a.date.localeCompare(b.date));
   const latest = snaps.length ? snaps[snaps.length - 1] : {};
   window._entryLatestSnap = latest;
 
   const accounts = getAccounts();
 
-  // ── LAYER 1: ORIENTATION ──────────────────────────────────
+  // ── Layer 1: Orientation ──
+  // Lighter background applied via the view background override.
+  // Just the date. Nothing else.
   const orientationHTML = `
-    <div id="entry-orientation" style="padding: 28px 20px 20px;">
-      <div style="font-size: 13px; color: var(--text3); font-weight: 400; letter-spacing: 0.01em;">
+    <div style="padding: 36px 24px 28px;">
+      <div style="font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400;
+                  letter-spacing: 0.01em; line-height: 1.4;">
         ${entryDateLabel()}
       </div>
     </div>
   `;
 
-  // ── LAYER 2: ACCOUNTS ─────────────────────────────────────
-  // Each account: display name + current value. Tap to edit inline.
+  // ── Layer 2: Accounts ──
+  // Each account is a large, legible number. Tap to edit inline.
+  // No card borders. Separation by space and a thin line only.
   const accountRowsHTML = accounts.map(acc => {
     const rawVal = latest[acc.field];
     const numVal = (rawVal !== null && rawVal !== undefined) ? parseFloat(rawVal) : null;
-    const displayVal = _entryFmt(numVal);
+    const sign = acc.sign || 1;
+    const displayVal = _entryFmt(numVal, sign);
+    // For input, always use absolute value
     const inputVal = (numVal !== null && !isNaN(numVal) && numVal !== 0) ? Math.abs(numVal) : '';
+
+    // Color for liabilities (OP Gold)
+    const valueColor = (sign === -1 && numVal && Math.abs(numVal) > 0)
+      ? 'color: rgba(200,160,122,0.9);'  // muted gold for liability
+      : 'color: rgba(255,255,255,0.9);';
+
     return `
-      <div class="entry-account-row" id="acct-row-${acc.id}"
+      <div id="acct-row-${acc.id}"
            onclick="entryAccountActivate('${acc.id}')"
-           style="display: flex; justify-content: space-between; align-items: center;
-                  padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
-                  cursor: pointer;">
-        <span class="entry-acct-name" style="font-size: 15px; color: var(--text2); font-weight: 400;">
+           style="display: flex; justify-content: space-between; align-items: baseline;
+                  padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+                  cursor: pointer; -webkit-tap-highlight-color: transparent;">
+        <span style="font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400;
+                     letter-spacing: 0.01em;">
           ${acc.label}
         </span>
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: baseline; gap: 0;">
           <span id="entry-disp-${acc.id}"
-                style="font-size: 20px; font-weight: 600; color: var(--text);
-                       font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">
+                style="font-size: 26px; font-weight: 600; ${valueColor}
+                       font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+                       line-height: 1;">
             ${displayVal}
           </span>
           <input id="entry-inp-${acc.id}"
@@ -3313,11 +3342,12 @@ async function renderEntryView() {
                  value="${inputVal}"
                  placeholder="0"
                  inputmode="decimal"
-                 style="display: none; width: 120px; padding: 6px 10px;
-                        border: 1px solid var(--text3); border-radius: 8px;
-                        background: var(--surface2); color: var(--text);
-                        font-size: 20px; font-weight: 600; text-align: right;
-                        font-variant-numeric: tabular-nums; outline: none;"
+                 style="display: none; width: 130px; padding: 4px 8px 4px 0;
+                        border: none; border-bottom: 2px solid rgba(255,255,255,0.5);
+                        background: transparent; color: rgba(255,255,255,0.9);
+                        font-size: 26px; font-weight: 600; text-align: right;
+                        font-variant-numeric: tabular-nums; outline: none;
+                        letter-spacing: -0.02em;"
                  onblur="entryAccountDeactivate('${acc.id}')"
                  oninput="markDirty('${acc.id}')">
         </div>
@@ -3325,23 +3355,22 @@ async function renderEntryView() {
     `;
   }).join('');
 
-  // Manage accounts link (secondary, not part of daily ritual)
   const manageAccountsHTML = `
-    <div style="padding: 12px 0 4px;">
+    <div style="padding: 16px 0 0;">
       <button onclick="entryShowAccountManager()"
-              style="background: none; border: none; color: var(--text3);
+              style="background: none; border: none; color: rgba(255,255,255,0.25);
                      font-size: 12px; cursor: pointer; padding: 0;
-                     text-decoration: underline; text-underline-offset: 3px;">
+                     font-family: inherit; letter-spacing: 0.01em;">
         Hallinnoi tilejä
       </button>
     </div>
   `;
 
   const accountsHTML = `
-    <div id="entry-accounts" style="padding: 0 20px;">
-      <div style="font-size: 11px; color: var(--text3); letter-spacing: 0.06em;
-                  text-transform: uppercase; padding-bottom: 8px;
-                  border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 0;">
+    <div id="entry-accounts" style="padding: 0 24px;">
+      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+                  text-transform: uppercase; padding-bottom: 6px;
+                  border-bottom: 1px solid rgba(255,255,255,0.06);">
         Tilit
       </div>
       ${accountRowsHTML}
@@ -3349,36 +3378,44 @@ async function renderEntryView() {
     </div>
   `;
 
-  // ── FLOATING SAVE BUTTON (hidden until dirty) ──────────────
+  // ── Divider ──
+  const dividerHTML = `
+    <div style="height: 1px; background: rgba(255,255,255,0.06);
+                margin: 32px 24px 0;"></div>
+  `;
+
+  // ── Layer 3: Structures ──
+  const structuresHTML = _renderStructures(latest);
+
+  // ── Floating save (hidden until dirty) ──
+  // Uses translateX(-50%) for horizontal centering.
+  // translateY is animated separately via JS.
   const floatSaveHTML = `
     <div id="entry-float-save"
-         style="display: none; opacity: 0; transform: translateY(8px);
-                transition: opacity 0.18s ease, transform 0.18s ease;
-                position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-                z-index: 200;">
+         style="display: none; opacity: 0;
+                position: fixed; bottom: calc(24px + env(safe-area-inset-bottom));
+                left: 50%; transform: translateX(-50%) translateY(8px);
+                z-index: 250; justify-content: center;
+                transition: opacity 0.2s ease, transform 0.2s ease;
+                pointer-events: none;">
       <button onclick="entrySaveDay()"
-              style="padding: 14px 40px; border-radius: 100px;
-                     background: var(--surface2); border: 1px solid var(--text3);
-                     color: var(--text); font-size: 15px; font-weight: 600;
+              style="pointer-events: auto;
+                     padding: 15px 44px; border-radius: 100px;
+                     background: rgba(20,23,21,0.96);
+                     border: 1px solid rgba(255,255,255,0.2);
+                     color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600;
                      cursor: pointer; white-space: nowrap;
-                     box-shadow: 0 4px 24px rgba(0,0,0,0.5);">
+                     font-family: inherit; letter-spacing: 0.01em;
+                     box-shadow: 0 8px 32px rgba(0,0,0,0.6),
+                                 0 0 0 1px rgba(255,255,255,0.06);
+                     -webkit-tap-highlight-color: transparent;">
         Tallenna päivä
       </button>
     </div>
   `;
 
-  // ── DIVIDER between Accounts and Structures ───────────────
-  const dividerHTML = `
-    <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 24px 20px 0;"></div>
-  `;
-
-  // ── LAYER 3: STRUCTURES (Phase 2 placeholder) ─────────────
-  // Structures are rendered collapsed. Phase 2 will expand this.
-  const structuresHTML = _renderStructures(latest);
-
-  // ── ASSEMBLE ──────────────────────────────────────────────
   el.innerHTML = `
-    <div style="max-width: 480px; margin: 0 auto; padding-bottom: 100px;">
+    <div style="max-width: 520px; margin: 0 auto; padding-bottom: 120px;">
       ${orientationHTML}
       ${accountsHTML}
       ${dividerHTML}
@@ -3388,7 +3425,7 @@ async function renderEntryView() {
   `;
 }
 
-// ── Account: tap to edit ──────────────────────────────────────
+// ── Account: tap to edit inline ───────────────────────────────
 window.entryAccountActivate = function(id) {
   const disp = document.getElementById('entry-disp-' + id);
   const inp  = document.getElementById('entry-inp-'  + id);
@@ -3396,45 +3433,56 @@ window.entryAccountActivate = function(id) {
   disp.style.display = 'none';
   inp.style.display  = 'block';
   inp.focus();
-  if (inp.value) { inp.select(); }
+  if (inp.value) inp.select();
 };
 
 window.entryAccountDeactivate = function(id) {
   const disp = document.getElementById('entry-disp-' + id);
   const inp  = document.getElementById('entry-inp-'  + id);
   if (!disp || !inp) return;
+  const accounts = getAccounts();
+  const acc = accounts.find(a => a.id === id);
+  const sign = acc ? (acc.sign || 1) : 1;
   const n = parseFloat(inp.value);
-  disp.textContent = (!isNaN(n) && n !== 0) ? _entryFmt(n) : '—';
+  disp.textContent = (!isNaN(n) && n !== 0) ? _entryFmt(n, sign) : '—';
+  // Update colour for liabilities
+  if (sign === -1 && !isNaN(n) && n !== 0) {
+    disp.style.color = 'rgba(200,160,122,0.9)';
+  } else {
+    disp.style.color = 'rgba(255,255,255,0.9)';
+  }
   inp.style.display  = 'none';
   disp.style.display = 'block';
 };
 
-// ── Structures: display-first, collapsed, tap to edit ────────
+// ── Structures ────────────────────────────────────────────────
 function _renderStructures(latest) {
   function structureRow(label, fieldKey, rawVal) {
     const numVal = rawVal ? Math.abs(parseFloat(rawVal)) : 0;
     const displayVal = numVal ? numVal.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' €' : '—';
     const inputVal = numVal || '';
     return `
-      <div style="display: flex; justify-content: space-between; align-items: center;
-                  padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
-                  cursor: pointer;"
-           onclick="entryStructureActivate('${fieldKey}')">
-        <span style="font-size: 15px; color: var(--text2);">${label}</span>
-        <div style="display: flex; align-items: center; gap: 6px;">
+      <div onclick="entryStructureActivate('${fieldKey}')"
+           style="display: flex; justify-content: space-between; align-items: baseline;
+                  padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+                  cursor: pointer; -webkit-tap-highlight-color: transparent;">
+        <span style="font-size: 14px; color: rgba(255,255,255,0.45);">${label}</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
           <span id="struct-disp-${fieldKey}"
-                style="font-size: 15px; font-weight: 600; color: var(--text3);
+                style="font-size: 18px; font-weight: 500;
+                       color: rgba(255,255,255,0.35);
                        font-variant-numeric: tabular-nums;">
             ${displayVal}
           </span>
-          <span style="font-size: 11px; color: rgba(255,255,255,0.2);">›</span>
+          <span style="font-size: 10px; color: rgba(255,255,255,0.15);">›</span>
           <input id="struct-inp-${fieldKey}"
                  type="number" value="${inputVal}" placeholder="0"
                  inputmode="decimal"
-                 style="display: none; width: 110px; padding: 5px 8px;
-                        border: 1px solid var(--text3); border-radius: 8px;
-                        background: var(--surface2); color: var(--text);
-                        font-size: 15px; font-weight: 600; text-align: right; outline: none;"
+                 style="display: none; width: 110px; padding: 4px 0;
+                        border: none; border-bottom: 2px solid rgba(255,255,255,0.4);
+                        background: transparent; color: rgba(255,255,255,0.8);
+                        font-size: 18px; font-weight: 500; text-align: right;
+                        outline: none; font-variant-numeric: tabular-nums;"
                  onblur="entryStructureDeactivate('${fieldKey}')"
                  oninput="markDirty('${fieldKey}')">
         </div>
@@ -3443,81 +3491,78 @@ function _renderStructures(latest) {
   }
 
   const loansHTML = [
-    structureRow('Asuntolaina',         'asuntolaina',           latest.asuntolaina),
+    structureRow('Asuntolaina',          'asuntolaina',           latest.asuntolaina),
     structureRow('Asuntolaina, remontti','asuntolaina_remontti',  latest.asuntolaina_remontti),
-    structureRow('Autolaina',           'autolaina',             latest.autolaina),
-    structureRow('OP Gold',             'op_gold',               latest.op_gold),
-    structureRow('Luottotili',          'luottotili',            latest.luottotili),
+    structureRow('Autolaina',            'autolaina',             latest.autolaina),
+    structureRow('Luottotili',           'luottotili',            latest.luottotili),
   ].join('');
 
-  // Recurring income rows
   const tulotItems = latest.tulot_items || [];
-  const incomeRowsHTML = tulotItems.length
-    ? tulotItems.map((item, i) => {
+  const incomeHTML = tulotItems.length
+    ? tulotItems.map(item => {
         const amt = parseFloat(item.amount) || 0;
         const label = item.label || (item.type === 'palkka' ? 'Palkka' : item.type || 'Tulo');
         return `
-          <div style="display: flex; justify-content: space-between; align-items: center;
-                      padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
-            <span style="font-size: 14px; color: var(--text2);">${label}</span>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 14px; color: var(--text3); font-variant-numeric: tabular-nums;">
-                ${amt ? amt.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' € / kk' : '—'}
-              </span>
-              <span style="font-size: 11px; color: rgba(255,255,255,0.2);">›</span>
-            </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;
+                      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <span style="font-size: 14px; color: rgba(255,255,255,0.4);">${label}</span>
+            <span style="font-size: 14px; color: rgba(255,255,255,0.3);
+                         font-variant-numeric: tabular-nums;">
+              ${amt ? amt.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' € / kk' : '—'}
+            </span>
           </div>
         `;
       }).join('')
-    : '<div style="font-size: 13px; color: var(--text3); padding: 10px 0;">Ei tuloja tallennettu.</div>';
+    : `<div style="font-size: 13px; color: rgba(255,255,255,0.25); padding: 10px 0;">
+        Ei tuloja tallennettu.
+       </div>`;
 
-  // Recurring expense rows
   const rytmiItems = latest.rytmi_items || [];
-  const expenseRowsHTML = rytmiItems.length
-    ? rytmiItems.map((item, i) => {
+  const expenseHTML = rytmiItems.length
+    ? rytmiItems.map(item => {
         const amt = parseFloat(item.amount) || 0;
         return `
-          <div style="display: flex; justify-content: space-between; align-items: center;
-                      padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
-            <span style="font-size: 14px; color: var(--text2);">${item.label || 'Meno'}</span>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 14px; color: var(--text3); font-variant-numeric: tabular-nums;">
-                ${amt ? amt.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' € / kk' : '—'}
-              </span>
-              <span style="font-size: 11px; color: rgba(255,255,255,0.2);">›</span>
-            </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;
+                      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <span style="font-size: 14px; color: rgba(255,255,255,0.4);">${item.label || 'Meno'}</span>
+            <span style="font-size: 14px; color: rgba(255,255,255,0.3);
+                         font-variant-numeric: tabular-nums;">
+              ${amt ? amt.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' € / kk' : '—'}
+            </span>
           </div>
         `;
       }).join('')
-    : '<div style="font-size: 13px; color: var(--text3); padding: 10px 0;">Ei toistuvia menoja tallennettu.</div>';
+    : `<div style="font-size: 13px; color: rgba(255,255,255,0.25); padding: 10px 0;">
+        Ei toistuvia menoja tallennettu.
+       </div>`;
 
   return `
-    <div id="entry-structures" style="padding: 20px 20px 0;">
+    <div id="entry-structures" style="padding: 28px 24px 0;">
 
-      <div style="font-size: 11px; color: var(--text3); letter-spacing: 0.06em;
-                  text-transform: uppercase; padding-bottom: 8px;
-                  border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 0;">
+      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+                  text-transform: uppercase; padding-bottom: 6px;
+                  border-bottom: 1px solid rgba(255,255,255,0.05);">
         Perusta
       </div>
 
       ${loansHTML}
 
-      <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 4px 0 0;
-                  border: none; border-top: 1px dashed rgba(255,255,255,0.07);"></div>
+      <div style="border-top: 1px dashed rgba(255,255,255,0.06);
+                  margin: 8px 0 0; padding-top: 0;"></div>
 
-      <div style="font-size: 11px; color: var(--text3); letter-spacing: 0.06em;
-                  text-transform: uppercase; padding: 14px 0 8px;">
+      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+                  text-transform: uppercase; padding: 20px 0 6px;">
         Toistuvat tulot
       </div>
-      ${incomeRowsHTML}
+      ${incomeHTML}
 
-      <div style="height: 1px; border: none; border-top: 1px dashed rgba(255,255,255,0.07); margin: 4px 0 0;"></div>
+      <div style="border-top: 1px dashed rgba(255,255,255,0.06); margin: 8px 0 0;"></div>
 
-      <div style="font-size: 11px; color: var(--text3); letter-spacing: 0.06em;
-                  text-transform: uppercase; padding: 14px 0 8px;">
+      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+                  text-transform: uppercase; padding: 20px 0 6px;">
         Toistuvat menot
       </div>
-      ${expenseRowsHTML}
+      ${expenseHTML}
 
     </div>
   `;
@@ -3539,15 +3584,14 @@ window.entryStructureDeactivate = function(fieldKey) {
   const inp  = document.getElementById('struct-inp-'  + fieldKey);
   if (!disp || !inp) return;
   const n = parseFloat(inp.value);
-  const display = (!isNaN(n) && n !== 0)
+  disp.textContent = (!isNaN(n) && n !== 0)
     ? Math.abs(n).toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' €'
     : '—';
-  disp.textContent   = display;
   inp.style.display  = 'none';
   disp.style.display = 'block';
 };
 
-// ── Account manager (secondary action) ───────────────────────
+// ── Account manager ───────────────────────────────────────────
 window.entryShowAccountManager = function() {
   const accounts = getAccounts();
   const existing = document.getElementById('entry-account-manager');
@@ -3555,44 +3599,47 @@ window.entryShowAccountManager = function() {
 
   const mgr = document.createElement('div');
   mgr.id = 'entry-account-manager';
-  mgr.style.cssText = 'margin: 8px 20px 0; padding: 16px; border: 1px solid var(--border);' +
-    'border-radius: 12px; background: var(--surface2);';
+  mgr.style.cssText = 'margin: 12px 24px 0; padding: 16px;' +
+    'border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;' +
+    'background: rgba(255,255,255,0.03);';
 
   const rows = accounts.map((acc, i) => `
     <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-      <input type="text" value="${acc.label}"
-             id="acct-mgr-label-${i}"
-             style="flex: 1; padding: 8px 10px; border: 1px solid var(--border);
-                    border-radius: 7px; background: var(--surface); color: var(--text);
-                    font-size: 15px; outline: none;">
+      <input type="text" value="${acc.label}" id="acct-mgr-label-${i}"
+             style="flex: 1; padding: 8px 10px;
+                    border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+                    background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8);
+                    font-size: 15px; outline: none; font-family: inherit;">
       <button onclick="entryRemoveAccount(${i})"
-              style="background: none; border: none; color: var(--text3);
+              style="background: none; border: none; color: rgba(255,255,255,0.3);
                      font-size: 18px; cursor: pointer; padding: 0 4px;">×</button>
     </div>
   `).join('');
 
   mgr.innerHTML = `
-    <div style="font-size: 11px; color: var(--text3); text-transform: uppercase;
+    <div style="font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase;
                 letter-spacing: 0.06em; margin-bottom: 12px;">Hallinnoi tilejä</div>
     ${rows}
     <button onclick="entryAddAccount()"
             style="font-size: 12px; padding: 7px 14px; border-radius: 8px;
-                   border: 1px dashed rgba(255,255,255,0.2); background: none;
-                   color: var(--text3); cursor: pointer; width: 100%; text-align: left;
-                   margin-bottom: 10px;">
+                   border: 1px dashed rgba(255,255,255,0.15); background: none;
+                   color: rgba(255,255,255,0.3); cursor: pointer; width: 100%;
+                   text-align: left; margin-bottom: 10px; font-family: inherit;">
       + Lisää tili
     </button>
     <div style="display: flex; gap: 8px;">
       <button onclick="entryAccountManagerSave()"
               style="flex: 1; padding: 9px; border-radius: 8px;
-                     border: 1px solid var(--text3); background: none;
-                     color: var(--text); font-size: 13px; cursor: pointer;">
+                     border: 1px solid rgba(255,255,255,0.2); background: none;
+                     color: rgba(255,255,255,0.8); font-size: 13px; cursor: pointer;
+                     font-family: inherit;">
         Tallenna
       </button>
       <button onclick="document.getElementById('entry-account-manager')?.remove()"
               style="padding: 9px 16px; border-radius: 8px;
-                     border: 1px solid var(--border); background: none;
-                     color: var(--text3); font-size: 13px; cursor: pointer;">
+                     border: 1px solid rgba(255,255,255,0.08); background: none;
+                     color: rgba(255,255,255,0.35); font-size: 13px; cursor: pointer;
+                     font-family: inherit;">
         Peruuta
       </button>
     </div>
@@ -3603,29 +3650,28 @@ window.entryShowAccountManager = function() {
 };
 
 window.entryRemoveAccount = function(i) {
-  const labels = document.querySelectorAll('[id^="acct-mgr-label-"]');
-  if (labels.length <= 1) return; // keep at least one
   const mgr = document.getElementById('entry-account-manager');
   if (!mgr) return;
   const rows = mgr.querySelectorAll('div[style*="margin-bottom: 8px"]');
+  if (rows.length <= 1) return;
   if (rows[i]) rows[i].remove();
 };
 
 window.entryAddAccount = function() {
-  const accounts = getAccounts();
-  // Temporarily show a new row in the manager
   const mgr = document.getElementById('entry-account-manager');
   if (!mgr) return;
-  const i = accounts.length;
+  const labels = mgr.querySelectorAll('[id^="acct-mgr-label-"]');
+  const i = labels.length;
   const newRow = document.createElement('div');
   newRow.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px;';
   newRow.innerHTML = `
     <input type="text" id="acct-mgr-label-${i}" placeholder="Tilin nimi"
-           style="flex: 1; padding: 8px 10px; border: 1px solid var(--border);
-                  border-radius: 7px; background: var(--surface); color: var(--text);
-                  font-size: 15px; outline: none;">
+           style="flex: 1; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.1);
+                  border-radius: 7px; background: rgba(255,255,255,0.05);
+                  color: rgba(255,255,255,0.8); font-size: 15px; outline: none;
+                  font-family: inherit;">
     <button onclick="this.parentElement.remove()"
-            style="background: none; border: none; color: var(--text3);
+            style="background: none; border: none; color: rgba(255,255,255,0.3);
                    font-size: 18px; cursor: pointer; padding: 0 4px;">×</button>
   `;
   const addBtn = mgr.querySelector('[onclick="entryAddAccount()"]');
@@ -3639,16 +3685,15 @@ window.entryAccountManagerSave = function() {
   inputs.forEach((inp, i) => {
     const label = inp.value.trim();
     if (!label) return;
-    // Re-use existing field mapping if available, otherwise create a safe field key
     const existing = current[i];
     if (existing) {
       updated.push({ ...existing, label });
     } else {
       const fieldKey = 'custom_' + label.toLowerCase().replace(/[^a-z0-9]/g, '_');
-      updated.push({ id: fieldKey, label, field: fieldKey });
+      updated.push({ id: fieldKey, label, field: fieldKey, sign: 1 });
     }
   });
-  if (updated.length === 0) return;
+  if (!updated.length) return;
   saveAccounts(updated);
   document.getElementById('entry-account-manager')?.remove();
   renderEntryView();
@@ -3660,18 +3705,18 @@ window.entrySaveDay = async function() {
   if (btn) { btn.textContent = 'Tallennetaan…'; btn.disabled = true; }
 
   const latest = window._entryLatestSnap || {};
-  const today = new Date().toISOString().slice(0, 10);
+  const today  = new Date().toISOString().slice(0, 10);
 
-  // Collect account values
+  // Collect account values (OP Gold stored as negative)
   const accounts = getAccounts();
   const accountValues = {};
   accounts.forEach(acc => {
     const inp = document.getElementById('entry-inp-' + acc.id);
     if (inp) {
       const n = parseFloat(inp.value);
-      // If field was edited and has a value, use it; else carry forward
       if (!isNaN(n) && inp.value !== '') {
-        accountValues[acc.field] = n;
+        // Apply sign: OP Gold becomes negative in snapshot
+        accountValues[acc.field] = (acc.sign || 1) === -1 ? -Math.abs(n) : n;
       } else {
         accountValues[acc.field] = latest[acc.field] ?? null;
       }
@@ -3680,8 +3725,8 @@ window.entrySaveDay = async function() {
     }
   });
 
-  // Collect structure values
-  const structFields = ['asuntolaina','asuntolaina_remontti','autolaina','op_gold','luottotili'];
+  // Collect structure values (always stored as negative)
+  const structFields = ['asuntolaina','asuntolaina_remontti','autolaina','luottotili'];
   const structValues = {};
   structFields.forEach(f => {
     const inp = document.getElementById('struct-inp-' + f);
@@ -3695,11 +3740,9 @@ window.entrySaveDay = async function() {
 
   const snap = {
     date: today,
-    // Account values
     ...accountValues,
-    // Structure values
     ...structValues,
-    // Carry forward everything else from latest
+    // Carry forward investment fields
     nordnet:              latest.nordnet              ?? null,
     op_osakkeet:          latest.op_osakkeet          ?? null,
     tapiola:              latest.tapiola              ?? null,
@@ -3707,7 +3750,6 @@ window.entrySaveDay = async function() {
     rahastot:             latest.rahastot             ?? null,
     lasten_sijoitus:      latest.lasten_sijoitus      ?? null,
     visa:                 latest.visa                 ?? null,
-    asuntolaina_remontti: structValues.asuntolaina_remontti ?? (latest.asuntolaina_remontti ?? null),
     kaikki_lainat:        latest.kaikki_lainat        ?? null,
     tulot_items:          latest.tulot_items          ?? [],
     rytmi_items:          latest.rytmi_items          ?? [],
@@ -3715,23 +3757,21 @@ window.entrySaveDay = async function() {
     menot_kk:             latest.menot_kk             ?? null,
     tulot_pvm:            latest.tulot_pvm            ?? null,
     muut_tulot:           latest.muut_tulot           ?? null,
-    raw_import: { source: 'entry_v2', engine: 'v1', saved_at: new Date().toISOString() },
+    raw_import: { source: 'entry_v1.1', engine: 'v1', saved_at: new Date().toISOString() },
   };
 
   await DB.putSnapshot(snap);
   await updateNavCount();
 
-  // Background sync
   try { setTimeout(() => syncToSupabase([snap]), 500); } catch(e) {}
   try { setTimeout(() => autoBackup(), 1500); } catch(e) {}
 
   clearDirty();
 
-  // Visual confirmation: button briefly shows confirmation
   if (btn) {
     btn.textContent = '✓ Tallennettu';
-    btn.style.borderColor = 'var(--green)';
-    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'rgba(106,184,122,0.5)';
+    btn.style.color = '#6ab87a';
     setTimeout(() => {
       btn.disabled = false;
       btn.textContent = 'Tallenna päivä';
@@ -3741,7 +3781,6 @@ window.entrySaveDay = async function() {
     }, 1400);
   }
 
-  // Navigate to dashboard after save
   setTimeout(() => {
     showView('dashboard');
     requestAnimationFrame(() => {
@@ -3751,8 +3790,7 @@ window.entrySaveDay = async function() {
   }, 1600);
 };
 
-// Keep legacy collectKassavirtaBeforeSave and saveEntrySnapshot as no-ops
-// so any remaining references in index.html or other files don't break.
+// Legacy stubs — prevent reference errors
 function collectKassavirtaBeforeSave() {}
 async function saveEntrySnapshot() { await entrySaveDay(); }
 
