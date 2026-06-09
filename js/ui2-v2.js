@@ -3366,11 +3366,10 @@ async function renderEntryView() {
 
   ${alreadySaved ? `<div style="padding:8px 12px;border-radius:8px;background:rgba(90,158,106,0.1);
     border:1px solid rgba(90,158,106,0.3);color:#5a9e6a;font-size:12px;margin-bottom:12px;">
-    ✓ Tänään (${todayFi}) on jo tallennettu — päivittäminen korvaa vanhan snapshottia.</div>` : ''}
+    ✓ Tänään (${todayFi}) on jo tallennettu — päivittäminen korvaa vanhan päivityksen.</div>` : ''}
 
   <!-- ── KASSAVIRTA: TULOT (dynaamiset rivit) ── -->
-  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;">Kuukauden kassavirta</div>
+  
 
   <!-- TULOT -->
   <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
@@ -3418,10 +3417,10 @@ async function renderEntryView() {
     overflow:hidden;margin-bottom:16px;">
     <div style="padding:8px 14px;border-bottom:1px solid var(--border);">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">
-        Tulotili − käyttöluotto — jatkuvat rakenteet
+        Toistuvat menot
       </div>
       <div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic;">
-        OP Gold, pankkimaksut, puhelin, vakuutukset — ei yksittäisiä ostoksia
+        Pankkimaksut, vakuutukset, tilausmaksut
       </div>
     </div>
     <div id="rytmi-items-list" style="padding:6px 14px 4px;">
@@ -3432,17 +3431,16 @@ async function renderEntryView() {
         style="font-size:11px;padding:5px 12px;border-radius:6px;
         background:transparent;border:1px dashed rgba(0,200,255,0.2);
         color:var(--text3);cursor:pointer;width:100%;text-align:left;">
-        + Lisää rakennerivi
+        + Lisää meno
       </button>
     </div>
     <div style="padding:6px 14px 10px;border-top:1px solid var(--border);" id="rytmi-yhteenveto">
-      ${renderRytmiYhteenveto()}
     </div>
   </div>
 
   <!-- ── TASO 1: PÄIVITTÄINEN ── -->
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
-    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">1 · Päivittäinen — käyttötilit &amp; OP Gold</div>
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Tilit</div>
     <div style="font-size:10px;color:rgba(0,200,255,0.5);">napauta muuttaaksesi ✎</div>
   </div>
 
@@ -3462,17 +3460,13 @@ async function renderEntryView() {
     </div>
 
     <div style="padding:8px 14px;" id="nettorytmi-block">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;
-        background:rgba(0,200,255,0.04);border-radius:7px;padding:8px 10px;">
-        <span style="font-size:11px;color:var(--text3);">Nettorytmi (tulotili − OP Gold)</span>
-        <span style="font-family:var(--mono);font-size:15px;font-weight:700;" id="nettorytmi-val">—</span>
-      </div>
+      
     </div>
   </div>
 
   <!-- ── TASO 2: SIJOITUKSET ── -->
   <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;">2 · Sijoitukset — päivitä jos muuttunut</div>
+    margin-bottom:8px;">Sijoitukset</div>
 
   <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
     overflow:hidden;margin-bottom:12px;">
@@ -3485,7 +3479,7 @@ async function renderEntryView() {
 
   <!-- ── TASO 3: LAINAT ── -->
   <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;">3 · Lainat — päivitä lyhennyksen jälkeen</div>
+    margin-bottom:8px;">Lainat</div>
 
   <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
     overflow:hidden;margin-bottom:12px;">
@@ -3495,11 +3489,7 @@ async function renderEntryView() {
       ${entryLoan('Remonttilaina', 'asuntolaina_remontti', v('asuntolaina_remontti'), 2026, 170)}
     </div>
     <div style="padding:6px 14px 10px;">
-      <div id="laina-total" style="display:flex;justify-content:space-between;align-items:baseline;
-        background:rgba(0,0,0,0.12);border-radius:7px;padding:7px 10px;font-size:12px;">
-        <span style="color:var(--text3);">Yhteensä lainat</span>
-        <span style="font-family:var(--mono);color:var(--text2);">—</span>
-      </div>
+      
     </div>
   </div>
 
@@ -3510,7 +3500,7 @@ async function renderEntryView() {
       border:1px dashed rgba(0,200,255,0.2);background:transparent;
       color:var(--text3);font-size:12px;cursor:pointer;text-align:left;
       display:flex;justify-content:space-between;align-items:center;">
-      <span>+ Lisää konteksti · merkittävä tapahtuma</span>
+      <span>+ Muistiinpano päivään</span>
       <span style="font-size:10px;opacity:.6;">vapaaehtoinen</span>
     </button>
     <div id="konteksti-body" style="display:none;background:var(--card);
@@ -3542,7 +3532,7 @@ async function renderEntryView() {
     style="width:100%;padding:14px;border-radius:11px;font-size:15px;font-weight:700;
     background:linear-gradient(135deg,rgba(90,158,106,0.2),rgba(0,200,255,0.1));
     border:1px solid rgba(90,158,106,0.4);color:#5a9e6a;cursor:pointer;letter-spacing:.03em;">
-    Tallenna snapshot · ${todayFi}
+    Tallenna päivä · ${todayFi}
   </button>
   <div id="entry-msg" style="margin-top:10px;font-size:12px;text-align:center;"></div>
 
@@ -3699,7 +3689,7 @@ function toggleKonteksti() {
   if (!body) return;
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
-  if (btn) btn.textContent = open ? '+ Lisää konteksti' : '− Sulje';
+  if (btn) btn.textContent = open ? '+ Muistiinpano päivään' : '− Sulje';
 }
 
 
@@ -3851,7 +3841,7 @@ async function saveEntrySnapshot() {
     msg.style.color = '#5a9e6a';
     msg.textContent = '✓ Tallennettu · ' + todayFi;
   }
-  if (btn) { btn.disabled = false; btn.textContent = 'Tallenna snapshot · ' + todayFi; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Tallenna päivä · ' + todayFi; }
 
   // Päivitä dashboard
   await updateNavCount();
