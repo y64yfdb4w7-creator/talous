@@ -3184,687 +3184,585 @@ async function myyntiDelete(id) {
 }
 
 // ═══════════════════════════════════════════════
-// SYÖTTÖNÄKYMÄ — kolmitasoinen snapshot-syöttö
+// SYÖTÄ — Phase 1: Orientation + Accounts
+// Three-layer model: Orientation → Accounts → Structures
+// Design principles: Display First. Edit Second.
+// Cottage Principle: structures exist, they don't demand.
 // ═══════════════════════════════════════════════
 
-// ══════════════════════════════════════════════════════════════════════
-// KASSAVIRTA — dynaamiset tulot & operatiivinen rytmi
-// ══════════════════════════════════════════════════════════════════════
-
-const TULOT_TYYPIT = [
-  { value: 'palkka',    label: 'Palkka' },
-  { value: 'sivutyo',   label: 'Sivutyö' },
-  { value: 'elake',     label: 'Eläke' },
-  { value: 'osingot',   label: 'Osingot' },
-  { value: 'vuokra',    label: 'Vuokratulo' },
-  { value: 'freelance', label: 'Freelance' },
-  { value: 'muu',       label: 'Muu' },
+// ── Account management state ─────────────────────────────────
+// Accounts are stored in localStorage so they persist across sessions.
+// Default accounts match the existing snapshot fields.
+const DEFAULT_ACCOUNTS = [
+  { id: 'tulotili',       label: 'Tulotili',         field: 'tulotili' },
+  { id: 's_pankki',       label: 'S-Pankki',          field: 's_pankki' },
+  { id: 'tavoitetili',    label: 'Tavoitetili',        field: 'tavoitetili' },
+  { id: 'elatustili',     label: 'Elatustili',         field: 'elatustili' },
+  { id: 'nordnet_cash',   label: 'Nordnet käteinen',   field: 'nordnet_cash' },
 ];
 
-// State — alustetaan latauksen yhteydessä
-if (!window._tulotItems) window._tulotItems = [];
-if (!window._rytmiItems) window._rytmiItems = [];
-
-function initKassavirtaState(latest) {
-  // Lataa tallennettu data tai tee esimerkkidata
-  window._tulotItems = (latest && latest.tulot_items && latest.tulot_items.length > 0)
-    ? JSON.parse(JSON.stringify(latest.tulot_items))
-    : [{ id: Date.now(), type: 'palkka', label: '', amount: '' }];
-  window._rytmiItems = (latest && latest.rytmi_items && latest.rytmi_items.length > 0)
-    ? JSON.parse(JSON.stringify(latest.rytmi_items))
-    : [];
+function getAccounts() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('finos_accounts') || 'null');
+    return stored && stored.length ? stored : DEFAULT_ACCOUNTS;
+  } catch(e) { return DEFAULT_ACCOUNTS; }
 }
 
-function _typeOpts(sel) {
-  return TULOT_TYYPIT.map(t =>
-    '<option value="'+t.value+'"'+(t.value===sel?' selected':'')+'>'+t.label+'</option>'
-  ).join('');
+function saveAccounts(accounts) {
+  localStorage.setItem('finos_accounts', JSON.stringify(accounts));
 }
 
-function renderTulotItems() {
-  if (!window._tulotItems || !window._tulotItems.length) {
-    window._tulotItems = [{ id: Date.now(), type: 'palkka', label: '', amount: '' }];
+// ── Dirty-state tracking ─────────────────────────────────────
+// Tracks which account fields have been changed since page open.
+// Only when dirty do we show the floating save button.
+window._entryDirtyFields = {};
+window._entryLatestSnap = null;
+
+function markDirty(fieldId) {
+  window._entryDirtyFields[fieldId] = true;
+  showEntryFloatSave();
+}
+
+function clearDirty() {
+  window._entryDirtyFields = {};
+  hideEntryFloatSave();
+}
+
+function showEntryFloatSave() {
+  const btn = document.getElementById('entry-float-save');
+  if (btn && btn.style.display === 'none') {
+    btn.style.display = 'flex';
+    requestAnimationFrame(() => { btn.style.opacity = '1'; btn.style.transform = 'translateY(0)'; });
   }
-  return window._tulotItems.map(function(item, i) {
-    return '<div class="tulot-row">'
-      +'<select id="tulot-type-'+i+'" onchange="window._tulotItems['+i+'].type=this.value" '
-      +'style="font-size:16px;padding:10px 7px;background:var(--surface2);'
-      +'border:1px solid var(--border);border-radius:6px;color:var(--text2);">'
-      +_typeOpts(item.type)+'</select>'
-      +'<input type="text" id="tulot-lbl-'+i+'" oninput="window._tulotItems['+i+'].label=this.value" value="'+(item.label||'')+'" placeholder="Nimi (vapaaehtoinen)"'
-      +' style="padding:10px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
-      +'border-radius:6px;color:var(--text);font-size:16px;">'
-      +'<input type="number" id="tulot-amt-'+i+'" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
-      +' onchange="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()" oninput="window._tulotItems['+i+'].amount=this.value;refreshRytmiYhteenveto()"'
-      +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
-      +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
-      +'font-family:var(--mono);font-size:16px;text-align:right;">'
-      +'<span style="font-size:11px;color:var(--text3);">€</span>'
-      +(window._tulotItems.length > 1
-        ? '<button onclick="removeTulotItem('+i+')" style="background:transparent;border:none;'
-          +'color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;">×</button>'
-        : '<span style="width:18px;"></span>')
-      +'</div>';
-  }).join('');
 }
 
-function renderRytmiItems() {
-  if (!window._rytmiItems || !window._rytmiItems.length) return '';
-  return window._rytmiItems.map(function(item, i) {
-    return '<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;'
-      +'align-items:center;margin-bottom:7px;">'
-      +'<input type="text" id="rytmi-lbl-'+i+'" value="'+(item.label||'')+'" placeholder="OP Gold, puhelin…"'
-      +' style="padding:10px 9px;background:rgba(0,200,255,0.04);border:1px solid var(--border);'
-      +'border-radius:6px;color:var(--text);font-size:16px;">'
-      +'<input type="number" id="rytmi-amt-'+i+'" value="'+(item.amount&&item.amount!==''?item.amount:'')+'" placeholder="€"'
-      +' onchange="refreshRytmiYhteenveto()" oninput="refreshRytmiYhteenveto()"'
-      +' style="width:90px;padding:5px 8px;background:rgba(0,200,255,0.04);'
-      +'border:1px solid var(--border);border-radius:6px;color:var(--text);'
-      +'font-family:var(--mono);font-size:16px;text-align:right;">'
-      +'<span style="font-size:11px;color:var(--text3);">€</span>'
-      +'<button onclick="removeRytmiItem('+i+')" style="background:transparent;border:none;'
-      +'color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;">×</button>'
-      +'</div>';
-  }).join('');
+function hideEntryFloatSave() {
+  const btn = document.getElementById('entry-float-save');
+  if (btn) {
+    btn.style.opacity = '0';
+    btn.style.transform = 'translateY(8px)';
+    setTimeout(() => { if (btn) btn.style.display = 'none'; }, 200);
+  }
 }
 
-function renderRytmiYhteenveto() {
-  // Lue suoraan DOM:sta — luotettavin tapa
-  var tulot = 0; var ri = 0;
-  while(true) { var e=document.getElementById('tulot-amt-'+ri); if(!e)break; tulot+=parseFloat(e.value)||0; ri++; }
-  if (!tulot) tulot = (window._tulotItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
-  var rytmi = 0; ri = 0;
-  while(true) { var e=document.getElementById('rytmi-amt-'+ri); if(!e)break; rytmi+=parseFloat(e.value)||0; ri++; }
-  if (!rytmi) rytmi = (window._rytmiItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
-  var netto  = tulot - rytmi;
-  if (!tulot && !rytmi) return '<div style="font-size:11px;color:var(--text3);">Lisää tuloja ja rakennerivejä nähdäksesi yhteenveto.</div>';
-  var parts = [];
-  if (tulot > 0) parts.push('<span style="color:var(--green);font-family:var(--mono);">+'
-    +tulot.toLocaleString("fi-FI")+'€</span> tulot');
-  if (rytmi > 0) parts.push('<span style="color:var(--red);font-family:var(--mono);">−'
-    +rytmi.toLocaleString("fi-FI")+'€</span> rakenteet');
-  var netColor = netto >= 0 ? "var(--green)" : "var(--red)";
-  return '<div style="font-size:12px;color:var(--text3);margin-bottom:6px;">'
-    +parts.join(' &nbsp;·&nbsp; ')+'</div>'
-    +'<div style="display:flex;justify-content:space-between;background:rgba(0,0,0,0.1);'
-    +'border-radius:7px;padding:7px 10px;">'
-    +'<span style="font-size:12px;font-weight:600;">Kassavirta-rytmi</span>'
-    +'<span style="font-family:var(--mono);font-size:15px;font-weight:700;color:'+netColor+';">'
-    +(netto>=0?"+":"")+netto.toLocaleString("fi-FI")+'€</span></div>';
+// ── Natural language date ────────────────────────────────────
+function entryDateLabel() {
+  const d = new Date();
+  const days = ['Sunnuntai','Maanantai','Tiistai','Keskiviikko','Torstai','Perjantai','Lauantai'];
+  const months = ['tammikuuta','helmikuuta','maaliskuuta','huhtikuuta','toukokuuta','kesäkuuta',
+                  'heinäkuuta','elokuuta','syyskuuta','lokakuuta','marraskuuta','joulukuuta'];
+  return days[d.getDay()] + ' ' + d.getDate() + '. ' + months[d.getMonth()];
 }
 
-function refreshRytmiYhteenveto() {
-  var el = document.getElementById("rytmi-yhteenveto");
-  if (el) el.innerHTML = renderRytmiYhteenveto();
+// ── Format helpers (local, safe) ─────────────────────────────
+function _entryFmt(val) {
+  if (val === null || val === undefined || val === 0 || val === '') return '—';
+  const n = typeof val === 'number' ? val : parseFloat(val);
+  if (isNaN(n) || n === 0) return '—';
+  return Math.abs(n).toLocaleString('fi-FI', { maximumFractionDigits: 0 }) + ' €';
 }
 
-function refreshTulotList() {
-  var el = document.getElementById("tulot-items-list");
-  if (el) el.innerHTML = renderTulotItems();
-  refreshRytmiYhteenveto();
-}
-
-function refreshRytmiList() {
-  var el = document.getElementById("rytmi-items-list");
-  if (el) el.innerHTML = renderRytmiItems();
-  refreshRytmiYhteenveto();
-}
-
-function addTulotItem() {
-  window._tulotItems.push({ id: Date.now(), type: 'palkka', label: '', amount: '' });
-  refreshTulotList();
-}
-
-function removeTulotItem(i) {
-  window._tulotItems.splice(i, 1);
-  refreshTulotList();
-}
-
-function addRytmiItem() {
-  window._rytmiItems.push({ id: Date.now(), label: '', amount: '' });
-  refreshRytmiList();
-}
-
-function removeRytmiItem(i) {
-  window._rytmiItems.splice(i, 1);
-  refreshRytmiList();
-}
-
-// Laske yhteistulot kassavirta-paneelia varten
-function getTulotYhteensa() {
-  return (window._tulotItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
-}
-function getRytmiYhteensa() {
-  return (window._rytmiItems||[]).reduce(function(s,i){return s+(parseFloat(i.amount)||0);},0);
-}
-
-
+// ── Main render ──────────────────────────────────────────────
 async function renderEntryView() {
   const el = document.getElementById('syota-content');
   if (!el) return;
 
-  // Hae viimeisin snapshot esitäyttöä varten
-  const snaps = (await DB.getAll('snapshots')).sort((a,b) => b.date.localeCompare(a.date));
-  const latest = snaps[0] || {};
-  const today  = new Date().toISOString().slice(0,10);
-  const todayFi = new Date().toLocaleDateString('fi-FI');
-  // Alusta kassavirta-state viimeisimmästä snapista
-  const _allSnapsForEntry = await DB.getAll('snapshots');
-  const _latestForEntry = _allSnapsForEntry.sort((a,b)=>b.date.localeCompare(a.date))[0] || {};
-  initKassavirtaState(_latestForEntry);
-  const alreadySaved = snaps.length > 0 && snaps[0].date === today;
+  // Reset dirty state on each render
+  window._entryDirtyFields = {};
 
-  function v(key, fallback) {
-    const val = latest[key];
-    return (val !== undefined && val !== null && val !== 0) ? val : (fallback || 0);
-  }
-  // tapiola and s_sijoitus are the same field in different import formats
-  if (!latest.tapiola && latest.s_sijoitus) latest.tapiola = latest.s_sijoitus;
+  // Load data
+  const snaps = (await DB.getAll('snapshots')).sort((a, b) => a.date.localeCompare(b.date));
+  const latest = snaps.length ? snaps[snaps.length - 1] : {};
+  window._entryLatestSnap = latest;
 
-  el.innerHTML = `
-<div style="max-width:480px;margin:0 auto;padding:16px;">
+  const accounts = getAccounts();
 
-  ${alreadySaved ? `<div style="padding:8px 12px;border-radius:8px;background:rgba(90,158,106,0.1);
-    border:1px solid rgba(90,158,106,0.3);color:#5a9e6a;font-size:12px;margin-bottom:12px;">
-    ✓ Tänään (${todayFi}) on jo tallennettu — päivittäminen korvaa vanhan päivityksen.</div>` : ''}
-
-  <!-- ── KASSAVIRTA: TULOT (dynaamiset rivit) ── -->
-  
-
-  <!-- TULOT -->
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
-    overflow:hidden;margin-bottom:10px;">
-    <div style="padding:8px 14px;border-bottom:1px solid var(--border);
-      display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">
-        Tulot
+  // ── LAYER 1: ORIENTATION ──────────────────────────────────
+  const orientationHTML = `
+    <div id="entry-orientation" style="padding: 28px 20px 20px;">
+      <div style="font-size: 13px; color: var(--text3); font-weight: 400; letter-spacing: 0.01em;">
+        ${entryDateLabel()}
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:10px;color:var(--text3);">Palkanmaksupäivä</span>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <input type="date" id="inp-tulot_pvm"
-            value="${v('tulot_pvm') || ''}"
-            style="font-family:var(--mono);padding:4px 8px;font-size:16px;
-            opacity:0;position:absolute;width:110px;cursor:pointer;"
-            onchange="var fi=document.getElementById('pvm_fi_lbl');
-              var d=new Date(this.value);
-              if(fi)fi.textContent=isNaN(d)?'':d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();">
-          <span id="pvm_fi_lbl"
-            onclick="document.getElementById('inp-tulot_pvm').showPicker?document.getElementById('inp-tulot_pvm').showPicker():document.getElementById('inp-tulot_pvm').click()"
-            style="font-family:var(--mono);font-size:14px;color:var(--text2);
-            padding:4px 10px;background:rgba(0,200,255,0.06);border:1px solid var(--border);
-            border-radius:6px;cursor:pointer;white-space:nowrap;min-width:90px;display:inline-block;">
-            ${(()=>{var p=v('tulot_pvm');if(!p)return 'pp.kk.vvvv';var d=new Date(p);return isNaN(d)?'pp.kk.vvvv':d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();})()}
+    </div>
+  `;
+
+  // ── LAYER 2: ACCOUNTS ─────────────────────────────────────
+  // Each account: display name + current value. Tap to edit inline.
+  const accountRowsHTML = accounts.map(acc => {
+    const rawVal = latest[acc.field];
+    const numVal = (rawVal !== null && rawVal !== undefined) ? parseFloat(rawVal) : null;
+    const displayVal = _entryFmt(numVal);
+    const inputVal = (numVal !== null && !isNaN(numVal) && numVal !== 0) ? Math.abs(numVal) : '';
+    return `
+      <div class="entry-account-row" id="acct-row-${acc.id}"
+           onclick="entryAccountActivate('${acc.id}')"
+           style="display: flex; justify-content: space-between; align-items: center;
+                  padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+                  cursor: pointer;">
+        <span class="entry-acct-name" style="font-size: 15px; color: var(--text2); font-weight: 400;">
+          ${acc.label}
+        </span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="entry-disp-${acc.id}"
+                style="font-size: 20px; font-weight: 600; color: var(--text);
+                       font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">
+            ${displayVal}
           </span>
+          <input id="entry-inp-${acc.id}"
+                 type="number"
+                 value="${inputVal}"
+                 placeholder="0"
+                 inputmode="decimal"
+                 style="display: none; width: 120px; padding: 6px 10px;
+                        border: 1px solid var(--text3); border-radius: 8px;
+                        background: var(--surface2); color: var(--text);
+                        font-size: 20px; font-weight: 600; text-align: right;
+                        font-variant-numeric: tabular-nums; outline: none;"
+                 onblur="entryAccountDeactivate('${acc.id}')"
+                 oninput="markDirty('${acc.id}')">
         </div>
       </div>
-    </div>
-    <div id="tulot-items-list" style="padding:6px 14px 4px;">
-      ${renderTulotItems()}
-    </div>
-    <div style="padding:4px 14px 10px;">
-      <button onclick="addTulotItem()"
-        style="font-size:11px;padding:5px 12px;border-radius:6px;
-        background:transparent;border:1px dashed rgba(0,200,255,0.2);
-        color:var(--text3);cursor:pointer;width:100%;text-align:left;">
-        + Lisää tulolähde
+    `;
+  }).join('');
+
+  // Manage accounts link (secondary, not part of daily ritual)
+  const manageAccountsHTML = `
+    <div style="padding: 12px 0 4px;">
+      <button onclick="entryShowAccountManager()"
+              style="background: none; border: none; color: var(--text3);
+                     font-size: 12px; cursor: pointer; padding: 0;
+                     text-decoration: underline; text-underline-offset: 3px;">
+        Hallinnoi tilejä
       </button>
     </div>
-  </div>
+  `;
 
-  <!-- OPERATIIVINEN RYTMI -->
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
-    overflow:hidden;margin-bottom:16px;">
-    <div style="padding:8px 14px;border-bottom:1px solid var(--border);">
-      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">
-        Toistuvat menot
+  const accountsHTML = `
+    <div id="entry-accounts" style="padding: 0 20px;">
+      <div style="font-size: 11px; color: var(--text3); letter-spacing: 0.06em;
+                  text-transform: uppercase; padding-bottom: 8px;
+                  border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 0;">
+        Tilit
       </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic;">
-        Pankkimaksut, vakuutukset, tilausmaksut
-      </div>
+      ${accountRowsHTML}
+      ${manageAccountsHTML}
     </div>
-    <div id="rytmi-items-list" style="padding:6px 14px 4px;">
-      ${renderRytmiItems()}
-    </div>
-    <div style="padding:4px 14px 10px;">
-      <button onclick="addRytmiItem()"
-        style="font-size:11px;padding:5px 12px;border-radius:6px;
-        background:transparent;border:1px dashed rgba(0,200,255,0.2);
-        color:var(--text3);cursor:pointer;width:100%;text-align:left;">
-        + Lisää meno
+  `;
+
+  // ── FLOATING SAVE BUTTON (hidden until dirty) ──────────────
+  const floatSaveHTML = `
+    <div id="entry-float-save"
+         style="display: none; opacity: 0; transform: translateY(8px);
+                transition: opacity 0.18s ease, transform 0.18s ease;
+                position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+                z-index: 200;">
+      <button onclick="entrySaveDay()"
+              style="padding: 14px 40px; border-radius: 100px;
+                     background: var(--surface2); border: 1px solid var(--text3);
+                     color: var(--text); font-size: 15px; font-weight: 600;
+                     cursor: pointer; white-space: nowrap;
+                     box-shadow: 0 4px 24px rgba(0,0,0,0.5);">
+        Tallenna päivä
       </button>
     </div>
-    <div style="padding:6px 14px 10px;border-top:1px solid var(--border);" id="rytmi-yhteenveto">
+  `;
+
+  // ── DIVIDER between Accounts and Structures ───────────────
+  const dividerHTML = `
+    <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 24px 20px 0;"></div>
+  `;
+
+  // ── LAYER 3: STRUCTURES (Phase 2 placeholder) ─────────────
+  // Structures are rendered collapsed. Phase 2 will expand this.
+  const structuresHTML = _renderStructures(latest);
+
+  // ── ASSEMBLE ──────────────────────────────────────────────
+  el.innerHTML = `
+    <div style="max-width: 480px; margin: 0 auto; padding-bottom: 100px;">
+      ${orientationHTML}
+      ${accountsHTML}
+      ${dividerHTML}
+      ${structuresHTML}
     </div>
-  </div>
-
-  <!-- ── TASO 1: PÄIVITTÄINEN ── -->
-  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
-    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Tilit</div>
-    <div style="font-size:10px;color:rgba(0,200,255,0.5);">napauta muuttaaksesi ✎</div>
-  </div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
-    overflow:hidden;margin-bottom:12px;">
-
-    <div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);">
-      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Käyttötilit</div>
-      ${entryRow('Tulotili', 'tulotili', v('tulotili'), '€')}
-      ${entryRow('S-Pankki', 's_pankki', v('s_pankki'), '€')}
-      ${entryRow('Tavoitetili', 'tavoitetili', v('tavoitetili'), '€')}
-    </div>
-
-    <div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);">
-      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">OP Gold · luottokortti</div>
-      ${entryRow('Kuukauden saldo', 'op_gold', v('op_gold'), '€', 'kertynyt tähän mennessä')}
-    </div>
-
-    <div style="padding:8px 14px;" id="nettorytmi-block">
-      
-    </div>
-  </div>
-
-  <!-- ── TASO 2: SIJOITUKSET ── -->
-  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;">Sijoitukset</div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
-    overflow:hidden;margin-bottom:12px;">
-    <div style="padding:8px 14px 4px;">
-      ${entryRow('Nordnet', 'nordnet', v('nordnet'), '€')}
-      ${entryRow('OP Osakkeet', 'op_osakkeet', v('op_osakkeet'), '€')}
-      ${entryRow('Tapiola / S-sijoitus', 'tapiola', v('tapiola'), '€')}
-    </div>
-  </div>
-
-  <!-- ── TASO 3: LAINAT ── -->
-  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;
-    margin-bottom:8px;">Lainat</div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;
-    overflow:hidden;margin-bottom:12px;">
-    <div style="padding:8px 14px 4px;">
-      ${entryLoan('Asuntolaina', 'asuntolaina', v('asuntolaina'), 2029, 200)}
-      ${entryLoan('Autolaina', 'autolaina', v('autolaina'), 2027, 255)}
-      ${entryLoan('Remonttilaina', 'asuntolaina_remontti', v('asuntolaina_remontti'), 2026, 170)}
-    </div>
-    <div style="padding:6px 14px 10px;">
-      
-    </div>
-  </div>
-
-  <!-- ── MERKITTÄVÄ TAPAHTUMA (kollapsoituva) ── -->
-  <div style="margin-bottom:16px;">
-    <button id="konteksti-toggle" onclick="toggleKonteksti()"
-      style="width:100%;padding:10px 14px;border-radius:11px;
-      border:1px dashed rgba(0,200,255,0.2);background:transparent;
-      color:var(--text3);font-size:12px;cursor:pointer;text-align:left;
-      display:flex;justify-content:space-between;align-items:center;">
-      <span>+ Muistiinpano päivään</span>
-      <span style="font-size:10px;opacity:.6;">vapaaehtoinen</span>
-    </button>
-    <div id="konteksti-body" style="display:none;background:var(--card);
-      border:1px solid var(--border);border-radius:0 0 11px 11px;
-      border-top:none;padding:12px 14px;">
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">
-        ${['Autohuolto','Matka','Bonus','Palkka+','Isohankinta','Laskuerä','Muu'].map(t =>
-          `<button onclick="toggleTag(this)" data-tag="${t}" style="font-size:11px;padding:3px 10px;
-            border-radius:20px;border:1px solid var(--border);background:transparent;
-            color:var(--text3);cursor:pointer;transition:all .15s;">${t}</button>`
-        ).join('')}
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-        <label style="font-size:12px;color:var(--text3);white-space:nowrap;">Summa</label>
-        <input id="event-amount" type="number" placeholder="0"
-          style="flex:1;padding:10px 10px;border:1px solid var(--border);border-radius:7px;
-          background:rgba(0,200,255,0.04);color:var(--text);font-family:var(--mono);font-size:16px;">
-        <span style="font-size:12px;color:var(--text3);">€</span>
-      </div>
-      <textarea id="event-note" placeholder="Selitys poikkeamalle — vapaaehtoinen"
-        rows="2" style="width:100%;border:1px solid var(--border);border-radius:7px;
-        background:rgba(0,200,255,0.04);color:var(--text);font-size:16px;padding:10px 10px;
-        font-family:var(--sans);resize:none;"></textarea>
-    </div>
-  </div>
-
-  <!-- ── TALLENNA ── -->
-  <button onclick="collectKassavirtaBeforeSave();saveEntrySnapshot()" id="btn-entry-save"
-    style="width:100%;padding:14px;border-radius:11px;font-size:15px;font-weight:700;
-    background:linear-gradient(135deg,rgba(90,158,106,0.2),rgba(0,200,255,0.1));
-    border:1px solid rgba(90,158,106,0.4);color:#5a9e6a;cursor:pointer;letter-spacing:.03em;">
-    Tallenna päivä · ${todayFi}
-  </button>
-  <div id="entry-msg" style="margin-top:10px;font-size:12px;text-align:center;"></div>
-
-</div>`;
-
-  // Lasketaan nettorytmi reaaliajassa
-  function updateDerived() {
-    const tulotili = parseFloat(document.getElementById('inp-tulotili')?.value) || 0;
-    const opGold   = Math.abs(parseFloat(document.getElementById('inp-op_gold')?.value) || 0);
-    const netto    = tulotili - opGold;
-    const el2      = document.getElementById('nettorytmi-val');
-    if (el2) {
-      el2.textContent = fmt(netto);
-      el2.style.color = netto >= 0 ? '#5a9e6a' : 'var(--text)';
-    }
-    // Lainat yhteensä
-    const al = Math.abs(parseFloat(document.getElementById('inp-asuntolaina')?.value) || 0);
-    const au = Math.abs(parseFloat(document.getElementById('inp-autolaina')?.value) || 0);
-    const re = Math.abs(parseFloat(document.getElementById('inp-asuntolaina_remontti')?.value) || 0);
-    const tot = al + au + re;
-    const lt = document.querySelector('#laina-total span:last-child');
-    if (lt) lt.textContent = tot > 0 ? fmt(-tot) : '—';
-  }
-
-  updateEntryDerived();
+    ${floatSaveHTML}
+  `;
 }
 
-function entryRow(label, id, val, unit, sub) {
-  const display = val ? Math.abs(val) : '';
-  const fmtVal  = val ? fmt(Math.abs(val)) : '—';
-  return `<div class="entry-row" style="display:flex;justify-content:space-between;align-items:center;
-    padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);cursor:pointer;
-    border-radius:6px;transition:background .12s;margin:0 -8px;padding-left:8px;padding-right:8px;"
-    onclick="entryActivate(this,'${id}')"
-    onmouseenter="this.style.background='rgba(0,200,255,0.06)'"
-    onmouseleave="this.style.background='transparent'">
-    <div>
-      <div style="font-size:13px;color:var(--text2);">${label}</div>
-      ${sub ? `<div style="font-size:10px;color:var(--text3);">${sub}</div>` : ''}
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;">
-      <span id="disp-${id}" style="font-family:var(--mono);font-size:15px;font-weight:600;
-        color:var(--text);border-bottom:1px dashed rgba(0,200,255,0.35);padding-bottom:1px;">${fmtVal}</span>
-      <span style="font-size:11px;color:rgba(0,200,255,0.4);">✎</span>
-      <input id="inp-${id}" type="number" value="${display}" placeholder="0"
-        style="width:110px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
-        background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
-        font-size:16px;text-align:right;display:none;"
-        onblur="entryDeactivate(this,'${id}')" oninput="updateEntryDerived()">
-      <span style="font-size:12px;color:var(--text3);">${unit}</span>
-    </div>
-  </div>`;
-}
-
-function entryLoan(label, id, val, endsYear, monthly) {
-  const display  = val ? Math.abs(val) : '';
-  const fmtVal   = val ? fmt(Math.abs(val)) : '—';
-  // Load saved loan config from localStorage
-  const cfgKey   = 'loan_cfg_' + id;
-  let cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem(cfgKey) || '{}'); } catch(e) {}
-  const ey  = cfg.endsYear || endsYear;
-  const mon = cfg.monthly  || monthly;
-  const yLeft = ey - new Date().getFullYear();
-  const yClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
-  return `<div style="padding:8px 0;border-bottom:1px solid rgba(0,200,255,0.05);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;
-      cursor:pointer;border-radius:6px;transition:background .12s;margin:0 -8px 6px;
-      padding:4px 8px;"
-      onclick="entryActivate(this.parentElement,'${id}')"
-      onmouseenter="this.style.background='rgba(0,200,255,0.06)'"
-      onmouseleave="this.style.background='transparent'">
-      <div style="font-size:13px;color:var(--text2);">${label}</div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span id="disp-${id}" style="font-family:var(--mono);font-size:15px;font-weight:600;
-          color:var(--text2);border-bottom:1px dashed rgba(0,200,255,0.35);padding-bottom:1px;">${fmtVal}</span>
-        <span style="font-size:11px;color:rgba(0,200,255,0.4);">✎</span>
-        <input id="inp-${id}" type="number" value="${display}" placeholder="0"
-          style="width:100px;padding:5px 8px;border:1px solid var(--cyan);border-radius:6px;
-          background:rgba(0,200,255,0.06);color:var(--text);font-family:var(--mono);
-          font-size:16px;text-align:right;display:none;"
-          onblur="entryDeactivate(this,'${id}')" oninput="updateEntryDerived()">
-        <span style="font-size:12px;color:var(--text3);">€</span>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <span style="font-size:10px;color:${yClr};white-space:nowrap;">→ päättyy</span>
-      <input type="number" value="${ey}" min="2024" max="2060" step="1"
-        style="width:72px;padding:8px 6px;border:1px solid var(--border);border-radius:5px;
-        background:rgba(0,200,255,0.04);color:${yClr};font-family:var(--mono);font-size:16px;text-align:center;"
-        onchange="saveLoanCfg('${id}','endsYear',parseInt(this.value));this.style.color='#5a9e6a'">
-      <span style="font-size:10px;color:var(--text3);margin-left:4px;">lyhennys</span>
-      <div style="display:flex;align-items:center;gap:3px;">
-        <input type="number" value="${mon}" min="0" step="10"
-          style="width:72px;padding:8px 6px;border:1px solid var(--border);border-radius:5px;
-          background:rgba(0,200,255,0.04);color:#5a9e6a;font-family:var(--mono);font-size:16px;text-align:right;"
-          onchange="saveLoanCfg('${id}','monthly',parseInt(this.value))">
-        <span style="font-size:10px;color:var(--text3);">€/kk</span>
-      </div>
-    </div>
-  </div>`;
-}
-
-var _entryTags = new Set();
-function toggleTag(btn) {
-  const tag = btn.dataset.tag;
-  if (_entryTags.has(tag)) {
-    _entryTags.delete(tag);
-    btn.style.background = 'transparent';
-    btn.style.color = 'var(--text3)';
-    btn.style.borderColor = 'var(--border)';
-  } else {
-    _entryTags.add(tag);
-    btn.style.background = 'rgba(90,158,106,0.15)';
-    btn.style.color = '#5a9e6a';
-    btn.style.borderColor = 'rgba(90,158,106,0.4)';
-  }
-}
-
-// Tap-to-edit: klikkaus näyttää inputin, blur palauttaa arvon
-function entryActivate(row, id) {
-  const disp = document.getElementById('disp-' + id);
-  const inp  = document.getElementById('inp-'  + id);
+// ── Account: tap to edit ──────────────────────────────────────
+window.entryAccountActivate = function(id) {
+  const disp = document.getElementById('entry-disp-' + id);
+  const inp  = document.getElementById('entry-inp-'  + id);
   if (!disp || !inp) return;
   disp.style.display = 'none';
   inp.style.display  = 'block';
   inp.focus();
-  inp.select();
-}
-function entryDeactivate(inp, id) {
-  const disp = document.getElementById('disp-' + id);
-  if (!disp) return;
-  const v = parseFloat(inp.value);
-  disp.textContent = (!isNaN(v) && v !== 0) ? fmt(Math.abs(v)) : '—';
+  if (inp.value) { inp.select(); }
+};
+
+window.entryAccountDeactivate = function(id) {
+  const disp = document.getElementById('entry-disp-' + id);
+  const inp  = document.getElementById('entry-inp-'  + id);
+  if (!disp || !inp) return;
+  const n = parseFloat(inp.value);
+  disp.textContent = (!isNaN(n) && n !== 0) ? _entryFmt(n) : '—';
   inp.style.display  = 'none';
   disp.style.display = 'block';
-  updateEntryDerived();
-}
-function updateEntryDerived() {
-  function v(id) { return parseFloat(document.getElementById('inp-'+id)?.value) || 0; }
-  const tulotili = v('tulotili');
-  const opGold   = Math.abs(v('op_gold'));
-  const netto    = tulotili - opGold;
-  const el = document.getElementById('nettorytmi-val');
-  if (el) { el.textContent = fmt(netto); el.style.color = netto >= 0 ? '#5a9e6a' : 'var(--text)'; }
-  const tot = Math.abs(v('asuntolaina')) + Math.abs(v('autolaina')) + Math.abs(v('asuntolaina_remontti'));
-  const lt  = document.querySelector('#laina-total span:last-child');
-  if (lt) lt.textContent = tot > 0 ? fmt(-tot) : '—';
-}
+};
 
-function toggleKonteksti() {
-  const body = document.getElementById('konteksti-body');
-  const btn  = document.getElementById('konteksti-toggle');
-  if (!body) return;
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  if (btn) btn.textContent = open ? '+ Muistiinpano päivään' : '− Sulje';
-}
-
-
-// Kerää kassavirta-arvot DOM:sta ennen snapshotin tallennusta
-function collectKassavirtaBeforeSave() {
-  var tulotItems = []; var i = 0;
-  while (true) {
-    var amtEl  = document.getElementById('tulot-amt-' + i);
-    if (!amtEl) break;
-    var typeEl = document.getElementById('tulot-type-' + i);
-    var lblEl  = document.getElementById('tulot-lbl-' + i);
-    var amt    = parseFloat(amtEl.value) || 0;
-    if (amt > 0) tulotItems.push({
-      type:   typeEl ? typeEl.value : 'palkka',
-      label:  lblEl  ? lblEl.value.trim() : '',
-      amount: amt
-    });
-    i++;
-  }
-  var rytmiItems = []; i = 0;
-  while (true) {
-    var amtEl = document.getElementById('rytmi-amt-' + i);
-    if (!amtEl) break;
-    var lblEl = document.getElementById('rytmi-lbl-' + i);
-    var amt   = parseFloat(amtEl.value) || 0;
-    if (amt > 0) rytmiItems.push({
-      label:  lblEl ? lblEl.value.trim() : '',
-      amount: amt
-    });
-    i++;
-  }
-  var pvmEl = document.getElementById('inp-tulot_pvm');
-  window._savedTulotItems = tulotItems;
-  window._savedRytmiItems = rytmiItems;
-  window._savedTulotKk    = tulotItems.reduce(function(s,t){return s+t.amount;}, 0) || null;
-  window._savedMenotKk    = rytmiItems.reduce(function(s,r){return s+r.amount;}, 0) || null;
-  window._savedTulotPvm   = pvmEl ? pvmEl.value : null;
-  console.log('Kassavirta kerätty:', JSON.stringify(window._savedTulotItems));
-}
-
-async function saveEntrySnapshot() {
-  const btn = document.getElementById('btn-entry-save');
-  const msg = document.getElementById('entry-msg');
-  if (btn) { btn.disabled = true; btn.textContent = 'Tallennetaan...'; }
-
-  function val(id) {
-    const v = parseFloat(document.getElementById('inp-'+id)?.value);
-    return isNaN(v) ? null : v;
+// ── Structures: display-first, collapsed, tap to edit ────────
+function _renderStructures(latest) {
+  function structureRow(label, fieldKey, rawVal) {
+    const numVal = rawVal ? Math.abs(parseFloat(rawVal)) : 0;
+    const displayVal = numVal ? numVal.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' €' : '—';
+    const inputVal = numVal || '';
+    return `
+      <div style="display: flex; justify-content: space-between; align-items: center;
+                  padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+                  cursor: pointer;"
+           onclick="entryStructureActivate('${fieldKey}')">
+        <span style="font-size: 15px; color: var(--text2);">${label}</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span id="struct-disp-${fieldKey}"
+                style="font-size: 15px; font-weight: 600; color: var(--text3);
+                       font-variant-numeric: tabular-nums;">
+            ${displayVal}
+          </span>
+          <span style="font-size: 11px; color: rgba(255,255,255,0.2);">›</span>
+          <input id="struct-inp-${fieldKey}"
+                 type="number" value="${inputVal}" placeholder="0"
+                 inputmode="decimal"
+                 style="display: none; width: 110px; padding: 5px 8px;
+                        border: 1px solid var(--text3); border-radius: 8px;
+                        background: var(--surface2); color: var(--text);
+                        font-size: 15px; font-weight: 600; text-align: right; outline: none;"
+                 onblur="entryStructureDeactivate('${fieldKey}')"
+                 oninput="markDirty('${fieldKey}')">
+        </div>
+      </div>
+    `;
   }
 
-  const tulotili  = val('tulotili')   || 0;
-  const s_pankki  = val('s_pankki')   || 0;
-  const tavoite   = val('tavoitetili') || 0;
-  const op_gold   = -(Math.abs(val('op_gold') || 0));  // aina negatiivinen
-  const nordnet   = val('nordnet')    || 0;
-  const op_os     = val('op_osakkeet') || 0;
-  const tapiola   = val('tapiola')    || 0;
-  const asunto    = -(Math.abs(val('asuntolaina') || 0));
-  const auto      = -(Math.abs(val('autolaina') || 0));
-  const remontti  = -(Math.abs(val('asuntolaina_remontti') || 0));
+  const loansHTML = [
+    structureRow('Asuntolaina',         'asuntolaina',           latest.asuntolaina),
+    structureRow('Asuntolaina, remontti','asuntolaina_remontti',  latest.asuntolaina_remontti),
+    structureRow('Autolaina',           'autolaina',             latest.autolaina),
+    structureRow('OP Gold',             'op_gold',               latest.op_gold),
+    structureRow('Luottotili',          'luottotili',            latest.luottotili),
+  ].join('');
 
-  const eventAmt  = parseFloat(document.getElementById('event-amount')?.value) || 0;
-  const eventNote = document.getElementById('event-note')?.value?.trim() || '';
-  const tags      = [..._entryTags];
+  // Recurring income rows
+  const tulotItems = latest.tulot_items || [];
+  const incomeRowsHTML = tulotItems.length
+    ? tulotItems.map((item, i) => {
+        const amt = parseFloat(item.amount) || 0;
+        const label = item.label || (item.type === 'palkka' ? 'Palkka' : item.type || 'Tulo');
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center;
+                      padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <span style="font-size: 14px; color: var(--text2);">${label}</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 14px; color: var(--text3); font-variant-numeric: tabular-nums;">
+                ${amt ? amt.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' € / kk' : '—'}
+              </span>
+              <span style="font-size: 11px; color: rgba(255,255,255,0.2);">›</span>
+            </div>
+          </div>
+        `;
+      }).join('')
+    : '<div style="font-size: 13px; color: var(--text3); padding: 10px 0;">Ei tuloja tallennettu.</div>';
 
-  // Rakenna note
-  let note = '';
-  if (tags.length > 0) note += tags.join(', ');
-  if (eventAmt) note += (note ? ' ' : '') + fmt(eventAmt) + '€';
-  if (eventNote) note += (note ? ' — ' : '') + eventNote;
+  // Recurring expense rows
+  const rytmiItems = latest.rytmi_items || [];
+  const expenseRowsHTML = rytmiItems.length
+    ? rytmiItems.map((item, i) => {
+        const amt = parseFloat(item.amount) || 0;
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center;
+                      padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <span style="font-size: 14px; color: var(--text2);">${item.label || 'Meno'}</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 14px; color: var(--text3); font-variant-numeric: tabular-nums;">
+                ${amt ? amt.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' € / kk' : '—'}
+              </span>
+              <span style="font-size: 11px; color: rgba(255,255,255,0.2);">›</span>
+            </div>
+          </div>
+        `;
+      }).join('')
+    : '<div style="font-size: 13px; color: var(--text3); padding: 10px 0;">Ei toistuvia menoja tallennettu.</div>';
 
-  const today = new Date().toISOString().slice(0,10);
-  const todayFi = new Date().toLocaleDateString('fi-FI');
-  // Alusta kassavirta-state viimeisimmästä snapista
-  const _allSnapsForEntry = await DB.getAll('snapshots');
-  const _latestForEntry = _allSnapsForEntry.sort((a,b)=>b.date.localeCompare(a.date))[0] || {};
-  initKassavirtaState(_latestForEntry);
+  return `
+    <div id="entry-structures" style="padding: 20px 20px 0;">
 
-  // Hae aiempi snapshot tänään jotta saldot joita ei muutettu säilyvät
-  const snaps = (await DB.getAll('snapshots')).sort((a,b) => b.date.localeCompare(a.date));
-  const prev  = snaps[0] || {};
+      <div style="font-size: 11px; color: var(--text3); letter-spacing: 0.06em;
+                  text-transform: uppercase; padding-bottom: 8px;
+                  border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 0;">
+        Perusta
+      </div>
 
-  // Yhdistä: uudet arvot ylikirjoittavat vanhat, nollat eivät ylikirjoita
+      ${loansHTML}
+
+      <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 4px 0 0;
+                  border: none; border-top: 1px dashed rgba(255,255,255,0.07);"></div>
+
+      <div style="font-size: 11px; color: var(--text3); letter-spacing: 0.06em;
+                  text-transform: uppercase; padding: 14px 0 8px;">
+        Toistuvat tulot
+      </div>
+      ${incomeRowsHTML}
+
+      <div style="height: 1px; border: none; border-top: 1px dashed rgba(255,255,255,0.07); margin: 4px 0 0;"></div>
+
+      <div style="font-size: 11px; color: var(--text3); letter-spacing: 0.06em;
+                  text-transform: uppercase; padding: 14px 0 8px;">
+        Toistuvat menot
+      </div>
+      ${expenseRowsHTML}
+
+    </div>
+  `;
+}
+
+// ── Structure: tap to edit ────────────────────────────────────
+window.entryStructureActivate = function(fieldKey) {
+  const disp = document.getElementById('struct-disp-' + fieldKey);
+  const inp  = document.getElementById('struct-inp-'  + fieldKey);
+  if (!disp || !inp) return;
+  disp.style.display = 'none';
+  inp.style.display  = 'block';
+  inp.focus();
+  if (inp.value) inp.select();
+};
+
+window.entryStructureDeactivate = function(fieldKey) {
+  const disp = document.getElementById('struct-disp-' + fieldKey);
+  const inp  = document.getElementById('struct-inp-'  + fieldKey);
+  if (!disp || !inp) return;
+  const n = parseFloat(inp.value);
+  const display = (!isNaN(n) && n !== 0)
+    ? Math.abs(n).toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' €'
+    : '—';
+  disp.textContent   = display;
+  inp.style.display  = 'none';
+  disp.style.display = 'block';
+};
+
+// ── Account manager (secondary action) ───────────────────────
+window.entryShowAccountManager = function() {
+  const accounts = getAccounts();
+  const existing = document.getElementById('entry-account-manager');
+  if (existing) { existing.remove(); return; }
+
+  const mgr = document.createElement('div');
+  mgr.id = 'entry-account-manager';
+  mgr.style.cssText = 'margin: 8px 20px 0; padding: 16px; border: 1px solid var(--border);' +
+    'border-radius: 12px; background: var(--surface2);';
+
+  const rows = accounts.map((acc, i) => `
+    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+      <input type="text" value="${acc.label}"
+             id="acct-mgr-label-${i}"
+             style="flex: 1; padding: 8px 10px; border: 1px solid var(--border);
+                    border-radius: 7px; background: var(--surface); color: var(--text);
+                    font-size: 15px; outline: none;">
+      <button onclick="entryRemoveAccount(${i})"
+              style="background: none; border: none; color: var(--text3);
+                     font-size: 18px; cursor: pointer; padding: 0 4px;">×</button>
+    </div>
+  `).join('');
+
+  mgr.innerHTML = `
+    <div style="font-size: 11px; color: var(--text3); text-transform: uppercase;
+                letter-spacing: 0.06em; margin-bottom: 12px;">Hallinnoi tilejä</div>
+    ${rows}
+    <button onclick="entryAddAccount()"
+            style="font-size: 12px; padding: 7px 14px; border-radius: 8px;
+                   border: 1px dashed rgba(255,255,255,0.2); background: none;
+                   color: var(--text3); cursor: pointer; width: 100%; text-align: left;
+                   margin-bottom: 10px;">
+      + Lisää tili
+    </button>
+    <div style="display: flex; gap: 8px;">
+      <button onclick="entryAccountManagerSave()"
+              style="flex: 1; padding: 9px; border-radius: 8px;
+                     border: 1px solid var(--text3); background: none;
+                     color: var(--text); font-size: 13px; cursor: pointer;">
+        Tallenna
+      </button>
+      <button onclick="document.getElementById('entry-account-manager')?.remove()"
+              style="padding: 9px 16px; border-radius: 8px;
+                     border: 1px solid var(--border); background: none;
+                     color: var(--text3); font-size: 13px; cursor: pointer;">
+        Peruuta
+      </button>
+    </div>
+  `;
+
+  const manageBtn = document.querySelector('[onclick="entryShowAccountManager()"]');
+  if (manageBtn) manageBtn.insertAdjacentElement('afterend', mgr);
+};
+
+window.entryRemoveAccount = function(i) {
+  const labels = document.querySelectorAll('[id^="acct-mgr-label-"]');
+  if (labels.length <= 1) return; // keep at least one
+  const mgr = document.getElementById('entry-account-manager');
+  if (!mgr) return;
+  const rows = mgr.querySelectorAll('div[style*="margin-bottom: 8px"]');
+  if (rows[i]) rows[i].remove();
+};
+
+window.entryAddAccount = function() {
+  const accounts = getAccounts();
+  // Temporarily show a new row in the manager
+  const mgr = document.getElementById('entry-account-manager');
+  if (!mgr) return;
+  const i = accounts.length;
+  const newRow = document.createElement('div');
+  newRow.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px;';
+  newRow.innerHTML = `
+    <input type="text" id="acct-mgr-label-${i}" placeholder="Tilin nimi"
+           style="flex: 1; padding: 8px 10px; border: 1px solid var(--border);
+                  border-radius: 7px; background: var(--surface); color: var(--text);
+                  font-size: 15px; outline: none;">
+    <button onclick="this.parentElement.remove()"
+            style="background: none; border: none; color: var(--text3);
+                   font-size: 18px; cursor: pointer; padding: 0 4px;">×</button>
+  `;
+  const addBtn = mgr.querySelector('[onclick="entryAddAccount()"]');
+  if (addBtn) mgr.insertBefore(newRow, addBtn);
+};
+
+window.entryAccountManagerSave = function() {
+  const inputs = document.querySelectorAll('[id^="acct-mgr-label-"]');
+  const current = getAccounts();
+  const updated = [];
+  inputs.forEach((inp, i) => {
+    const label = inp.value.trim();
+    if (!label) return;
+    // Re-use existing field mapping if available, otherwise create a safe field key
+    const existing = current[i];
+    if (existing) {
+      updated.push({ ...existing, label });
+    } else {
+      const fieldKey = 'custom_' + label.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      updated.push({ id: fieldKey, label, field: fieldKey });
+    }
+  });
+  if (updated.length === 0) return;
+  saveAccounts(updated);
+  document.getElementById('entry-account-manager')?.remove();
+  renderEntryView();
+};
+
+// ── Save day ─────────────────────────────────────────────────
+window.entrySaveDay = async function() {
+  const btn = document.getElementById('entry-float-save')?.querySelector('button');
+  if (btn) { btn.textContent = 'Tallennetaan…'; btn.disabled = true; }
+
+  const latest = window._entryLatestSnap || {};
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Collect account values
+  const accounts = getAccounts();
+  const accountValues = {};
+  accounts.forEach(acc => {
+    const inp = document.getElementById('entry-inp-' + acc.id);
+    if (inp) {
+      const n = parseFloat(inp.value);
+      // If field was edited and has a value, use it; else carry forward
+      if (!isNaN(n) && inp.value !== '') {
+        accountValues[acc.field] = n;
+      } else {
+        accountValues[acc.field] = latest[acc.field] ?? null;
+      }
+    } else {
+      accountValues[acc.field] = latest[acc.field] ?? null;
+    }
+  });
+
+  // Collect structure values
+  const structFields = ['asuntolaina','asuntolaina_remontti','autolaina','op_gold','luottotili'];
+  const structValues = {};
+  structFields.forEach(f => {
+    const inp = document.getElementById('struct-inp-' + f);
+    if (inp && inp.value !== '') {
+      const n = parseFloat(inp.value);
+      structValues[f] = !isNaN(n) ? -Math.abs(n) : (latest[f] ?? null);
+    } else {
+      structValues[f] = latest[f] ?? null;
+    }
+  });
+
   const snap = {
-    date:    today,
-    dateFi:  todayFi,
-    // tilit
-    tulotili:  tulotili  || prev.tulotili   || 0,
-    s_pankki:  s_pankki  || prev.s_pankki   || 0,
-    tavoitetili: tavoite || prev.tavoitetili || 0,
-    elatustili: prev.elatustili || 0,
-    // kortit
-    op_gold:   op_gold !== 0 ? op_gold : (prev.op_gold || 0),
-    // sijoitukset
-    nordnet:   nordnet  || prev.nordnet  || 0,
-    op_osakkeet: op_os  || prev.op_osakkeet || 0,
-    tapiola:   tapiola  || prev.tapiola || prev.s_sijoitus || 0,
-    s_sijoitus: 0,
-    rahastot:   prev.rahastot   || 0,
-    // lainat
-    asuntolaina: asunto !== 0 ? asunto : (prev.asuntolaina || 0),
-    autolaina:   auto   !== 0 ? auto   : (prev.autolaina   || 0),
-    asuntolaina_remontti: remontti !== 0 ? remontti : (prev.asuntolaina_remontti || 0),
-    // lasten
-    lasten_sijoitus: prev.lasten_sijoitus || 0,
-    // kassavirta — käytetään collectKassavirtaBeforeSave()-funktionkeräimiä
-    tulot_items: (window._savedTulotItems && window._savedTulotItems.length > 0) ? window._savedTulotItems : (prev.tulot_items || []),
-    rytmi_items: (window._savedRytmiItems && window._savedRytmiItems.length > 0) ? window._savedRytmiItems : (prev.rytmi_items || []),
-    tulot_kk:    window._savedTulotKk    || prev.tulot_kk    || null,
-    menot_kk:    window._savedMenotKk    || prev.menot_kk    || null,
-    menot_kk:    getRytmiYhteensa() || prev.menot_kk || null,
-    tulot_pvm:   window._savedTulotPvm || document.getElementById('inp-tulot_pvm')?.value || prev.tulot_pvm || null,
-    nordnet_cash: val('nordnet_cash') !== null ? val('nordnet_cash') : (prev.nordnet_cash ?? null),
-    note,
+    date: today,
+    // Account values
+    ...accountValues,
+    // Structure values
+    ...structValues,
+    // Carry forward everything else from latest
+    nordnet:              latest.nordnet              ?? null,
+    op_osakkeet:          latest.op_osakkeet          ?? null,
+    tapiola:              latest.tapiola              ?? null,
+    s_sijoitus:           latest.s_sijoitus           ?? null,
+    rahastot:             latest.rahastot             ?? null,
+    lasten_sijoitus:      latest.lasten_sijoitus      ?? null,
+    visa:                 latest.visa                 ?? null,
+    asuntolaina_remontti: structValues.asuntolaina_remontti ?? (latest.asuntolaina_remontti ?? null),
+    kaikki_lainat:        latest.kaikki_lainat        ?? null,
+    tulot_items:          latest.tulot_items          ?? [],
+    rytmi_items:          latest.rytmi_items          ?? [],
+    tulot_kk:             latest.tulot_kk             ?? null,
+    menot_kk:             latest.menot_kk             ?? null,
+    tulot_pvm:            latest.tulot_pvm            ?? null,
+    muut_tulot:           latest.muut_tulot           ?? null,
+    raw_import: { source: 'entry_v2', engine: 'v1', saved_at: new Date().toISOString() },
   };
 
   await DB.putSnapshot(snap);
-
-  // Jos tapiola/s_sijoitus tallennettiin, päivitä implisiittinen yksikköhinta S-Pankki-omistukselle
-  const tapiolaVal = snap.tapiola || snap.s_sijoitus || 0;
-  if (tapiolaVal > 0) {
-    try {
-      const holdings = await DB.getAll('holdings');
-      const sspankki = holdings.find(h =>
-        h.active !== false &&
-        ((h.ticker||'').toUpperCase().includes('SPANKKI') ||
-         (h.ticker||'').toUpperCase().includes('ESG') ||
-         (h.account||'').toLowerCase().includes('s-pankki') ||
-         (h.account||'').toLowerCase().includes('spankki'))
-      );
-      if (sspankki && sspankki.quantity > 0) {
-        const impliedPrice = tapiolaVal / sspankki.quantity;
-        await DB.putHolding(Object.assign({}, sspankki, {
-          last_price:      impliedPrice,
-          last_price_date: today,
-          last_price_src:  'Snapshot (tapiola)',
-          last_price_time: todayFi,
-        }));
-      }
-    } catch(e) { console.log('tapiola holding sync:', e); }
-  }
-
-  // Synkronoi Supabaseen
-  try { await syncToSupabase([snap]); } catch(e) {}
-
-  _entryTags.clear();
-
-  if (msg) {
-    msg.style.color = '#5a9e6a';
-    msg.textContent = '✓ Tallennettu · ' + todayFi;
-  }
-  if (btn) { btn.disabled = false; btn.textContent = 'Tallenna päivä · ' + todayFi; }
-
-  // Päivitä dashboard
   await updateNavCount();
+
+  // Background sync
+  try { setTimeout(() => syncToSupabase([snap]), 500); } catch(e) {}
+  try { setTimeout(() => autoBackup(), 1500); } catch(e) {}
+
+  clearDirty();
+
+  // Visual confirmation: button briefly shows confirmation
+  if (btn) {
+    btn.textContent = '✓ Tallennettu';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = 'Tallenna päivä';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+      hideEntryFloatSave();
+    }, 1400);
+  }
+
+  // Navigate to dashboard after save
   setTimeout(() => {
     showView('dashboard');
     requestAnimationFrame(() => {
       renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
       window.scrollTo({ top: 0, behavior: 'instant' });
-      const main = document.getElementById('db-content') || document.querySelector('.main-content') || document.querySelector('.view.active');
-      if (main) main.scrollTop = 0;
     });
-  }, 800);
-}
+  }, 1600);
+};
 
-// Tallenna lainan konfiguraatio localStorageen
+// Keep legacy collectKassavirtaBeforeSave and saveEntrySnapshot as no-ops
+// so any remaining references in index.html or other files don't break.
+function collectKassavirtaBeforeSave() {}
+async function saveEntrySnapshot() { await entrySaveDay(); }
+
 function saveLoanCfg(id, field, value) {
   const key = 'loan_cfg_' + id;
   let cfg = {};
   try { cfg = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) {}
   cfg[field] = value;
   localStorage.setItem(key, JSON.stringify(cfg));
-  // Päivitä signals.js LOAN_SCHEDULE cache
-  updateLoanScheduleFromStorage();
+  if (typeof updateLoanScheduleFromStorage === 'function') updateLoanScheduleFromStorage();
 }
 
 function updateLoanScheduleFromStorage() {
@@ -3874,12 +3772,11 @@ function updateLoanScheduleFromStorage() {
     try {
       const cfg = JSON.parse(localStorage.getItem(key) || '{}');
       if (cfg.endsYear) loan.endsYear = cfg.endsYear;
-      if (cfg.monthly)  loan.monthlyEur = cfg.monthly;
+      if (cfg.monthly) loan.monthlyEur = cfg.monthly;
     } catch(e) {}
   });
 }
 
-// ══════════════════════════════════════════════════════════════
 // OIKEA PANEELI — kuukausikatsaus + aikarakenne
 // ══════════════════════════════════════════════════════════════
 function renderRightPanel(snaps, latest, calc) {
