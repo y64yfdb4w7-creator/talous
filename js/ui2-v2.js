@@ -3369,10 +3369,13 @@ async function renderEntryView() {
 
   const accountsHTML = `
     <div id="entry-accounts" style="padding: 0 24px;">
-      <div style="font-size: 10px; color: rgba(130,200,190,0.65); letter-spacing: 0.10em;
-                  text-transform: uppercase; padding-bottom: 8px;
-                  border-bottom: 1px solid rgba(130,200,190,0.12);">
-        Tilit
+      <div style="display: flex; align-items: center; gap: 9px; padding: 6px 0 10px; margin-bottom: 2px;
+                  border-bottom: 1px solid rgba(82,180,165,0.25);">
+        <span style="display:inline-flex;align-items:center;justify-content:center;
+                     width:24px;height:24px;border-radius:6px;
+                     background:rgba(82,180,165,0.15);color:rgba(82,180,165,0.95);font-size:13px;">▦</span>
+        <span style="font-size:11px;font-weight:700;color:rgba(82,180,165,0.95);
+                     letter-spacing:0.10em;text-transform:uppercase;">TILIT</span>
       </div>
       ${accountRowsHTML}
       ${manageAccountsHTML}
@@ -3541,10 +3544,13 @@ function _renderStructures(latest) {
   return `
     <div id="entry-structures" style="padding: 28px 24px 0;">
 
-      <div style="font-size: 10px; color: rgba(130,200,190,0.65); letter-spacing: 0.10em;
-                  text-transform: uppercase; padding-bottom: 8px;
-                  border-bottom: 1px solid rgba(130,200,190,0.12);">
-        Perusta
+      <div style="display: flex; align-items: center; gap: 9px; padding: 6px 0 10px; margin-bottom: 2px;
+                  border-bottom: 1px solid rgba(200,155,80,0.25);">
+        <span style="display:inline-flex;align-items:center;justify-content:center;
+                     width:24px;height:24px;border-radius:6px;
+                     background:rgba(200,155,80,0.13);color:rgba(200,155,80,0.95);font-size:13px;">⊙</span>
+        <span style="font-size:11px;font-weight:700;color:rgba(200,155,80,0.95);
+                     letter-spacing:0.10em;text-transform:uppercase;">LAINAT</span>
       </div>
 
       ${loansHTML}
@@ -3552,19 +3558,45 @@ function _renderStructures(latest) {
       <div style="border-top: 1px dashed rgba(255,255,255,0.06);
                   margin: 8px 0 0; padding-top: 0;"></div>
 
-      <div style="font-size: 10px; color: rgba(130,200,190,0.65); letter-spacing: 0.10em;
-                  text-transform: uppercase; padding: 22px 0 8px;">
-        Toistuvat tulot
+      <div style="display: flex; align-items: center; gap: 9px; padding: 22px 0 10px; margin-bottom: 2px;
+                  border-bottom: 1px solid rgba(90,175,130,0.25);">
+        <span style="display:inline-flex;align-items:center;justify-content:center;
+                     width:24px;height:24px;border-radius:6px;
+                     background:rgba(90,175,130,0.13);color:rgba(90,175,130,0.95);font-size:13px;">↑</span>
+        <span style="font-size:11px;font-weight:700;color:rgba(90,175,130,0.95);
+                     letter-spacing:0.10em;text-transform:uppercase;">TOISTUVAT TULOT</span>
       </div>
       ${incomeHTML}
+      <div id="entry-add-income-wrap" style="margin-top: 8px;">
+        <div id="entry-add-income-form" style="display:none; padding: 10px 0 4px; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <input id="entry-add-income-label" placeholder="Nimi" type="text" style="flex:1;min-width:100px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(90,175,130,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;">
+          <input id="entry-add-income-amt" placeholder="0" type="number" style="width:90px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(90,175,130,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;text-align:right;">
+          <button onclick="entryAddIncomeItem()" style="padding:5px 14px;background:rgba(90,175,130,0.2);border:1px solid rgba(90,175,130,0.4);border-radius:6px;color:rgba(90,175,130,0.95);font-size:13px;cursor:pointer;">✓</button>
+          <button onclick="entryHideAddForm('income')" style="padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;">✕</button>
+        </div>
+        <button id="entry-add-income-btn" onclick="entryShowAddForm('income')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px dashed rgba(90,175,130,0.3);border-radius:6px;color:rgba(90,175,130,0.7);font-size:12px;cursor:pointer;width:100%;justify-content:center;margin-top:4px;">+ Lisää tuloerä</button>
+      </div>
 
       <div style="border-top: 1px dashed rgba(255,255,255,0.06); margin: 8px 0 0;"></div>
 
-      <div style="font-size: 10px; color: rgba(130,200,190,0.65); letter-spacing: 0.10em;
-                  text-transform: uppercase; padding: 22px 0 8px;">
-        Toistuvat menot
+      <div style="display: flex; align-items: center; gap: 9px; padding: 22px 0 10px; margin-bottom: 2px;
+                  border-bottom: 1px solid rgba(200,110,80,0.25);">
+        <span style="display:inline-flex;align-items:center;justify-content:center;
+                     width:24px;height:24px;border-radius:6px;
+                     background:rgba(200,110,80,0.13);color:rgba(200,110,80,0.9);font-size:13px;">↓</span>
+        <span style="font-size:11px;font-weight:700;color:rgba(200,110,80,0.9);
+                     letter-spacing:0.10em;text-transform:uppercase;">TOISTUVAT MENOT</span>
       </div>
       ${expenseHTML}
+      <div id="entry-add-expense-wrap" style="margin-top: 8px;">
+        <div id="entry-add-expense-form" style="display:none; padding: 10px 0 4px; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <input id="entry-add-expense-label" placeholder="Nimi" type="text" style="flex:1;min-width:100px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(200,110,80,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;">
+          <input id="entry-add-expense-amt" placeholder="0" type="number" style="width:90px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(200,110,80,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;text-align:right;">
+          <button onclick="entryAddExpenseItem()" style="padding:5px 14px;background:rgba(200,110,80,0.2);border:1px solid rgba(200,110,80,0.4);border-radius:6px;color:rgba(200,110,80,0.95);font-size:13px;cursor:pointer;">✓</button>
+          <button onclick="entryHideAddForm('expense')" style="padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;">✕</button>
+        </div>
+        <button id="entry-add-expense-btn" onclick="entryShowAddForm('expense')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px dashed rgba(200,110,80,0.3);border-radius:6px;color:rgba(200,110,80,0.7);font-size:12px;cursor:pointer;width:100%;justify-content:center;margin-top:4px;">+ Lisää menoerä</button>
+      </div>
 
     </div>
   `;
@@ -3790,6 +3822,50 @@ window.entrySaveDay = async function() {
       window.scrollTo({ top: 0, behavior: 'instant' });
     });
   }, 1600);
+};
+
+
+// ── Entry: add recurring item helpers ─────────────────────────────────
+window.entryShowAddForm = function(type) {
+  const form = document.getElementById('entry-add-' + type + '-form');
+  const btn  = document.getElementById('entry-add-' + type + '-btn');
+  if (form) { form.style.display = 'flex'; }
+  if (btn)  { btn.style.display = 'none'; }
+  const labelInp = document.getElementById('entry-add-' + type + '-label');
+  if (labelInp) { labelInp.focus(); }
+};
+
+window.entryHideAddForm = function(type) {
+  const form = document.getElementById('entry-add-' + type + '-form');
+  const btn  = document.getElementById('entry-add-' + type + '-btn');
+  if (form) { form.style.display = 'none'; }
+  if (btn)  { btn.style.display = 'flex'; }
+};
+
+window.entryAddIncomeItem = async function() {
+  const label = (document.getElementById('entry-add-income-label')?.value || '').trim();
+  const amt   = parseFloat(document.getElementById('entry-add-income-amt')?.value || '0');
+  if (!label) return;
+  const snap = window._entryLatestSnap || {};
+  const items = Array.isArray(snap.tulot_items) ? [...snap.tulot_items] : [];
+  items.push({ label, amount: amt, type: 'muut' });
+  window._entryLatestSnap = { ...snap, tulot_items: items };
+  if (window._entryDirtyFields) window._entryDirtyFields['tulot_items'] = true;
+  markDirty('tulot_items');
+  requestAnimationFrame(() => renderEntryView());
+};
+
+window.entryAddExpenseItem = async function() {
+  const label = (document.getElementById('entry-add-expense-label')?.value || '').trim();
+  const amt   = parseFloat(document.getElementById('entry-add-expense-amt')?.value || '0');
+  if (!label) return;
+  const snap = window._entryLatestSnap || {};
+  const items = Array.isArray(snap.rytmi_items) ? [...snap.rytmi_items] : [];
+  items.push({ label, amount: amt, type: 'muut' });
+  window._entryLatestSnap = { ...snap, rytmi_items: items };
+  if (window._entryDirtyFields) window._entryDirtyFields['rytmi_items'] = true;
+  markDirty('rytmi_items');
+  requestAnimationFrame(() => renderEntryView());
 };
 
 // Legacy stubs — prevent reference errors
