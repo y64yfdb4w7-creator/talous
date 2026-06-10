@@ -2766,7 +2766,7 @@ function showView(name) {
   if (viewEl) viewEl.scrollTop = 0;
   const osMain = document.getElementById('os-main');
   if (osMain) osMain.scrollTop = 0;
-  if (name === 'syota') requestAnimationFrame(() => renderEntryView());
+  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0e1520'; } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; }
   requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia') requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku') requestAnimationFrame(() => renderSalkku());
@@ -3297,7 +3297,7 @@ async function renderEntryView() {
   // Just the date. Nothing else.
   const orientationHTML = `
     <div style="padding: 36px 24px 28px;">
-      <div style="font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400;
+      <div style="font-size: 15px; color: rgba(255,255,255,0.62); font-weight: 400;
                   letter-spacing: 0.01em; line-height: 1.4;">
         ${entryDateLabel()}
       </div>
@@ -3325,15 +3325,16 @@ async function renderEntryView() {
            onclick="entryAccountActivate('${acc.id}')"
            style="display: flex; justify-content: space-between; align-items: baseline;
                   padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+                  ${acc.id === 'op_gold' ? 'border-left: 2px solid rgba(184,149,106,0.5);' : ''}
                   cursor: pointer; -webkit-tap-highlight-color: transparent;">
-        <span style="font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400;
+        <span style="font-size: 14px; color: ${acc.id === 'op_gold' ? 'rgba(200,160,122,0.85)' : 'rgba(255,255,255,0.70)'}; font-weight: 400;
                      letter-spacing: 0.01em;">
           ${acc.label}
         </span>
         <div style="display: flex; align-items: baseline; gap: 0;">
           <span id="entry-disp-${acc.id}"
-                style="font-size: 26px; font-weight: 600; ${valueColor}
-                       font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+                style="font-size: 19px; font-weight: 600; font-family: var(--mono); ${valueColor}
+                       font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
                        line-height: 1;">
             ${displayVal}
           </span>
@@ -3345,7 +3346,7 @@ async function renderEntryView() {
                  style="display: none; width: 130px; padding: 4px 8px 4px 0;
                         border: none; border-bottom: 2px solid rgba(255,255,255,0.5);
                         background: transparent; color: rgba(255,255,255,0.9);
-                        font-size: 26px; font-weight: 600; text-align: right;
+                        font-size: 19px; font-weight: 600; text-align: right; font-family: var(--mono);
                         font-variant-numeric: tabular-nums; outline: none;
                         letter-spacing: -0.02em;"
                  onblur="entryAccountDeactivate('${acc.id}')"
@@ -3368,9 +3369,9 @@ async function renderEntryView() {
 
   const accountsHTML = `
     <div id="entry-accounts" style="padding: 0 24px;">
-      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
-                  text-transform: uppercase; padding-bottom: 6px;
-                  border-bottom: 1px solid rgba(255,255,255,0.06);">
+      <div style="font-size: 10px; color: rgba(130,200,190,0.65); letter-spacing: 0.10em;
+                  text-transform: uppercase; padding-bottom: 8px;
+                  border-bottom: 1px solid rgba(130,200,190,0.12);">
         Tilit
       </div>
       ${accountRowsHTML}
@@ -3402,7 +3403,7 @@ async function renderEntryView() {
               style="pointer-events: auto;
                      padding: 15px 44px; border-radius: 100px;
                      background: rgba(20,23,21,0.96);
-                     border: 1px solid rgba(255,255,255,0.2);
+                     border: 1px solid rgba(100,180,170,0.4);
                      color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600;
                      cursor: pointer; white-space: nowrap;
                      font-family: inherit; letter-spacing: 0.01em;
@@ -3433,6 +3434,7 @@ window.entryAccountActivate = function(id) {
   disp.style.display = 'none';
   inp.style.display  = 'block';
   inp.focus();
+  requestAnimationFrame(() => inp.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   if (inp.value) inp.select();
 };
 
@@ -3466,11 +3468,11 @@ function _renderStructures(latest) {
            style="display: flex; justify-content: space-between; align-items: baseline;
                   padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
                   cursor: pointer; -webkit-tap-highlight-color: transparent;">
-        <span style="font-size: 14px; color: rgba(255,255,255,0.45);">${label}</span>
+        <span style="font-size: 14px; color: rgba(255,255,255,0.70);">${label}</span>
         <div style="display: flex; align-items: center; gap: 8px;">
           <span id="struct-disp-${fieldKey}"
                 style="font-size: 18px; font-weight: 500;
-                       color: rgba(255,255,255,0.35);
+                       color: rgba(255,255,255,0.55);
                        font-variant-numeric: tabular-nums;">
             ${displayVal}
           </span>
@@ -3539,9 +3541,9 @@ function _renderStructures(latest) {
   return `
     <div id="entry-structures" style="padding: 28px 24px 0;">
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
-                  text-transform: uppercase; padding-bottom: 6px;
-                  border-bottom: 1px solid rgba(255,255,255,0.05);">
+      <div style="font-size: 10px; color: rgba(130,200,190,0.65); letter-spacing: 0.10em;
+                  text-transform: uppercase; padding-bottom: 8px;
+                  border-bottom: 1px solid rgba(130,200,190,0.12);">
         Perusta
       </div>
 
@@ -3550,16 +3552,16 @@ function _renderStructures(latest) {
       <div style="border-top: 1px dashed rgba(255,255,255,0.06);
                   margin: 8px 0 0; padding-top: 0;"></div>
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
-                  text-transform: uppercase; padding: 20px 0 6px;">
+      <div style="font-size: 10px; color: rgba(130,200,190,0.65); letter-spacing: 0.10em;
+                  text-transform: uppercase; padding: 22px 0 8px;">
         Toistuvat tulot
       </div>
       ${incomeHTML}
 
       <div style="border-top: 1px dashed rgba(255,255,255,0.06); margin: 8px 0 0;"></div>
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
-                  text-transform: uppercase; padding: 20px 0 6px;">
+      <div style="font-size: 10px; color: rgba(130,200,190,0.65); letter-spacing: 0.10em;
+                  text-transform: uppercase; padding: 22px 0 8px;">
         Toistuvat menot
       </div>
       ${expenseHTML}
@@ -3638,7 +3640,7 @@ window.entryShowAccountManager = function() {
       <button onclick="document.getElementById('entry-account-manager')?.remove()"
               style="padding: 9px 16px; border-radius: 8px;
                      border: 1px solid rgba(255,255,255,0.08); background: none;
-                     color: rgba(255,255,255,0.35); font-size: 13px; cursor: pointer;
+                     color: rgba(255,255,255,0.55); font-size: 13px; cursor: pointer;
                      font-family: inherit;">
         Peruuta
       </button>
