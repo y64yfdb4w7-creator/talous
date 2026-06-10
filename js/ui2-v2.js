@@ -2744,12 +2744,12 @@ async function renderPaivakirja(){
 }
 
 function showView(name) {
-  document.querySelectorAll('.view').forEa
-  // Hide Refresh button on Syötä — it does not belong there
-  const freezeFloat = document.getElementById('btn-freeze-float');
-  if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';ch(v => v.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+  // Hide Refresh button on Syötä — it does not belong there
+  const freezeFloat = document.getElementById('btn-freeze-float');
+  if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';
   const sbEl = document.getElementById('sb-' + name);
   if (sbEl) sbEl.classList.add('active');
   // Päiväkirja-alias
@@ -2766,14 +2766,14 @@ function showView(name) {
   if (viewEl) viewEl.scrollTop = 0;
   const osMain = document.getElementById('os-main');
   if (osMain) osMain.scrollTop = 0;
-  if (name === 'syota')        requestAnimationFrame(() => renderEntryView());
+  if (name === 'syota') requestAnimationFrame(() => renderEntryView());
   requestAnimationFrame(() => updateRightPanel());
-  if (name === 'historia')      requestAnimationFrame(() => renderHistoria());
-  if (name === 'salkku')        requestAnimationFrame(() => renderSalkku());
+  if (name === 'historia') requestAnimationFrame(() => renderHistoria());
+  if (name === 'salkku') requestAnimationFrame(() => renderSalkku());
   if (name === 'likviditeetti') requestAnimationFrame(() => renderLikviditeetti());
-  if (name === 'ledger')        requestAnimationFrame(() => renderLedger());
-  if (name === 'paivakirja')    requestAnimationFrame(() => renderPaivakirja());
-  if (name === 'myynnit')      requestAnimationFrame(() => renderMyynnit());
+  if (name === 'ledger') requestAnimationFrame(() => renderLedger());
+  if (name === 'paivakirja') requestAnimationFrame(() => renderPaivakirja());
+  if (name === 'myynnit') requestAnimationFrame(() => renderMyynnit());
 }
 
 async function updateNavCount() {
