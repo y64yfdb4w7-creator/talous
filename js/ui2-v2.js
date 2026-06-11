@@ -2737,7 +2737,7 @@ async function renderPaivakirja(){
 }
 
 function showView(name) {
-  document.querySelectorAll('.view').forEa
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   // Hide Refresh button on Syötä — it does not belong there
   const freezeFloat = document.getElementById('btn-freeze-float');
   if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';
