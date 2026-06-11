@@ -2766,7 +2766,7 @@ function showView(name) {
   if (viewEl) viewEl.scrollTop = 0;
   const osMain = document.getElementById('os-main');
   if (osMain) osMain.scrollTop = 0;
-  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0e1520'; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display='none'; }); } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display=''; }); }
+  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0e1520'; document.querySelectorAll('#btn-freeze-nav,#btn-freeze-float').forEach(function(b){ b.style.display='none'; }); } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; document.querySelectorAll('#btn-freeze-nav,#btn-freeze-float').forEach(function(b){ b.style.display=''; }); }
   requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia') requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku') requestAnimationFrame(() => renderSalkku());
