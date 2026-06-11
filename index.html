@@ -35,20 +35,26 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:       #0d0f0e;
-      --surface:  #141715;
-      --surface2: #1a1d1b;
-      --border:   #222624;
-      --text:     #ffffff;
-      --text2:    #c8cfc9;
-      --text3:    #9aaa9f;
-      --gold:     #c8a07a;
-      --gold-dim: #7a6045;
-      --green:    #6ab87a;
-      --red:      #c05a5a;
-      --blue:     #5b8db8;
-      --mono:     -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-      --sans:     'Syne', sans-serif;
+      --bg:          #0d1e28;
+      --surface:     #122433;
+      --surface2:    #173040;
+      --border:      #1e3a4a;
+      --border-bright: #2a5060;
+      --text:        #e8f4f0;
+      --text1:       #d0e8e2;
+      --text2:       #8ab8ae;
+      --text3:       #5a8880;
+      --gold:        #d4a857;
+      --gold-dim:    #8a6a2a;
+      --green:       #5ab88a;
+      --red:         #c05a6a;
+      --blue:        #4a90c8;
+      --cyan:        #00c8b0;
+      --amber:       #d4a857;
+      --pk-pos:      #5ab88a;
+      --pk-neg:      #c05a6a;
+      --mono:        'IBM Plex Mono', 'SF Mono', monospace;
+      --sans:        'Syne', sans-serif;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -108,7 +114,7 @@
       flex-shrink: 0;
     }
     .nav-btn:hover { color: var(--text); background: var(--surface); }
-    .nav-btn.active { color: #4EA3FF; }
+    .nav-btn.active { color: #00c8b0; }
     .nav-spacer { flex: 1; }
     .nav-count {
       font-family: var(--mono);
@@ -1311,7 +1317,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=107"></script>
+    <script src="js/ui2-v2.js?v=108"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=3"></script>
