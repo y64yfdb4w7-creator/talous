@@ -883,6 +883,7 @@ if ('serviceWorker' in navigator) {
   <button class="nav-btn" id="btn-historia" onclick="showView('historia')">Historia</button>
   <button class="nav-btn" id="btn-ledger" onclick="showView('ledger')">Ledger</button>
   <button class="nav-btn" id="btn-events" onclick="showView('events')">Tapahtumat</button>
+  <button class="nav-btn" id="btn-suunnittelu" onclick="showView('suunnittelu')">Tutki</button>
   <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
   <span class="nav-count" id="nav-count"></span>
@@ -999,6 +1000,7 @@ if ('serviceWorker' in navigator) {
 
 <!-- IMPORT VIEW -->
 <div id="view-import" class="view">
+        <div id="view-suunnittelu" class="view"></div>
 
   <!-- Step 1: Upload -->
   <div id="import-upload">
@@ -1309,7 +1311,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=105"></script>
+    <script src="js/ui2-v2.js?v=106"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=3"></script>
