@@ -2740,7 +2740,7 @@ function showView(name) {
   document.querySelectorAll('.view').forEa
   // Hide Refresh button on Syötä — it does not belong there
   const freezeFloat = document.getElementById('btn-freeze-float');
-  if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';ch(v => v.classList.remove('active'));
+  if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
   const sbEl = document.getElementById('sb-' + name);
