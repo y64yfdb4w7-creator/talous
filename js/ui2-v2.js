@@ -1937,7 +1937,6 @@ async function exportCSV() {
     { key: 's_pankki',             label: 'S-Pankki',               fmt: fiFmt   },
     { key: 'op_gold',              label: 'OP Gold',                fmt: fiFmt   },
     { key: 'visa',                 label: 'VISA',                   fmt: fiFmt   },
-    { key: 'luottotili',           label: 'Luottotili',             fmt: fiFmt   },
     { key: 'asuntolaina',          label: 'Asuntolaina',            fmt: fiFmt   },
     { key: 'asuntolaina_remontti', label: 'Asuntolaina (remontti)', fmt: fiFmt   },
     { key: 'autolaina',            label: 'Autolaina',              fmt: fiFmt   },
@@ -2172,12 +2171,6 @@ async function renderLikviditeetti() {
       '<div><div style="font-weight:600;font-size:14px;">💳 Visa</div>' +
       '<div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);">Maksuvelvoite kuun lopussa</div></div>' +
       '<div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--gold);">−' + fmt(visa) + '</div></div>' : '') +
-
-    // Luottotili (jos olemassa)
-    (luottotili ? '<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">' +
-      '<div><div style="font-weight:600;font-size:14px;">💳 Luottotili</div>' +
-      '<div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);">Maksuvelvoite</div></div>' +
-      '<div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--gold);">−' + fmt(luottotili) + '</div></div>' : '') +
 
   '</div>' +
 
@@ -2744,12 +2737,12 @@ async function renderPaivakirja(){
 }
 
 function showView(name) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEa
   // Hide Refresh button on Syötä — it does not belong there
   const freezeFloat = document.getElementById('btn-freeze-float');
-  if (freezeFloat) { if(name === 'syota'){ freezeFloat.style.visibility='hidden'; freezeFloat.style.opacity='0'; freezeFloat.style.pointerEvents='none'; } else { freezeFloat.style.visibility=''; freezeFloat.style.opacity=''; freezeFloat.style.pointerEvents=''; } }
+  if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';ch(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
   const sbEl = document.getElementById('sb-' + name);
   if (sbEl) sbEl.classList.add('active');
   // Päiväkirja-alias
@@ -2766,17 +2759,82 @@ function showView(name) {
   if (viewEl) viewEl.scrollTop = 0;
   const osMain = document.getElementById('os-main');
   if (osMain) osMain.scrollTop = 0;
-  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0d2035'; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display='none'; }); var _ff=document.getElementById('btn-freeze-float'); if(_ff){_ff.style.visibility='hidden';_ff.style.opacity='0';_ff.style.pointerEvents='none';} } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display=''; }); var _ff2=document.getElementById('btn-freeze-float'); if(_ff2){_ff2.style.visibility='';_ff2.style.opacity='';_ff2.style.pointerEvents='';} }
+  if (name === 'syota')        requestAnimationFrame(() => renderEntryView());
   requestAnimationFrame(() => updateRightPanel());
-  if (name === 'historia') requestAnimationFrame(() => renderHistoria());
-  if (name === 'salkku') requestAnimationFrame(() => renderSalkku());
+  if (name === 'historia')      requestAnimationFrame(() => renderHistoria());
+  if (name === 'salkku')        requestAnimationFrame(() => renderSalkku());
   if (name === 'likviditeetti') requestAnimationFrame(() => renderLikviditeetti());
-  if (name === 'ledger') requestAnimationFrame(() => renderLedger());
-  if (name === 'paivakirja') requestAnimationFrame(() => renderPaivakirja());
-  if (name === 'myynnit') requestAnimationFrame(() => renderMyynnit());
+  if (name === 'ledger')        requestAnimationFrame(() => renderLedger());
+  if (name === 'paivakirja')    requestAnimationFrame(() => renderPaivakirja());
+  if (name === 'myynnit')      requestAnimationFrame(() => renderMyynnit());
   if (name === 'suunnittelu') requestAnimationFrame(() => renderSuunnittelupohta());
 }
 
+
+// ═══════════════════════════════════════════════
+// TUTKI — Suunnitteluöytä V1
+// ═══════════════════════════════════════════════
+
+function renderSuunnittelupohta() {
+  console.log("[FINOS] renderSuunnittelupohta started");
+  var el = document.getElementById("view-suunnittelu");
+  if (!el) { console.warn("[FINOS] #view-suunnittelu missing"); return; }
+  var snaps = [];
+  try { var rs=localStorage.getItem("finos_snapshots"); if(rs) snaps=JSON.parse(rs); } catch(e){}
+  if(!Array.isArray(snaps)) snaps=[];
+  snaps=snaps.slice().sort(function(a,b){ return a.date<b.date?-1:1; });
+  var latest=snaps.length>0?snaps[snaps.length-1]:null;
+  function fmt(v){ if(v===null||v===undefined||v===""||isNaN(Number(v))) return "—"; return Number(v).toLocaleString("fi-FI",{maximumFractionDigits:0})+" €"; }
+  function fmtK(v){ if(v===null||v===undefined||v===""||isNaN(Number(v))) return "—"; var n=Number(v); if(Math.abs(n)>=1000) return (n/1000).toLocaleString("fi-FI",{minimumFractionDigits:1,maximumFractionDigits:1})+" k€"; return n.toLocaleString("fi-FI",{maximumFractionDigits:0})+" €"; }
+  function nw(s){ if(!s) return null; var cash=(Number(s.tulotili)||0)+(Number(s.s_pankki)||0)-(Number(s.op_gold)||0); var debt=(Number(s.asuntolaina)||0)+(Number(s.asuntolaina_remontti)||0)+(Number(s.autolaina)||0); return cash-debt; }
+  function rhy(s){ if(!s) return{inc:0,exp:0}; var inc=0,exp=0; if(Array.isArray(s.tulot_items)) s.tulot_items.forEach(function(x){inc+=Number(x.amount)||0;}); if(Array.isArray(s.rytmi_items)) s.rytmi_items.forEach(function(x){exp+=Number(x.amount)||0;}); return{inc:inc,exp:exp}; }
+  function sH(ic,lb){ return '<div style="display:flex;align-items:center;gap:10px;margin:28px 0 12px;padding-bottom:10px;border-bottom:1px solid var(--border-bright);">'+'<span style="font-size:16px;">'+ic+'</span>'+'<span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);font-weight:600;">'+lb+'</span></div>'; }
+  function row(lb,val,sub){ return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'+'<div><div style="font-size:14px;color:var(--text2);">'+lb+'</div>'+(sub?'<div style="font-size:10px;color:var(--text3);margin-top:2px;">'+sub+'</div>':'')+'</div>'+'<div style="font-size:15px;font-weight:600;font-family:var(--mono);color:var(--text);">'+val+'</div></div>'; }
+  var html='<div style="max-width:520px;margin:0 auto;padding:20px 16px 60px;">';
+  html+='<div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;">Tutki</div>';
+  html+='<div style="font-size:13px;color:var(--text3);margin-bottom:8px;">Tutki oman talouden karttaa.</div>';
+  html+=sH("📍","Missä olen nyt");
+  if(latest){ html+=row("Nettovarallisuus",fmt(nw(latest))); html+=row("Tulotili",fmt(latest.tulotili)); html+=row("S-Pankki",fmt(latest.s_pankki)); html+=row("OP Gold (luotto)",fmt(latest.op_gold)); html+=row("Asuntolaina",fmt(latest.asuntolaina)); html+=row("Asuntolaina (remontti)",fmt(latest.asuntolaina_remontti)); html+=row("Autolaina",fmt(latest.autolaina)); }
+  else { html+='<div style="color:var(--text3);font-size:13px;padding:12px 0;">Ei dataa.</div>'; }
+  html+=sH("🗺","Kuljettu matka");
+  if(snaps.length>=2){
+    var nwVals=snaps.map(function(s){return nw(s);}).filter(function(v){return v!==null;});
+    if(nwVals.length>=2){
+      var mnV=Math.min.apply(null,nwVals),mxV=Math.max.apply(null,nwVals),rng=mxV-mnV||1;
+      var W=280,H=56,pd=8;
+      var pts=nwVals.map(function(v,i){var x=pd+(i/(nwVals.length-1))*(W-2*pd); var y=H-pd-((v-mnV)/rng)*(H-2*pd); return x.toFixed(1)+","+y.toFixed(1);});
+      var pD="M"+pts.join(" L");
+      var aD=pD+" L"+pts[pts.length-1].split(",")[0]+","+(H-pd)+" L"+pts[0].split(",")[0]+","+(H-pd)+" Z";
+      html+='<div style="margin:12px 0 16px;padding:12px 14px;background:rgba(0,200,176,0.06);border:1px solid rgba(0,200,176,0.15);border-radius:10px;">';
+      html+='<div style="font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Reitti — '+snaps[0].date+' → nyt</div>';
+      html+='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:'+H+'px;display:block;" preserveAspectRatio="none">';
+      html+='<defs><linearGradient id="spkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00c8b0" stop-opacity="0.2"/><stop offset="100%" stop-color="#00c8b0" stop-opacity="0"/></linearGradient></defs>';
+      html+='<path d="'+aD+'" fill="url(#spkGrad)"/>';
+      html+='<path d="'+pD+'" fill="none" stroke="#00c8b0" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>';
+      html+='<circle cx="'+pts[0].split(",")[0]+'" cy="'+pts[0].split(",")[1]+'" r="3" fill="#00c8b0" opacity="0.5"/>';
+      html+='<circle cx="'+pts[pts.length-1].split(",")[0]+'" cy="'+pts[pts.length-1].split(",")[1]+'" r="4" fill="#00c8b0"/>';
+      html+='</svg>';
+      html+='<div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-size:10px;color:var(--text3);">'+snaps[0].date+'</span><span style="font-size:10px;color:var(--text3);">'+((latest)?latest.date:"")+'</span></div></div>';
+    }
+    html+=row("Vanhin snapshot",fmtK(nw(snaps[0])),snaps[0]?snaps[0].date:"");
+    html+=row("Nyt",fmtK(nw(latest)),latest?latest.date:"");
+    var dlt=nw(latest)-nw(snaps[0]);
+    if(!isNaN(dlt)) html+=row("Muutos yhteensä",(dlt>=0?"+":"")+fmtK(dlt));
+  } else if(snaps.length===1){ html+='<div style="color:var(--text3);font-size:13px;padding:12px 0;">Vain yksi snapshot.</div>'; }
+  else { html+='<div style="color:var(--text3);font-size:13px;padding:12px 0;">Ei historiadataa.</div>'; }
+  html+=sH("🔃","Nykyinen rytmi");
+  if(latest){ var r=rhy(latest); html+=row("Toistuvat tulot / kk",fmt(r.inc)); html+=row("Toistuvat menot / kk",fmt(r.exp)); html+=row("Liikkumavara",fmt(r.inc-r.exp)); }
+  else { html+='<div style="color:var(--text3);font-size:13px;padding:12px 0;">Ei dataa.</div>'; }
+  html+=sH("📏","Rytmin kantama");
+  if(latest){ var r2=rhy(latest); var lv=r2.inc-r2.exp; html+=row("3 kk",fmt(lv*3)); html+=row("6 kk",fmt(lv*6)); html+=row("12 kk",fmt(lv*12)); }
+  else { html+='<div style="color:var(--text3);font-size:13px;padding:12px 0;">Ei dataa.</div>'; }
+  html+=sH("🏛","Pysyvät rakenteet");
+  if(latest){ html+=row("Asuntolaina",fmt(latest.asuntolaina)); html+=row("Asuntolaina (remontti)",fmt(latest.asuntolaina_remontti)); html+=row("Autolaina",fmt(latest.autolaina)); var r3=rhy(latest); html+=row("Toistuvat tulot / kk",fmt(r3.inc)); html+=row("Toistuvat menot / kk",fmt(r3.exp)); }
+  else { html+='<div style="color:var(--text3);font-size:13px;padding:12px 0;">Ei dataa.</div>'; }
+  html+='</div>';
+  el.innerHTML=html;
+  console.log("[FINOS] renderSuunnittelupohta done, len:", html.length);
+}
 async function updateNavCount() {
   const n = await DB.count('snapshots');
   const el = document.getElementById('nav-count');
@@ -3206,38 +3264,30 @@ const DEFAULT_ACCOUNTS = [
   { id: 'op_gold',      label: 'OP Gold',             field: 'op_gold',      sign: -1 },
 ];
 
-
-// ── Account migration — cleans duplicate OP Gold entries ─────────────────────
-function migrateAccountsOnce() {
+function migrateAccountsOnce(){
+  var SK="finos_accounts";
   try {
-    const raw = localStorage.getItem('finos_accounts');
-    if (!raw) return;
-    const stored = JSON.parse(raw);
-    if (!Array.isArray(stored)) return;
-    console.log('[FINOS] accounts before migration:', JSON.stringify(stored));
-    const isOpGold = a => a.field === 'op_gold' ||
-                          (a.id && (a.id === 'op_gold' || a.id.startsWith('custom_op_gold'))) ||
-                          (a.label && a.label.toLowerCase().replace(/\s/g,'').includes('opgold'));
-    const nonOpGold = stored.filter(a => !isOpGold(a));
-    const canonical = { id: 'op_gold', label: 'OP Gold (luotto)', field: 'op_gold', sign: -1 };
-    const migrated = [...nonOpGold, canonical];
-    if (JSON.stringify(migrated) !== JSON.stringify(stored)) {
-      localStorage.setItem('finos_accounts', JSON.stringify(migrated));
-      console.log('[FINOS] accounts after migration:', JSON.stringify(migrated));
-    } else {
-      console.log('[FINOS] accounts after migration: no change needed');
+    var raw=localStorage.getItem(SK);
+    if(!raw) return;
+    var accs=JSON.parse(raw);
+    if(!Array.isArray(accs)) return;
+    var can={ id:"op_gold", label:"OP Gold (luotto)", field:"op_gold", sign:-1 };
+    var others=accs.filter(function(a){ return a.id!=="op_gold" && a.id!=="custom_op_gold"; });
+    var cleaned=others.concat([can]);
+    if(JSON.stringify(cleaned)!==JSON.stringify(accs)){
+      localStorage.setItem(SK, JSON.stringify(cleaned));
+      console.log("[FINOS] migrate: "+cleaned.length+" accounts");
     }
-  } catch(e) { /* silent */ }
+  } catch(e){ console.warn("[FINOS] migrate err",e); }
 }
-
 function getAccounts() {
+  migrateAccountsOnce();
   try {
-    migrateAccountsOnce();
     const stored = JSON.parse(localStorage.getItem('finos_accounts') || 'null');
     // If stored accounts don't have the op_gold entry, reset to default
     if (!stored || !stored.length) return DEFAULT_ACCOUNTS;
     const hasOpGold = stored.some(a => a.field === 'op_gold');
-    if (!hasOpGold) stored.push({ id: 'op_gold', label: 'OP Gold (luotto)', field: 'op_gold', sign: -1 });
+    if (!hasOpGold) return DEFAULT_ACCOUNTS;
     return stored;
   } catch(e) { return DEFAULT_ACCOUNTS; }
 }
@@ -3313,15 +3363,7 @@ async function renderEntryView() {
   window._entryDirtyFields = {};
 
   const snaps = (await DB.getAll('snapshots')).sort((a, b) => a.date.localeCompare(b.date));
-  const _dbLatest = snaps.length ? snaps[snaps.length - 1] : {};
-  // Preserve unsaved array edits (income/expense items) from current session
-  const _prev = window._entryLatestSnap;
-  const latest = (_prev && _prev.date && _prev.date === _dbLatest.date)
-    ? Object.assign({}, _dbLatest, {
-        tulot_items: _prev.tulot_items !== undefined ? _prev.tulot_items : _dbLatest.tulot_items,
-        rytmi_items: _prev.rytmi_items !== undefined ? _prev.rytmi_items : _dbLatest.rytmi_items
-      })
-    : _dbLatest;
+  const latest = snaps.length ? snaps[snaps.length - 1] : {};
   window._entryLatestSnap = latest;
 
   const accounts = getAccounts();
@@ -3330,8 +3372,8 @@ async function renderEntryView() {
   // Lighter background applied via the view background override.
   // Just the date. Nothing else.
   const orientationHTML = `
-    <div style="padding: 36px 24px 28px; background: linear-gradient(180deg, rgba(30,80,120,0.18) 0%, rgba(13,30,50,0.0) 100%); border-radius: 8px 8px 0 0;">
-      <div style="font-size: 15px; color: rgba(255,255,255,0.78); font-weight: 400;
+    <div style="padding: 36px 24px 28px;">
+      <div style="font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400;
                   letter-spacing: 0.01em; line-height: 1.4;">
         ${entryDateLabel()}
       </div>
@@ -3359,16 +3401,15 @@ async function renderEntryView() {
            onclick="entryAccountActivate('${acc.id}')"
            style="display: flex; justify-content: space-between; align-items: baseline;
                   padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-                  ${acc.id === 'op_gold' ? 'border-left: 2px solid rgba(184,149,106,0.5);' : ''}
                   cursor: pointer; -webkit-tap-highlight-color: transparent;">
-        <span style="font-size: 14px; color: ${acc.id === 'op_gold' ? 'rgba(200,160,122,0.85)' : 'rgba(255,255,255,0.70)'}; font-weight: 400;
+        <span style="font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400;
                      letter-spacing: 0.01em;">
           ${acc.label}
         </span>
         <div style="display: flex; align-items: baseline; gap: 0;">
           <span id="entry-disp-${acc.id}"
-                style="font-size: 19px; font-weight: 600; font-family: var(--mono); ${valueColor}
-                       font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+                style="font-size: 26px; font-weight: 600; ${valueColor}
+                       font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
                        line-height: 1;">
             ${displayVal}
           </span>
@@ -3380,7 +3421,7 @@ async function renderEntryView() {
                  style="display: none; width: 130px; padding: 4px 8px 4px 0;
                         border: none; border-bottom: 2px solid rgba(255,255,255,0.5);
                         background: transparent; color: rgba(255,255,255,0.9);
-                        font-size: 19px; font-weight: 600; text-align: right; font-family: var(--mono);
+                        font-size: 26px; font-weight: 600; text-align: right;
                         font-variant-numeric: tabular-nums; outline: none;
                         letter-spacing: -0.02em;"
                  onblur="entryAccountDeactivate('${acc.id}')"
@@ -3402,14 +3443,11 @@ async function renderEntryView() {
   `;
 
   const accountsHTML = `
-    <div id="entry-accounts" style="padding: 0 24px; background: rgba(255,255,255,0.022); border-radius: 8px; margin: 0 0 4px;">
-      <div style="display: flex; align-items: center; gap: 9px; padding: 8px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
-                  border-bottom: 1px solid rgba(82,180,165,0.45); background: rgba(30,80,75,0.35); border-radius: 4px 4px 0 0;">
-        <span style="display:inline-flex;align-items:center;justify-content:center;
-                     width:24px;height:24px;border-radius:6px;
-                     background:rgba(82,180,165,0.15);color:rgba(40,200,180,1.0);font-size:13px;">▦</span>
-        <span style="font-size:11px;font-weight:700;color:rgba(40,200,180,1.0);
-                     letter-spacing:0.10em;text-transform:uppercase;">TILIT</span>
+    <div id="entry-accounts" style="padding: 0 24px;">
+      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+                  text-transform: uppercase; padding-bottom: 6px;
+                  border-bottom: 1px solid rgba(255,255,255,0.06);">
+        Tilit
       </div>
       ${accountRowsHTML}
       ${manageAccountsHTML}
@@ -3439,8 +3477,8 @@ async function renderEntryView() {
       <button onclick="entrySaveDay()"
               style="pointer-events: auto;
                      padding: 15px 44px; border-radius: 100px;
-                     background: rgba(13,30,50,0.96);
-                     border: 1px solid rgba(100,180,170,0.4);
+                     background: rgba(20,23,21,0.96);
+                     border: 1px solid rgba(255,255,255,0.2);
                      color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600;
                      cursor: pointer; white-space: nowrap;
                      font-family: inherit; letter-spacing: 0.01em;
@@ -3461,12 +3499,6 @@ async function renderEntryView() {
     </div>
     ${floatSaveHTML}
   `;
-  // Restore float-save if items were added but not yet saved to DB
-  if (_prev && _dbLatest && _prev.date && _prev.date === _dbLatest.date) {
-    var _hadDirtyItems = (JSON.stringify(_prev.tulot_items) !== JSON.stringify(_dbLatest.tulot_items)) ||
-                        (JSON.stringify(_prev.rytmi_items) !== JSON.stringify(_dbLatest.rytmi_items));
-    if (_hadDirtyItems) { window._entryDirtyFields['items'] = true; showEntryFloatSave(); }
-  }
 }
 
 // ── Account: tap to edit inline ───────────────────────────────
@@ -3477,7 +3509,6 @@ window.entryAccountActivate = function(id) {
   disp.style.display = 'none';
   inp.style.display  = 'block';
   inp.focus();
-  requestAnimationFrame(() => inp.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   if (inp.value) inp.select();
 };
 
@@ -3511,11 +3542,11 @@ function _renderStructures(latest) {
            style="display: flex; justify-content: space-between; align-items: baseline;
                   padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
                   cursor: pointer; -webkit-tap-highlight-color: transparent;">
-        <span style="font-size: 14px; color: rgba(255,255,255,0.70);">${label}</span>
+        <span style="font-size: 14px; color: rgba(255,255,255,0.45);">${label}</span>
         <div style="display: flex; align-items: center; gap: 8px;">
           <span id="struct-disp-${fieldKey}"
                 style="font-size: 18px; font-weight: 500;
-                       color: rgba(255,255,255,0.55);
+                       color: rgba(255,255,255,0.35);
                        font-variant-numeric: tabular-nums;">
             ${displayVal}
           </span>
@@ -3581,15 +3612,12 @@ function _renderStructures(latest) {
        </div>`;
 
   return `
-    <div id="entry-structures" style="padding: 28px 24px 0; background: rgba(255,255,255,0.018); border-radius: 8px; margin-top: 2px;">
+    <div id="entry-structures" style="padding: 28px 24px 0;">
 
-      <div style="display: flex; align-items: center; gap: 9px; padding: 8px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
-                  border-bottom: 1px solid rgba(200,155,80,0.45); background: rgba(80,55,10,0.4); border-radius: 4px 4px 0 0;">
-        <span style="display:inline-flex;align-items:center;justify-content:center;
-                     width:24px;height:24px;border-radius:6px;
-                     background:rgba(200,155,80,0.13);color:rgba(220,175,60,1.0);font-size:13px;">⊙</span>
-        <span style="font-size:11px;font-weight:700;color:rgba(220,175,60,1.0);
-                     letter-spacing:0.10em;text-transform:uppercase;">LAINAT</span>
+      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+                  text-transform: uppercase; padding-bottom: 6px;
+                  border-bottom: 1px solid rgba(255,255,255,0.05);">
+        Perusta
       </div>
 
       ${loansHTML}
@@ -3597,45 +3625,19 @@ function _renderStructures(latest) {
       <div style="border-top: 1px dashed rgba(255,255,255,0.06);
                   margin: 8px 0 0; padding-top: 0;"></div>
 
-      <div style="display: flex; align-items: center; gap: 9px; padding: 10px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
-                  border-bottom: 1px solid rgba(90,175,130,0.45); background: rgba(20,70,45,0.4); border-radius: 4px 4px 0 0;">
-        <span style="display:inline-flex;align-items:center;justify-content:center;
-                     width:24px;height:24px;border-radius:6px;
-                     background:rgba(90,175,130,0.13);color:rgba(50,200,140,1.0);font-size:13px;">↑</span>
-        <span style="font-size:11px;font-weight:700;color:rgba(50,200,140,1.0);
-                     letter-spacing:0.10em;text-transform:uppercase;">TOISTUVAT TULOT</span>
+      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+                  text-transform: uppercase; padding: 20px 0 6px;">
+        Toistuvat tulot
       </div>
       ${incomeHTML}
-      <div id="entry-add-income-wrap" style="margin-top: 8px;">
-        <div id="entry-add-income-form" style="display:none; padding: 10px 0 4px; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <input id="entry-add-income-label" placeholder="Nimi" type="text" style="flex:1;min-width:100px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(90,175,130,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;">
-          <input id="entry-add-income-amt" placeholder="0" type="number" style="width:90px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(90,175,130,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;text-align:right;">
-          <button onclick="entryAddIncomeItem()" style="padding:5px 14px;background:rgba(90,175,130,0.2);border:1px solid rgba(90,175,130,0.4);border-radius:6px;color:rgba(50,200,140,1.0);font-size:13px;cursor:pointer;">✓</button>
-          <button onclick="entryHideAddForm('income')" style="padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;">✕</button>
-        </div>
-        <button id="entry-add-income-btn" onclick="entryShowAddForm('income')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px dashed rgba(50,200,140,0.55);border-radius:6px;color:rgba(50,200,140,0.9);font-size:12px;cursor:pointer;width:100%;justify-content:center;margin-top:4px;">+ Lisää tuloerä</button>
-      </div>
 
       <div style="border-top: 1px dashed rgba(255,255,255,0.06); margin: 8px 0 0;"></div>
 
-      <div style="display: flex; align-items: center; gap: 9px; padding: 10px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
-                  border-bottom: 1px solid rgba(200,110,80,0.45); background: rgba(70,25,10,0.45); border-radius: 4px 4px 0 0;">
-        <span style="display:inline-flex;align-items:center;justify-content:center;
-                     width:24px;height:24px;border-radius:6px;
-                     background:rgba(200,110,80,0.13);color:rgba(220,100,65,1.0);font-size:13px;">↓</span>
-        <span style="font-size:11px;font-weight:700;color:rgba(220,100,65,1.0);
-                     letter-spacing:0.10em;text-transform:uppercase;">TOISTUVAT MENOT</span>
+      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+                  text-transform: uppercase; padding: 20px 0 6px;">
+        Toistuvat menot
       </div>
       ${expenseHTML}
-      <div id="entry-add-expense-wrap" style="margin-top: 8px;">
-        <div id="entry-add-expense-form" style="display:none; padding: 10px 0 4px; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <input id="entry-add-expense-label" placeholder="Nimi" type="text" style="flex:1;min-width:100px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(200,110,80,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;">
-          <input id="entry-add-expense-amt" placeholder="0" type="number" style="width:90px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(200,110,80,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;text-align:right;">
-          <button onclick="entryAddExpenseItem()" style="padding:5px 14px;background:rgba(200,110,80,0.2);border:1px solid rgba(200,110,80,0.4);border-radius:6px;color:rgba(200,110,80,0.95);font-size:13px;cursor:pointer;">✓</button>
-          <button onclick="entryHideAddForm('expense')" style="padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;">✕</button>
-        </div>
-        <button id="entry-add-expense-btn" onclick="entryShowAddForm('expense')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px dashed rgba(220,100,65,0.55);border-radius:6px;color:rgba(220,100,65,0.9);font-size:12px;cursor:pointer;width:100%;justify-content:center;margin-top:4px;">+ Lisää menoerä</button>
-      </div>
 
     </div>
   `;
@@ -3711,7 +3713,7 @@ window.entryShowAccountManager = function() {
       <button onclick="document.getElementById('entry-account-manager')?.remove()"
               style="padding: 9px 16px; border-radius: 8px;
                      border: 1px solid rgba(255,255,255,0.08); background: none;
-                     color: rgba(255,255,255,0.55); font-size: 13px; cursor: pointer;
+                     color: rgba(255,255,255,0.35); font-size: 13px; cursor: pointer;
                      font-family: inherit;">
         Peruuta
       </button>
@@ -3799,7 +3801,7 @@ window.entrySaveDay = async function() {
   });
 
   // Collect structure values (always stored as negative)
-  const structFields = ['asuntolaina','asuntolaina_remontti','autolaina'];
+  const structFields = ['asuntolaina','asuntolaina_remontti','autolaina','luottotili'];
   const structValues = {};
   structFields.forEach(f => {
     const inp = document.getElementById('struct-inp-' + f);
@@ -3861,50 +3863,6 @@ window.entrySaveDay = async function() {
       window.scrollTo({ top: 0, behavior: 'instant' });
     });
   }, 1600);
-};
-
-
-// ── Entry: add recurring item helpers ─────────────────────────────────
-window.entryShowAddForm = function(type) {
-  const form = document.getElementById('entry-add-' + type + '-form');
-  const btn  = document.getElementById('entry-add-' + type + '-btn');
-  if (form) { form.style.display = 'flex'; }
-  if (btn)  { btn.style.display = 'none'; }
-  const labelInp = document.getElementById('entry-add-' + type + '-label');
-  if (labelInp) { labelInp.focus(); } if (form) { setTimeout(function(){ form.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150); }
-};
-
-window.entryHideAddForm = function(type) {
-  const form = document.getElementById('entry-add-' + type + '-form');
-  const btn  = document.getElementById('entry-add-' + type + '-btn');
-  if (form) { form.style.display = 'none'; }
-  if (btn)  { btn.style.display = 'flex'; }
-};
-
-window.entryAddIncomeItem = async function() {
-  const label = (document.getElementById('entry-add-income-label')?.value || '').trim();
-  const amt   = parseFloat(document.getElementById('entry-add-income-amt')?.value || '0');
-  if (!label) return;
-  const snap = window._entryLatestSnap || {};
-  const items = Array.isArray(snap.tulot_items) ? [...snap.tulot_items] : [];
-  items.push({ label, amount: amt, type: 'muut' });
-  window._entryLatestSnap = { ...snap, tulot_items: items };
-  if (window._entryDirtyFields) window._entryDirtyFields['tulot_items'] = true;
-  markDirty('tulot_items');
-  requestAnimationFrame(() => renderEntryView());
-};
-
-window.entryAddExpenseItem = async function() {
-  const label = (document.getElementById('entry-add-expense-label')?.value || '').trim();
-  const amt   = parseFloat(document.getElementById('entry-add-expense-amt')?.value || '0');
-  if (!label) return;
-  const snap = window._entryLatestSnap || {};
-  const items = Array.isArray(snap.rytmi_items) ? [...snap.rytmi_items] : [];
-  items.push({ label, amount: amt, type: 'muut' });
-  window._entryLatestSnap = { ...snap, rytmi_items: items };
-  if (window._entryDirtyFields) window._entryDirtyFields['rytmi_items'] = true;
-  markDirty('rytmi_items');
-  requestAnimationFrame(() => renderEntryView());
 };
 
 // Legacy stubs — prevent reference errors
@@ -4437,165 +4395,4 @@ function initLayoutToolbar() {
 
   render();
 }
-
-// ══════════════════════════════════════════════
-// SUUNNITTELUPÖYTÄ V1  — read-only orientation view
-// ══════════════════════════════════════════════
-async function renderSuunnittelupohta() {
-  const el = document.getElementById('view-suunnittelu');
-  if (!el) return;
-
-  const snaps = await DB.getAll('snapshots');
-  if (!snaps || snaps.length === 0) {
-    el.innerHTML = `
-      <div style="padding:40px 20px; text-align:center; color:rgba(255,255,255,0.5);">
-        <div style="font-size:40px; margin-bottom:16px;">🗺</div>
-        <div style="font-size:18px; font-weight:600; margin-bottom:8px; color:rgba(255,255,255,0.75);">Ei dataa vielä</div>
-        <div style="font-size:14px;">Tallenna ensin päivä Syötä-sivulla.</div>
-      </div>`;
-    return;
-  }
-
-  const latest = snaps[snaps.length - 1];
-  const fi = n => (n == null ? '—' : n.toLocaleString('fi-FI', { maximumFractionDigits: 0 }) + ' €');
-  const fiSign = n => (n == null ? '—' : (n >= 0 ? '+' : '') + n.toLocaleString('fi-FI', { maximumFractionDigits: 0 }) + ' €');
-  const isoToFi = d => { if (!d) return '—'; const p = d.split('-'); return p[2] + '.' + p[1] + '.' + p[0]; };
-
-  let calc = null;
-  try { calc = calculateNetWorth(latest); } catch(e) {}
-  const nw  = calc ? calc.netWorth    : null;
-  const inv = calc ? calc.investments : null;
-  const csh = calc ? calc.cash        : null;
-  const dbt = calc ? (calc.longTermDebt || 0) + (calc.shortTermDebt || 0) : null;
-
-  const tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
-  const menotItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
-  const tulotKk = tulotItems.reduce((s, i) => s + (Math.abs(i.amount) || 0), 0);
-  const menotKk = menotItems.reduce((s, i) => s + (Math.abs(i.amount) || 0), 0);
-  const liikkumavara = tulotKk - menotKk;
-
-  const oldest = snaps[0];
-  let mAgoSnap = null, yAgoSnap = null;
-  try {
-    const shiftDate = (iso, dy, dm) => { const d = new Date(iso); d.setFullYear(d.getFullYear() + dy); d.setMonth(d.getMonth() + dm); return d.toISOString().slice(0,10); };
-    const nearestSnap = (target) => {
-      if (!target) return null;
-      return snaps.reduce((best, s) => {
-        if (!best) return s;
-        return Math.abs(new Date(s.date) - new Date(target)) < Math.abs(new Date(best.date) - new Date(target)) ? s : best;
-      }, null);
-    };
-    mAgoSnap = nearestSnap(shiftDate(latest.date, 0, -1));
-    yAgoSnap = nearestSnap(shiftDate(latest.date, -1, 0));
-  } catch(e) {}
-
-  const nwOf = s => { try { return calculateNetWorth(s).netWorth; } catch(e) { return null; } };
-
-  const histRow = (label, snap) => {
-    if (!snap) return '';
-    const nwSnap = nwOf(snap);
-    const delta = (nw != null && nwSnap != null) ? nw - nwSnap : null;
-    return `<div style="display:flex; align-items:baseline; justify-content:space-between; padding:14px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
-      <div>
-        <div style="font-size:13px; color:rgba(255,255,255,0.5); margin-bottom:2px;">${label}</div>
-        <div style="font-size:11px; color:rgba(255,255,255,0.3);">${isoToFi(snap.date)}</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:16px; font-weight:600; color:rgba(255,255,255,0.85);">${fi(nwSnap)}</div>
-        ${delta != null ? `<div style="font-size:12px; color:${delta >= 0 ? '#4caf85' : '#e07060'}; margin-top:2px;">${fiSign(delta)}</div>` : ''}
-      </div>
-    </div>`;
-  };
-
-  const sectionHeader = (icon, label, color, bgColor) =>
-    `<div style="display:flex; align-items:center; gap:10px; padding:14px 16px; background:${bgColor}; border-radius:10px 10px 0 0; border-bottom:1px solid ${color}40; margin-bottom:0;">
-      <span style="font-size:15px; background:${color}25; border-radius:6px; width:28px; height:28px; display:flex; align-items:center; justify-content:center;">${icon}</span>
-      <span style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:${color};">${label}</span>
-    </div>`;
-
-  const section = (header, body) =>
-    `<div style="background:rgba(255,255,255,0.025); border-radius:10px; margin-bottom:20px; overflow:hidden;">${header}<div style="padding:0 16px 4px;">${body}</div></div>`;
-
-  const stat = (label, value, color) =>
-    `<div style="flex:1; min-width:0; padding:16px 8px; text-align:center;">
-      <div style="font-size:11px; color:rgba(255,255,255,0.45); margin-bottom:6px; letter-spacing:0.04em;">${label}</div>
-      <div style="font-size:18px; font-weight:700; color:${color || 'rgba(255,255,255,0.9)'}; font-variant-numeric:tabular-nums;">${fi(value)}</div>
-    </div>`;
-
-  const s1body = `<div style="display:flex; flex-wrap:wrap; gap:0; padding:8px 0;">
-    ${stat('Nettovarallisuus', nw, '#7ec8a0')}
-    ${stat('Sijoitukset', inv, '#6ab4d8')}
-    ${stat('Käteinen', csh, '#a8c8e8')}
-    ${stat('Lainat', dbt != null ? -Math.abs(dbt) : null, '#d88880')}
-  </div>`;
-
-  const s2body = histRow('Kuukausi sitten', mAgoSnap)
-    + histRow('Vuosi sitten', yAgoSnap)
-    + (oldest && oldest.date !== latest.date ? histRow('Alkupiste', oldest) : '');
-
-  const rytmiRow = (label, amount, color) =>
-    `<div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-      <span style="font-size:14px; color:rgba(255,255,255,0.7);">${label}</span>
-      <span style="font-size:14px; font-weight:600; color:${color}; font-variant-numeric:tabular-nums;">${fi(amount)}</span>
-    </div>`;
-
-  const rytmiDetail = (items, color) => items.length === 0 ? '' :
-    items.map(i => `<div style="display:flex; justify-content:space-between; padding:8px 0 8px 12px; border-bottom:1px solid rgba(255,255,255,0.03);">
-      <span style="font-size:13px; color:rgba(255,255,255,0.5);">${i.label || '—'}</span>
-      <span style="font-size:13px; color:${color}; font-variant-numeric:tabular-nums;">${fi(Math.abs(i.amount))}</span>
-    </div>`).join('');
-
-  const s3body = rytmiRow('Toistuvat tulot / kk', tulotKk, '#7ec8a0')
-    + rytmiDetail(tulotItems, '#7ec8a0')
-    + rytmiRow('Toistuvat menot / kk', menotKk, '#d88880')
-    + rytmiDetail(menotItems, '#d88880')
-    + `<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 0 10px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px;">
-      <span style="font-size:14px; font-weight:600; color:rgba(255,255,255,0.8);">Liikkumavara / kk</span>
-      <span style="font-size:16px; font-weight:700; color:${liikkumavara >= 0 ? '#7ec8a0' : '#d88880'}; font-variant-numeric:tabular-nums;">${fi(liikkumavara)}</span>
-    </div>`;
-
-  const kantamaRow = (label, val) =>
-    `<div style="display:flex; justify-content:space-between; align-items:center; padding:13px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-      <span style="font-size:14px; color:rgba(255,255,255,0.65);">${label}</span>
-      <span style="font-size:15px; font-weight:600; color:${val >= 0 ? '#7ec8a0' : '#d88880'}; font-variant-numeric:tabular-nums;">${fi(val)}</span>
-    </div>`;
-
-  const s4body = kantamaRow('3 kuukautta', liikkumavara * 3)
-    + kantamaRow('6 kuukautta', liikkumavara * 6)
-    + kantamaRow('12 kuukautta', liikkumavara * 12);
-
-  const rakRow = (label, val) => val == null ? '' :
-    `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-      <span style="font-size:14px; color:rgba(255,255,255,0.7);">${label}</span>
-      <span style="font-size:14px; font-weight:600; color:rgba(255,255,255,0.8); font-variant-numeric:tabular-nums;">${fi(val)}</span>
-    </div>`;
-
-  const totalLainat = [latest.asuntolaina, latest.asuntolaina_remontti, latest.autolaina]
-    .filter(v => v != null).reduce((s, v) => s + Math.abs(v), 0);
-
-  const s5body = rakRow('Asuntolaina', latest.asuntolaina)
-    + rakRow('Remonttilaina', latest.asuntolaina_remontti)
-    + rakRow('Autolaina', latest.autolaina)
-    + `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0 14px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px;">
-      <span style="font-size:13px; color:rgba(255,255,255,0.45);">Lainat yhteensä</span>
-      <span style="font-size:14px; font-weight:600; color:#d88880; font-variant-numeric:tabular-nums;">${fi(-Math.abs(totalLainat))}</span>
-    </div>`
-    + rytmiRow('Toistuvat menot / kk', menotKk, '#d88880')
-    + rytmiRow('Toistuvat tulot / kk', tulotKk, '#7ec8a0');
-
-  const isoToFiDate = isoToFi(latest.date);
-  el.innerHTML = `
-    <div style="max-width:680px; margin:0 auto; padding:20px 16px 60px;">
-      <div style="margin-bottom:24px;">
-        <h1 style="font-size:22px; font-weight:700; color:rgba(255,255,255,0.92); margin:0 0 4px;">Tutki maailmaa</h1>
-        <p style="font-size:13px; color:rgba(255,255,255,0.45); margin:0;">Tutki oman talouden karttaa. Viimeisin tallennus: ${isoToFiDate}</p>
-      </div>
-      ${section(sectionHeader('🏛', 'MISSÄ OLEN NYT', '#6ab4d8', 'rgba(20,70,110,0.35)'), s1body)}
-      ${section(sectionHeader('📍', 'KULJETTU MATKA', '#a888d8', 'rgba(80,40,120,0.25)'), s2body || '<div style="padding:20px 0; color:rgba(255,255,255,0.35); font-size:13px;">Ei tarpeeksi historiaa vertailuun.</div>')}
-      ${section(sectionHeader('♻', 'NYKYINEN RYTMI', '#7ec8a0', 'rgba(30,90,60,0.25)'), s3body || '<div style="padding:20px 0; color:rgba(255,255,255,0.35); font-size:13px;">Ei toistuvia eriä tallennettu.</div>')}
-      ${section(sectionHeader('📏', 'RYTMIN KANTAMA', '#c8b870', 'rgba(90,70,20,0.25)'), s4body)}
-      ${section(sectionHeader('🏗', 'PYSYVÄT RAKENTEET', '#e09060', 'rgba(100,50,20,0.25)'), s5body || '<div style="padding:20px 0; color:rgba(255,255,255,0.35); font-size:13px;">Ei laina-dataa.</div>')}
-    </div>`;
-}
-
 // ── END LAYOUT TALLENNIN ─────────────────────────────────────────────────
