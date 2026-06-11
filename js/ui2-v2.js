@@ -2766,7 +2766,7 @@ function showView(name) {
   if (viewEl) viewEl.scrollTop = 0;
   const osMain = document.getElementById('os-main');
   if (osMain) osMain.scrollTop = 0;
-  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0e1520'; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display='none'; }); var _ff=document.getElementById('btn-freeze-float'); if(_ff){_ff.style.visibility='hidden';_ff.style.opacity='0';_ff.style.pointerEvents='none';} } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display=''; }); var _ff2=document.getElementById('btn-freeze-float'); if(_ff2){_ff2.style.visibility='';_ff2.style.opacity='';_ff2.style.pointerEvents='';} }
+  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0d2035'; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display='none'; }); var _ff=document.getElementById('btn-freeze-float'); if(_ff){_ff.style.visibility='hidden';_ff.style.opacity='0';_ff.style.pointerEvents='none';} } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display=''; }); var _ff2=document.getElementById('btn-freeze-float'); if(_ff2){_ff2.style.visibility='';_ff2.style.opacity='';_ff2.style.pointerEvents='';} }
   requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia') requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku') requestAnimationFrame(() => renderSalkku());
@@ -3211,7 +3211,7 @@ function getAccounts() {
     // If stored accounts don't have the op_gold entry, reset to default
     if (!stored || !stored.length) return DEFAULT_ACCOUNTS;
     const hasOpGold = stored.some(a => a.field === 'op_gold');
-    if (!hasOpGold) return DEFAULT_ACCOUNTS;
+    if (!hasOpGold) stored.push({ id: 'op_gold', label: 'OP Gold (luotto)', field: 'op_gold', sign: -1 });
     return stored;
   } catch(e) { return DEFAULT_ACCOUNTS; }
 }
@@ -3304,8 +3304,8 @@ async function renderEntryView() {
   // Lighter background applied via the view background override.
   // Just the date. Nothing else.
   const orientationHTML = `
-    <div style="padding: 36px 24px 28px;">
-      <div style="font-size: 15px; color: rgba(255,255,255,0.62); font-weight: 400;
+    <div style="padding: 36px 24px 28px; background: linear-gradient(180deg, rgba(30,80,120,0.18) 0%, rgba(13,30,50,0.0) 100%); border-radius: 8px 8px 0 0;">
+      <div style="font-size: 15px; color: rgba(255,255,255,0.78); font-weight: 400;
                   letter-spacing: 0.01em; line-height: 1.4;">
         ${entryDateLabel()}
       </div>
@@ -3376,7 +3376,7 @@ async function renderEntryView() {
   `;
 
   const accountsHTML = `
-    <div id="entry-accounts" style="padding: 0 24px;">
+    <div id="entry-accounts" style="padding: 0 24px; background: rgba(255,255,255,0.022); border-radius: 8px; margin: 0 0 4px;">
       <div style="display: flex; align-items: center; gap: 9px; padding: 8px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
                   border-bottom: 1px solid rgba(82,180,165,0.45); background: rgba(30,80,75,0.35); border-radius: 4px 4px 0 0;">
         <span style="display:inline-flex;align-items:center;justify-content:center;
@@ -3413,7 +3413,7 @@ async function renderEntryView() {
       <button onclick="entrySaveDay()"
               style="pointer-events: auto;
                      padding: 15px 44px; border-radius: 100px;
-                     background: rgba(20,23,21,0.96);
+                     background: rgba(13,30,50,0.96);
                      border: 1px solid rgba(100,180,170,0.4);
                      color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600;
                      cursor: pointer; white-space: nowrap;
@@ -3435,6 +3435,12 @@ async function renderEntryView() {
     </div>
     ${floatSaveHTML}
   `;
+  // Restore float-save if items were added but not yet saved to DB
+  if (_prev && _dbLatest && _prev.date && _prev.date === _dbLatest.date) {
+    var _hadDirtyItems = (JSON.stringify(_prev.tulot_items) !== JSON.stringify(_dbLatest.tulot_items)) ||
+                        (JSON.stringify(_prev.rytmi_items) !== JSON.stringify(_dbLatest.rytmi_items));
+    if (_hadDirtyItems) { window._entryDirtyFields['items'] = true; showEntryFloatSave(); }
+  }
 }
 
 // ── Account: tap to edit inline ───────────────────────────────
@@ -3550,7 +3556,7 @@ function _renderStructures(latest) {
        </div>`;
 
   return `
-    <div id="entry-structures" style="padding: 28px 24px 0;">
+    <div id="entry-structures" style="padding: 28px 24px 0; background: rgba(255,255,255,0.018); border-radius: 8px; margin-top: 2px;">
 
       <div style="display: flex; align-items: center; gap: 9px; padding: 8px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
                   border-bottom: 1px solid rgba(200,155,80,0.45); background: rgba(80,55,10,0.4); border-radius: 4px 4px 0 0;">
