@@ -2749,7 +2749,7 @@ function showView(name) {
   document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
   // Hide Refresh button on Syötä — it does not belong there
   const freezeFloat = document.getElementById('btn-freeze-float');
-  if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';
+  if (freezeFloat) { if(name === 'syota'){ freezeFloat.style.visibility='hidden'; freezeFloat.style.opacity='0'; freezeFloat.style.pointerEvents='none'; } else { freezeFloat.style.visibility=''; freezeFloat.style.opacity=''; freezeFloat.style.pointerEvents=''; } }
   const sbEl = document.getElementById('sb-' + name);
   if (sbEl) sbEl.classList.add('active');
   // Päiväkirja-alias
@@ -2766,7 +2766,7 @@ function showView(name) {
   if (viewEl) viewEl.scrollTop = 0;
   const osMain = document.getElementById('os-main');
   if (osMain) osMain.scrollTop = 0;
-  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0e1520'; document.querySelectorAll('#btn-freeze-nav,#btn-freeze-float').forEach(function(b){ b.style.display='none'; }); } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; document.querySelectorAll('#btn-freeze-nav,#btn-freeze-float').forEach(function(b){ b.style.display=''; }); }
+  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0e1520'; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display='none'; }); var _ff=document.getElementById('btn-freeze-float'); if(_ff){_ff.style.visibility='hidden';_ff.style.opacity='0';_ff.style.pointerEvents='none';} } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display=''; }); var _ff2=document.getElementById('btn-freeze-float'); if(_ff2){_ff2.style.visibility='';_ff2.style.opacity='';_ff2.style.pointerEvents='';} }
   requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia') requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku') requestAnimationFrame(() => renderSalkku());
