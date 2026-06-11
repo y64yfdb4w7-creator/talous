@@ -2774,6 +2774,7 @@ function showView(name) {
   if (name === 'ledger') requestAnimationFrame(() => renderLedger());
   if (name === 'paivakirja') requestAnimationFrame(() => renderPaivakirja());
   if (name === 'myynnit') requestAnimationFrame(() => renderMyynnit());
+  if (name === 'suunnittelu') requestAnimationFrame(() => renderSuunnittelupohta());
 }
 
 async function updateNavCount() {
@@ -4436,4 +4437,165 @@ function initLayoutToolbar() {
 
   render();
 }
+
+// ══════════════════════════════════════════════
+// SUUNNITTELUPÖYTÄ V1  — read-only orientation view
+// ══════════════════════════════════════════════
+async function renderSuunnittelupohta() {
+  const el = document.getElementById('view-suunnittelu');
+  if (!el) return;
+
+  const snaps = await DB.getAll('snapshots');
+  if (!snaps || snaps.length === 0) {
+    el.innerHTML = `
+      <div style="padding:40px 20px; text-align:center; color:rgba(255,255,255,0.5);">
+        <div style="font-size:40px; margin-bottom:16px;">🗺</div>
+        <div style="font-size:18px; font-weight:600; margin-bottom:8px; color:rgba(255,255,255,0.75);">Ei dataa vielä</div>
+        <div style="font-size:14px;">Tallenna ensin päivä Syötä-sivulla.</div>
+      </div>`;
+    return;
+  }
+
+  const latest = snaps[snaps.length - 1];
+  const fi = n => (n == null ? '—' : n.toLocaleString('fi-FI', { maximumFractionDigits: 0 }) + ' €');
+  const fiSign = n => (n == null ? '—' : (n >= 0 ? '+' : '') + n.toLocaleString('fi-FI', { maximumFractionDigits: 0 }) + ' €');
+  const isoToFi = d => { if (!d) return '—'; const p = d.split('-'); return p[2] + '.' + p[1] + '.' + p[0]; };
+
+  let calc = null;
+  try { calc = calculateNetWorth(latest); } catch(e) {}
+  const nw  = calc ? calc.netWorth    : null;
+  const inv = calc ? calc.investments : null;
+  const csh = calc ? calc.cash        : null;
+  const dbt = calc ? (calc.longTermDebt || 0) + (calc.shortTermDebt || 0) : null;
+
+  const tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
+  const menotItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
+  const tulotKk = tulotItems.reduce((s, i) => s + (Math.abs(i.amount) || 0), 0);
+  const menotKk = menotItems.reduce((s, i) => s + (Math.abs(i.amount) || 0), 0);
+  const liikkumavara = tulotKk - menotKk;
+
+  const oldest = snaps[0];
+  let mAgoSnap = null, yAgoSnap = null;
+  try {
+    const shiftDate = (iso, dy, dm) => { const d = new Date(iso); d.setFullYear(d.getFullYear() + dy); d.setMonth(d.getMonth() + dm); return d.toISOString().slice(0,10); };
+    const nearestSnap = (target) => {
+      if (!target) return null;
+      return snaps.reduce((best, s) => {
+        if (!best) return s;
+        return Math.abs(new Date(s.date) - new Date(target)) < Math.abs(new Date(best.date) - new Date(target)) ? s : best;
+      }, null);
+    };
+    mAgoSnap = nearestSnap(shiftDate(latest.date, 0, -1));
+    yAgoSnap = nearestSnap(shiftDate(latest.date, -1, 0));
+  } catch(e) {}
+
+  const nwOf = s => { try { return calculateNetWorth(s).netWorth; } catch(e) { return null; } };
+
+  const histRow = (label, snap) => {
+    if (!snap) return '';
+    const nwSnap = nwOf(snap);
+    const delta = (nw != null && nwSnap != null) ? nw - nwSnap : null;
+    return `<div style="display:flex; align-items:baseline; justify-content:space-between; padding:14px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div>
+        <div style="font-size:13px; color:rgba(255,255,255,0.5); margin-bottom:2px;">${label}</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.3);">${isoToFi(snap.date)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:16px; font-weight:600; color:rgba(255,255,255,0.85);">${fi(nwSnap)}</div>
+        ${delta != null ? `<div style="font-size:12px; color:${delta >= 0 ? '#4caf85' : '#e07060'}; margin-top:2px;">${fiSign(delta)}</div>` : ''}
+      </div>
+    </div>`;
+  };
+
+  const sectionHeader = (icon, label, color, bgColor) =>
+    `<div style="display:flex; align-items:center; gap:10px; padding:14px 16px; background:${bgColor}; border-radius:10px 10px 0 0; border-bottom:1px solid ${color}40; margin-bottom:0;">
+      <span style="font-size:15px; background:${color}25; border-radius:6px; width:28px; height:28px; display:flex; align-items:center; justify-content:center;">${icon}</span>
+      <span style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:${color};">${label}</span>
+    </div>`;
+
+  const section = (header, body) =>
+    `<div style="background:rgba(255,255,255,0.025); border-radius:10px; margin-bottom:20px; overflow:hidden;">${header}<div style="padding:0 16px 4px;">${body}</div></div>`;
+
+  const stat = (label, value, color) =>
+    `<div style="flex:1; min-width:0; padding:16px 8px; text-align:center;">
+      <div style="font-size:11px; color:rgba(255,255,255,0.45); margin-bottom:6px; letter-spacing:0.04em;">${label}</div>
+      <div style="font-size:18px; font-weight:700; color:${color || 'rgba(255,255,255,0.9)'}; font-variant-numeric:tabular-nums;">${fi(value)}</div>
+    </div>`;
+
+  const s1body = `<div style="display:flex; flex-wrap:wrap; gap:0; padding:8px 0;">
+    ${stat('Nettovarallisuus', nw, '#7ec8a0')}
+    ${stat('Sijoitukset', inv, '#6ab4d8')}
+    ${stat('Käteinen', csh, '#a8c8e8')}
+    ${stat('Lainat', dbt != null ? -Math.abs(dbt) : null, '#d88880')}
+  </div>`;
+
+  const s2body = histRow('Kuukausi sitten', mAgoSnap)
+    + histRow('Vuosi sitten', yAgoSnap)
+    + (oldest && oldest.date !== latest.date ? histRow('Alkupiste', oldest) : '');
+
+  const rytmiRow = (label, amount, color) =>
+    `<div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+      <span style="font-size:14px; color:rgba(255,255,255,0.7);">${label}</span>
+      <span style="font-size:14px; font-weight:600; color:${color}; font-variant-numeric:tabular-nums;">${fi(amount)}</span>
+    </div>`;
+
+  const rytmiDetail = (items, color) => items.length === 0 ? '' :
+    items.map(i => `<div style="display:flex; justify-content:space-between; padding:8px 0 8px 12px; border-bottom:1px solid rgba(255,255,255,0.03);">
+      <span style="font-size:13px; color:rgba(255,255,255,0.5);">${i.label || '—'}</span>
+      <span style="font-size:13px; color:${color}; font-variant-numeric:tabular-nums;">${fi(Math.abs(i.amount))}</span>
+    </div>`).join('');
+
+  const s3body = rytmiRow('Toistuvat tulot / kk', tulotKk, '#7ec8a0')
+    + rytmiDetail(tulotItems, '#7ec8a0')
+    + rytmiRow('Toistuvat menot / kk', menotKk, '#d88880')
+    + rytmiDetail(menotItems, '#d88880')
+    + `<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 0 10px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px;">
+      <span style="font-size:14px; font-weight:600; color:rgba(255,255,255,0.8);">Liikkumavara / kk</span>
+      <span style="font-size:16px; font-weight:700; color:${liikkumavara >= 0 ? '#7ec8a0' : '#d88880'}; font-variant-numeric:tabular-nums;">${fi(liikkumavara)}</span>
+    </div>`;
+
+  const kantamaRow = (label, val) =>
+    `<div style="display:flex; justify-content:space-between; align-items:center; padding:13px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+      <span style="font-size:14px; color:rgba(255,255,255,0.65);">${label}</span>
+      <span style="font-size:15px; font-weight:600; color:${val >= 0 ? '#7ec8a0' : '#d88880'}; font-variant-numeric:tabular-nums;">${fi(val)}</span>
+    </div>`;
+
+  const s4body = kantamaRow('3 kuukautta', liikkumavara * 3)
+    + kantamaRow('6 kuukautta', liikkumavara * 6)
+    + kantamaRow('12 kuukautta', liikkumavara * 12);
+
+  const rakRow = (label, val) => val == null ? '' :
+    `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+      <span style="font-size:14px; color:rgba(255,255,255,0.7);">${label}</span>
+      <span style="font-size:14px; font-weight:600; color:rgba(255,255,255,0.8); font-variant-numeric:tabular-nums;">${fi(val)}</span>
+    </div>`;
+
+  const totalLainat = [latest.asuntolaina, latest.asuntolaina_remontti, latest.autolaina]
+    .filter(v => v != null).reduce((s, v) => s + Math.abs(v), 0);
+
+  const s5body = rakRow('Asuntolaina', latest.asuntolaina)
+    + rakRow('Remonttilaina', latest.asuntolaina_remontti)
+    + rakRow('Autolaina', latest.autolaina)
+    + `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0 14px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px;">
+      <span style="font-size:13px; color:rgba(255,255,255,0.45);">Lainat yhteensä</span>
+      <span style="font-size:14px; font-weight:600; color:#d88880; font-variant-numeric:tabular-nums;">${fi(-Math.abs(totalLainat))}</span>
+    </div>`
+    + rytmiRow('Toistuvat menot / kk', menotKk, '#d88880')
+    + rytmiRow('Toistuvat tulot / kk', tulotKk, '#7ec8a0');
+
+  const isoToFiDate = isoToFi(latest.date);
+  el.innerHTML = `
+    <div style="max-width:680px; margin:0 auto; padding:20px 16px 60px;">
+      <div style="margin-bottom:24px;">
+        <h1 style="font-size:22px; font-weight:700; color:rgba(255,255,255,0.92); margin:0 0 4px;">Tutki maailmaa</h1>
+        <p style="font-size:13px; color:rgba(255,255,255,0.45); margin:0;">Tutki oman talouden karttaa. Viimeisin tallennus: ${isoToFiDate}</p>
+      </div>
+      ${section(sectionHeader('🏛', 'MISSÄ OLEN NYT', '#6ab4d8', 'rgba(20,70,110,0.35)'), s1body)}
+      ${section(sectionHeader('📍', 'KULJETTU MATKA', '#a888d8', 'rgba(80,40,120,0.25)'), s2body || '<div style="padding:20px 0; color:rgba(255,255,255,0.35); font-size:13px;">Ei tarpeeksi historiaa vertailuun.</div>')}
+      ${section(sectionHeader('♻', 'NYKYINEN RYTMI', '#7ec8a0', 'rgba(30,90,60,0.25)'), s3body || '<div style="padding:20px 0; color:rgba(255,255,255,0.35); font-size:13px;">Ei toistuvia eriä tallennettu.</div>')}
+      ${section(sectionHeader('📏', 'RYTMIN KANTAMA', '#c8b870', 'rgba(90,70,20,0.25)'), s4body)}
+      ${section(sectionHeader('🏗', 'PYSYVÄT RAKENTEET', '#e09060', 'rgba(100,50,20,0.25)'), s5body || '<div style="padding:20px 0; color:rgba(255,255,255,0.35); font-size:13px;">Ei laina-dataa.</div>')}
+    </div>`;
+}
+
 // ── END LAYOUT TALLENNIN ─────────────────────────────────────────────────
