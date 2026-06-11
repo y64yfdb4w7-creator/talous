@@ -3205,15 +3205,38 @@ const DEFAULT_ACCOUNTS = [
   { id: 'op_gold',      label: 'OP Gold',             field: 'op_gold',      sign: -1 },
 ];
 
+
+// ── Account migration — cleans duplicate OP Gold entries ─────────────────────
+function migrateAccountsOnce() {
+  try {
+    const raw = localStorage.getItem('finos_accounts');
+    if (!raw) return;
+    const stored = JSON.parse(raw);
+    if (!Array.isArray(stored)) return;
+    console.log('[FINOS] accounts before migration:', JSON.stringify(stored));
+    const isOpGold = a => a.field === 'op_gold' ||
+                          (a.id && (a.id === 'op_gold' || a.id.startsWith('custom_op_gold'))) ||
+                          (a.label && a.label.toLowerCase().replace(/\s/g,'').includes('opgold'));
+    const nonOpGold = stored.filter(a => !isOpGold(a));
+    const canonical = { id: 'op_gold', label: 'OP Gold (luotto)', field: 'op_gold', sign: -1 };
+    const migrated = [...nonOpGold, canonical];
+    if (JSON.stringify(migrated) !== JSON.stringify(stored)) {
+      localStorage.setItem('finos_accounts', JSON.stringify(migrated));
+      console.log('[FINOS] accounts after migration:', JSON.stringify(migrated));
+    } else {
+      console.log('[FINOS] accounts after migration: no change needed');
+    }
+  } catch(e) { /* silent */ }
+}
+
 function getAccounts() {
   try {
+    migrateAccountsOnce();
     const stored = JSON.parse(localStorage.getItem('finos_accounts') || 'null');
-    console.log('[FINOS] accounts from storage:', JSON.stringify(stored));
     // If stored accounts don't have the op_gold entry, reset to default
     if (!stored || !stored.length) return DEFAULT_ACCOUNTS;
     const hasOpGold = stored.some(a => a.field === 'op_gold');
     if (!hasOpGold) stored.push({ id: 'op_gold', label: 'OP Gold (luotto)', field: 'op_gold', sign: -1 });
-    console.log('[FINOS] accounts after migration:', JSON.stringify(stored));
     return stored;
   } catch(e) { return DEFAULT_ACCOUNTS; }
 }
@@ -3301,7 +3324,6 @@ async function renderEntryView() {
   window._entryLatestSnap = latest;
 
   const accounts = getAccounts();
-  console.log('[FINOS] accounts in renderEntryView:', JSON.stringify(accounts));
 
   // ── Layer 1: Orientation ──
   // Lighter background applied via the view background override.
@@ -3512,12 +3534,10 @@ function _renderStructures(latest) {
     `;
   }
 
-  console.log('[FINOS] loans before render:', { asuntolaina: latest.asuntolaina, asuntolaina_remontti: latest.asuntolaina_remontti, autolaina: latest.autolaina, luottotili: latest.luottotili });
-    const loansHTML = [
+  const loansHTML = [
     structureRow('Asuntolaina',          'asuntolaina',           latest.asuntolaina),
     structureRow('Asuntolaina, remontti','asuntolaina_remontti',  latest.asuntolaina_remontti),
     structureRow('Autolaina',            'autolaina',             latest.autolaina),
-    structureRow('Luottotili',           'luottotili',            latest.luottotili),
   ].join('');
 
   const tulotItems = latest.tulot_items || [];
@@ -3778,7 +3798,7 @@ window.entrySaveDay = async function() {
   });
 
   // Collect structure values (always stored as negative)
-  const structFields = ['asuntolaina','asuntolaina_remontti','autolaina','luottotili'];
+  const structFields = ['asuntolaina','asuntolaina_remontti','autolaina'];
   const structValues = {};
   structFields.forEach(f => {
     const inp = document.getElementById('struct-inp-' + f);
