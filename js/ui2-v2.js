@@ -2766,7 +2766,7 @@ function showView(name) {
   if (viewEl) viewEl.scrollTop = 0;
   const osMain = document.getElementById('os-main');
   if (osMain) osMain.scrollTop = 0;
-  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0e1520'; } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; }
+  if (name === 'syota') { requestAnimationFrame(() => renderEntryView()); const _syV = document.getElementById('view-syota'); if (_syV) _syV.style.background = '#0e1520'; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display='none'; }); } else { const _syV2 = document.getElementById('view-syota'); if (_syV2) _syV2.style.background = ''; document.querySelectorAll('#btn-freeze-nav').forEach(function(b){ b.style.display=''; }); }
   requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia') requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku') requestAnimationFrame(() => renderSalkku());
@@ -3287,7 +3287,15 @@ async function renderEntryView() {
   window._entryDirtyFields = {};
 
   const snaps = (await DB.getAll('snapshots')).sort((a, b) => a.date.localeCompare(b.date));
-  const latest = snaps.length ? snaps[snaps.length - 1] : {};
+  const _dbLatest = snaps.length ? snaps[snaps.length - 1] : {};
+  // Preserve unsaved array edits (income/expense items) from current session
+  const _prev = window._entryLatestSnap;
+  const latest = (_prev && _prev.date && _prev.date === _dbLatest.date)
+    ? Object.assign({}, _dbLatest, {
+        tulot_items: _prev.tulot_items !== undefined ? _prev.tulot_items : _dbLatest.tulot_items,
+        rytmi_items: _prev.rytmi_items !== undefined ? _prev.rytmi_items : _dbLatest.rytmi_items
+      })
+    : _dbLatest;
   window._entryLatestSnap = latest;
 
   const accounts = getAccounts();
@@ -3369,12 +3377,12 @@ async function renderEntryView() {
 
   const accountsHTML = `
     <div id="entry-accounts" style="padding: 0 24px;">
-      <div style="display: flex; align-items: center; gap: 9px; padding: 6px 0 10px; margin-bottom: 2px;
-                  border-bottom: 1px solid rgba(82,180,165,0.25);">
+      <div style="display: flex; align-items: center; gap: 9px; padding: 8px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
+                  border-bottom: 1px solid rgba(82,180,165,0.45); background: rgba(30,80,75,0.35); border-radius: 4px 4px 0 0;">
         <span style="display:inline-flex;align-items:center;justify-content:center;
                      width:24px;height:24px;border-radius:6px;
-                     background:rgba(82,180,165,0.15);color:rgba(82,180,165,0.95);font-size:13px;">▦</span>
-        <span style="font-size:11px;font-weight:700;color:rgba(82,180,165,0.95);
+                     background:rgba(82,180,165,0.15);color:rgba(40,200,180,1.0);font-size:13px;">▦</span>
+        <span style="font-size:11px;font-weight:700;color:rgba(40,200,180,1.0);
                      letter-spacing:0.10em;text-transform:uppercase;">TILIT</span>
       </div>
       ${accountRowsHTML}
@@ -3544,12 +3552,12 @@ function _renderStructures(latest) {
   return `
     <div id="entry-structures" style="padding: 28px 24px 0;">
 
-      <div style="display: flex; align-items: center; gap: 9px; padding: 6px 0 10px; margin-bottom: 2px;
-                  border-bottom: 1px solid rgba(200,155,80,0.25);">
+      <div style="display: flex; align-items: center; gap: 9px; padding: 8px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
+                  border-bottom: 1px solid rgba(200,155,80,0.45); background: rgba(80,55,10,0.4); border-radius: 4px 4px 0 0;">
         <span style="display:inline-flex;align-items:center;justify-content:center;
                      width:24px;height:24px;border-radius:6px;
-                     background:rgba(200,155,80,0.13);color:rgba(200,155,80,0.95);font-size:13px;">⊙</span>
-        <span style="font-size:11px;font-weight:700;color:rgba(200,155,80,0.95);
+                     background:rgba(200,155,80,0.13);color:rgba(220,175,60,1.0);font-size:13px;">⊙</span>
+        <span style="font-size:11px;font-weight:700;color:rgba(220,175,60,1.0);
                      letter-spacing:0.10em;text-transform:uppercase;">LAINAT</span>
       </div>
 
@@ -3558,12 +3566,12 @@ function _renderStructures(latest) {
       <div style="border-top: 1px dashed rgba(255,255,255,0.06);
                   margin: 8px 0 0; padding-top: 0;"></div>
 
-      <div style="display: flex; align-items: center; gap: 9px; padding: 22px 0 10px; margin-bottom: 2px;
-                  border-bottom: 1px solid rgba(90,175,130,0.25);">
+      <div style="display: flex; align-items: center; gap: 9px; padding: 10px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
+                  border-bottom: 1px solid rgba(90,175,130,0.45); background: rgba(20,70,45,0.4); border-radius: 4px 4px 0 0;">
         <span style="display:inline-flex;align-items:center;justify-content:center;
                      width:24px;height:24px;border-radius:6px;
-                     background:rgba(90,175,130,0.13);color:rgba(90,175,130,0.95);font-size:13px;">↑</span>
-        <span style="font-size:11px;font-weight:700;color:rgba(90,175,130,0.95);
+                     background:rgba(90,175,130,0.13);color:rgba(50,200,140,1.0);font-size:13px;">↑</span>
+        <span style="font-size:11px;font-weight:700;color:rgba(50,200,140,1.0);
                      letter-spacing:0.10em;text-transform:uppercase;">TOISTUVAT TULOT</span>
       </div>
       ${incomeHTML}
@@ -3571,20 +3579,20 @@ function _renderStructures(latest) {
         <div id="entry-add-income-form" style="display:none; padding: 10px 0 4px; gap: 8px; align-items: center; flex-wrap: wrap;">
           <input id="entry-add-income-label" placeholder="Nimi" type="text" style="flex:1;min-width:100px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(90,175,130,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;">
           <input id="entry-add-income-amt" placeholder="0" type="number" style="width:90px;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(90,175,130,0.5);color:#fff;padding:6px 4px;font-size:14px;outline:none;text-align:right;">
-          <button onclick="entryAddIncomeItem()" style="padding:5px 14px;background:rgba(90,175,130,0.2);border:1px solid rgba(90,175,130,0.4);border-radius:6px;color:rgba(90,175,130,0.95);font-size:13px;cursor:pointer;">✓</button>
+          <button onclick="entryAddIncomeItem()" style="padding:5px 14px;background:rgba(90,175,130,0.2);border:1px solid rgba(90,175,130,0.4);border-radius:6px;color:rgba(50,200,140,1.0);font-size:13px;cursor:pointer;">✓</button>
           <button onclick="entryHideAddForm('income')" style="padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;">✕</button>
         </div>
-        <button id="entry-add-income-btn" onclick="entryShowAddForm('income')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px dashed rgba(90,175,130,0.3);border-radius:6px;color:rgba(90,175,130,0.7);font-size:12px;cursor:pointer;width:100%;justify-content:center;margin-top:4px;">+ Lisää tuloerä</button>
+        <button id="entry-add-income-btn" onclick="entryShowAddForm('income')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px dashed rgba(50,200,140,0.55);border-radius:6px;color:rgba(50,200,140,0.9);font-size:12px;cursor:pointer;width:100%;justify-content:center;margin-top:4px;">+ Lisää tuloerä</button>
       </div>
 
       <div style="border-top: 1px dashed rgba(255,255,255,0.06); margin: 8px 0 0;"></div>
 
-      <div style="display: flex; align-items: center; gap: 9px; padding: 22px 0 10px; margin-bottom: 2px;
-                  border-bottom: 1px solid rgba(200,110,80,0.25);">
+      <div style="display: flex; align-items: center; gap: 9px; padding: 10px 10px 10px; margin-bottom: 2px; margin-left: -10px; margin-right: -10px;
+                  border-bottom: 1px solid rgba(200,110,80,0.45); background: rgba(70,25,10,0.45); border-radius: 4px 4px 0 0;">
         <span style="display:inline-flex;align-items:center;justify-content:center;
                      width:24px;height:24px;border-radius:6px;
-                     background:rgba(200,110,80,0.13);color:rgba(200,110,80,0.9);font-size:13px;">↓</span>
-        <span style="font-size:11px;font-weight:700;color:rgba(200,110,80,0.9);
+                     background:rgba(200,110,80,0.13);color:rgba(220,100,65,1.0);font-size:13px;">↓</span>
+        <span style="font-size:11px;font-weight:700;color:rgba(220,100,65,1.0);
                      letter-spacing:0.10em;text-transform:uppercase;">TOISTUVAT MENOT</span>
       </div>
       ${expenseHTML}
@@ -3595,7 +3603,7 @@ function _renderStructures(latest) {
           <button onclick="entryAddExpenseItem()" style="padding:5px 14px;background:rgba(200,110,80,0.2);border:1px solid rgba(200,110,80,0.4);border-radius:6px;color:rgba(200,110,80,0.95);font-size:13px;cursor:pointer;">✓</button>
           <button onclick="entryHideAddForm('expense')" style="padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;">✕</button>
         </div>
-        <button id="entry-add-expense-btn" onclick="entryShowAddForm('expense')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px dashed rgba(200,110,80,0.3);border-radius:6px;color:rgba(200,110,80,0.7);font-size:12px;cursor:pointer;width:100%;justify-content:center;margin-top:4px;">+ Lisää menoerä</button>
+        <button id="entry-add-expense-btn" onclick="entryShowAddForm('expense')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px dashed rgba(220,100,65,0.55);border-radius:6px;color:rgba(220,100,65,0.9);font-size:12px;cursor:pointer;width:100%;justify-content:center;margin-top:4px;">+ Lisää menoerä</button>
       </div>
 
     </div>
@@ -3832,7 +3840,7 @@ window.entryShowAddForm = function(type) {
   if (form) { form.style.display = 'flex'; }
   if (btn)  { btn.style.display = 'none'; }
   const labelInp = document.getElementById('entry-add-' + type + '-label');
-  if (labelInp) { labelInp.focus(); }
+  if (labelInp) { labelInp.focus(); } if (form) { setTimeout(function(){ form.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150); }
 };
 
 window.entryHideAddForm = function(type) {
