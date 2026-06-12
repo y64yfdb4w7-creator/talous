@@ -2772,96 +2772,126 @@ function showView(name) {
 
 
 
+
 // ═══════════════════════════════════════════════
 // TUTKI — Suunnitteluöytä V2
 // ═══════════════════════════════════════════════
 
-async function renderSuunnittelupohta() {
-  var el = document.getElementById('view-suunnittelu');
-  if (!el) { console.warn('[TUTKI] #view-suunnittelu missing'); return; }
+var _tutkiActive={nw:true,cash:true,debt:true,inv:false};
 
-  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date<b.date?-1:1; });
-  console.log('[TUTKI] snapshots', snaps.length);
-  var latest = snaps.length > 0 ? snaps[snaps.length - 1] : null;
-
-  function fmt(v) {
-    if (v===null||v===undefined||v===''||isNaN(Number(v))) return '—';
-    return Number(v).toLocaleString('fi-FI',{maximumFractionDigits:0})+' €';
-  }
-  function fmtSign(v) {
-    if (v===null||v===undefined||isNaN(Number(v))) return '—';
-    var n=Math.round(Number(v)); return (n>=0?'+':'')+n.toLocaleString('fi-FI')+' €';
-  }
-  function nw(s) {
-    if (!s) return null;
-    var cash=(Number(s.tulotili)||0)+(Number(s.s_pankki)||0)-(Number(s.op_gold)||0);
-    var debt=(Number(s.asuntolaina)||0)+(Number(s.asuntolaina_remontti)||0)+(Number(s.autolaina)||0);
-    return cash-debt;
-  }
-  function margin(s) {
-    if (!s) return 0;
-    var inc=0,exp=0;
-    if(Array.isArray(s.tulot_items)) s.tulot_items.forEach(function(x){inc+=Number(x.amount)||0;});
-    if(Array.isArray(s.rytmi_items)) s.rytmi_items.forEach(function(x){exp+=Number(x.amount)||0;});
-    return inc-exp;
-  }
-
-  var netWorth=nw(latest), liikkuma=margin(latest), months=[3,6,12,24,36];
-
-  var html='<div style="max-width:560px;margin:0 auto;padding:24px 16px 60px;">';
+async function renderSuunnittelupohta(){
+  var el=document.getElementById('view-suunnittelu');
+  if(!el) return;
+  var snaps=(await DB.getAll('snapshots')).sort(function(a,b){return a.date<b.date?-1:1;});
+  console.log('[TUTKI] snapshots',snaps.length);
+  var latest=snaps.length>0?snaps[snaps.length-1]:null;
+  function fmt(v){if(v===null||v===undefined||v===''||isNaN(Number(v)))return'—';return Number(v).toLocaleString('fi-FI',{maximumFractionDigits:0})+' €';}
+  function fmtSign(v){if(v===null||v===undefined||isNaN(Number(v)))return'—';var n=Math.round(Number(v));return(n>=0?'+':'')+n.toLocaleString('fi-FI')+' €';}
+  function snapNW(s){if(!s)return null;return(Number(s.tulotili)||0)+(Number(s.s_pankki)||0)-(Number(s.op_gold)||0)-(Number(s.asuntolaina)||0)-(Number(s.asuntolaina_remontti)||0)-(Number(s.autolaina)||0);}
+  function snapCash(s){if(!s)return null;return(Number(s.tulotili)||0)+(Number(s.s_pankki)||0)-(Number(s.op_gold)||0);}
+  function snapDebt(s){if(!s)return null;return(Number(s.asuntolaina)||0)+(Number(s.asuntolaina_remontti)||0)+(Number(s.autolaina)||0);}
+  function snapInv(s){if(!s)return null;var v=(Number(s.salkku_arvo)||0);return v>0?v:null;}
+  function margin(s){if(!s)return 0;var inc=0,exp=0;if(Array.isArray(s.tulot_items))s.tulot_items.forEach(function(x){inc+=Number(x.amount)||0;});if(Array.isArray(s.rytmi_items))s.rytmi_items.forEach(function(x){exp+=Number(x.amount)||0;});return inc-exp;}
+  var netWorth=snapNW(latest),cash=snapCash(latest),debt=snapDebt(latest),inv=snapInv(latest),liikkuma=margin(latest);
+  var hasInv=snaps.some(function(s){return snapInv(s)!==null;});
+  var html='<div style="max-width:580px;margin:0 auto;padding:24px 16px 60px;">';
   html+='<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:20px;">Suunnitteluöytä</div>';
-
-  if (!latest) {
-    html+='<div style="color:var(--text3);font-size:14px;padding:40px 0;">Ei dataa.</div></div>';
-    el.innerHTML=html; return;
-  }
-
+  if(!latest){html+='<div style="color:var(--text3);font-size:14px;padding:40px 0;">Ei dataa.</div></div>';el.innerHTML=html;return;}
   // KONTEKSTIRIVI
-  html+='<div style="display:flex;gap:32px;align-items:baseline;margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid var(--border);">';
-  html+='<div><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px;">Nettovarallisuus</div>';
-  html+='<div style="font-size:24px;font-weight:700;font-family:var(--mono);color:var(--text);">'+fmt(netWorth)+'</div></div>';
-  html+='<div><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px;">Liikkumavara</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:20px 32px;align-items:baseline;margin-bottom:36px;padding-bottom:18px;border-bottom:1px solid var(--border);">';
+  html+='<div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;">Nettovarallisuus</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text);">'+fmt(netWorth)+'</div></div>';
+  html+='<div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;">Käteinen</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text);">'+fmt(cash)+'</div></div>';
+  html+='<div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;">Velat</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text);">'+fmt(debt)+'</div></div>';
   var lvc=liikkuma>=0?'var(--green)':'var(--red)';
-  html+='<div style="font-size:24px;font-weight:700;font-family:var(--mono);color:'+lvc+';">'+fmt(liikkuma)+'<span style="font-size:12px;font-weight:400;color:var(--text3);margin-left:3px;">/kk</span></div></div>';
+  html+='<div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;">Liikkumavara</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:'+lvc+';">'+fmt(liikkuma)+'<span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:3px;">/kk</span></div></div>';
   html+='</div>';
-
-  // RYTMIN KANTAMA
-  html+='<div style="margin-bottom:52px;">';
-  html+='<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);font-weight:600;margin-bottom:28px;">Rytmin kantama</div>';
-  var lnMax=Math.log(36);
-  var xP=[0,Math.log(3)/lnMax,Math.log(6)/lnMax,Math.log(12)/lnMax,Math.log(24)/lnMax,1.0];
-  var lbls=['Nyt','3 kk','6 kk','12 kk','24 kk','36 kk'];
-  var vals=[null].concat(months.map(function(m){return liikkuma*m;}));
-  var W=500,tY=36;
-  html+='<svg viewBox="0 0 '+W+' 80" style="width:100%;display:block;overflow:visible;" preserveAspectRatio="none">';
-  html+='<line x1="'+( xP[0]*W).toFixed(1)+'" y1="'+tY+'" x2="'+( xP[5]*W).toFixed(1)+'" y2="'+tY+'" stroke="var(--border-bright)" stroke-width="1.5"/>';
-  for(var i=0;i<xP.length;i++){
-    var x=(xP[i]*W).toFixed(1);
-    if(i===0){
-      html+='<circle cx="'+x+'" cy="'+tY+'" r="7" fill="var(--cyan)"/>';
-    } else {
-      html+='<circle cx="'+x+'" cy="'+tY+'" r="4" fill="none" stroke="var(--cyan)" stroke-width="1.5" opacity="0.6"/>';
-    }
-    html+='<text x="'+x+'" y="62" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--mono)">'+lbls[i]+'</text>';
-    if(i>0 && vals[i]!==null){
-      var vc=vals[i]>=0?'var(--green)':'var(--red)';
-      html+='<text x="'+x+'" y="18" text-anchor="middle" font-size="11" font-weight="600" fill="'+vc+'" font-family="var(--mono)">'+fmtSign(vals[i])+'</text>';
-    }
+  // KEHITYSKAARET
+  html+='<div style="margin-bottom:48px;">';
+  html+='<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);font-weight:600;margin-bottom:18px;">Kehityskaaret</div>';
+  var tracks=[{id:'nw',label:'Nettovarallisuus',color:'#00c8b0'},{id:'cash',label:'Käteinen',color:'#5ab88a'},{id:'debt',label:'Velat',color:'#d4a857'},{id:'inv',label:'Sijoitukset',color:'#4a90c8',hidden:!hasInv}];
+  html+='<div id="tutki-toggles" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">';
+  tracks.forEach(function(tr){
+    if(tr.hidden)return;
+    var act=_tutkiActive[tr.id];
+    var bg=act?'rgba('+hexToRgb(tr.color)+',0.15)':'rgba(255,255,255,0.04)';
+    var brd=act?tr.color:'rgba(255,255,255,0.1)';
+    var tc=act?tr.color:'var(--text3)';
+    html+='<button onclick="tutkiToggle(\''+ tr.id +'\')" style="background:'+bg+';border:1px solid '+brd+';color:'+tc+';border-radius:6px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;">'+ tr.label +'</button>';
+  });
+  html+='</div>';
+  // Sanallinen yhteenveto
+  if(snaps.length>=2){
+    var sums=[],oldest=snaps[0];
+    var fnMap={nw:snapNW,cash:snapCash,debt:snapDebt,inv:snapInv};
+    var lmap={nw:'Nettovarallisuus',cash:'Käteinen',debt:'Velat',inv:'Sijoitukset'};
+    ['nw','cash','debt','inv'].forEach(function(k){
+      if(!_tutkiActive[k])return;
+      if(k==='inv'&&!hasInv)return;
+      var fn=fnMap[k],v0=fn(oldest),v1=fn(latest);
+      if(v0===null||v1===null)return;
+      var delta=v1-v0,pct=v0!==0?Math.abs(delta/v0):0,txt;
+      if(k==='debt'){if(delta<-Math.abs(v0)*0.03)txt='Velat ovat pienentyneet.';else if(delta>Math.abs(v0)*0.03)txt='Velat ovat kasvaneet.';else txt='Velat ovat pysyneet melko vakaina.';}
+      else{if(pct<0.03||Math.abs(delta)<100)txt=lmap[k]+' on pysynyt melko vakaana.';else if(delta>0)txt=lmap[k]+' on kasvanut.';else txt=lmap[k]+' on pienentynyt.';}
+      sums.push(txt);
+    });
+    if(sums.length>0)html+='<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:20px;padding:14px 16px;background:rgba(0,200,176,0.04);border:1px solid rgba(0,200,176,0.1);border-radius:8px;">'+sums.join(' ')+'</div>';
   }
+  // Chart
+  if(snaps.length<2){
+    html+='<div style="color:var(--text3);font-size:13px;padding:20px 0;">Tallenna vähintään kaksi snapshottia.</div>';
+  } else {
+    var CW=540,CH=120,pL=4,pR=4,pT=12,pB=4;
+    html+='<svg viewBox="0 0 '+CW+' '+CH+'" style="width:100%;display:block;overflow:visible;" preserveAspectRatio="none">';
+    var fnMap2={nw:snapNW,cash:snapCash,debt:snapDebt,inv:snapInv};
+    var cols={nw:'#00c8b0',cash:'#5ab88a',debt:'#d4a857',inv:'#4a90c8'};
+    ['nw','cash','debt','inv'].forEach(function(k){
+      if(!_tutkiActive[k])return;
+      if(k==='inv'&&!hasInv)return;
+      var fn2=fnMap2[k];
+      var vals=snaps.map(function(s){return fn2(s);});
+      var def=vals.filter(function(v){return v!==null;});
+      if(def.length<2)return;
+      var mnV=Math.min.apply(null,def),mxV=Math.max.apply(null,def),rng=mxV-mnV||1;
+      var pts=[];
+      snaps.forEach(function(s,i){var v=fn2(s);if(v===null)return;var px=pL+(i/(snaps.length-1))*(CW-pL-pR);var py=pT+(1-(v-mnV)/rng)*(CH-pT-pB);pts.push(px.toFixed(1)+','+py.toFixed(1));});
+      if(pts.length<2)return;
+      var col2=cols[k];
+      html+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+col2+'" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>';
+      var lp=pts[pts.length-1].split(',');
+      html+='<circle cx="'+lp[0]+'" cy="'+lp[1]+'" r="3.5" fill="'+col2+'"/>';
+    });
+    html+='</svg>';
+    html+='<div style="font-size:10px;color:var(--text3);margin-top:8px;font-style:italic;">Kaaret on skaalattu erikseen, jotta niiden suunnat ovat vertailtavissa.</div>';
+  }
+  html+='</div>';
+  // RYTMIN KANTAMA
+  html+='<div style="margin-bottom:52px;border-top:1px solid var(--border);padding-top:28px;">';
+  html+='<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);font-weight:600;margin-bottom:28px;">Rytmin kantama</div>';
+  var lnMx=Math.log(36),xPP=[0,Math.log(3)/Math.log(36),Math.log(6)/Math.log(36),Math.log(12)/Math.log(36),Math.log(24)/Math.log(36),1.0];
+  var rlbls=['Nyt','3 kk','6 kk','12 kk','24 kk','36 kk'],rmonths=[3,6,12,24,36],rvals=[null].concat(rmonths.map(function(m){return liikkuma*m;})),SW2=500,rtY=36;
+  html+='<svg viewBox="0 0 '+SW2+' 80" style="width:100%;display:block;overflow:visible;" preserveAspectRatio="none">';
+  html+='<line x1="'+( xPP[0]*SW2).toFixed(1)+'" y1="'+rtY+'" x2="'+( xPP[5]*SW2).toFixed(1)+'" y2="'+rtY+'" stroke="var(--border-bright)" stroke-width="1.5"/>';
+  for(var ri=0;ri<xPP.length;ri++){var rx=(xPP[ri]*SW2).toFixed(1);if(ri===0){html+='<circle cx="'+rx+'" cy="'+rtY+'" r="7" fill="var(--cyan)"/>'; }else{html+='<circle cx="'+rx+'" cy="'+rtY+'" r="4" fill="none" stroke="var(--cyan)" stroke-width="1.5" opacity="0.6"/>';}html+='<text x="'+rx+'" y="62" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--mono)">'+ rlbls[ri]+'</text>';if(ri>0&&rvals[ri]!==null){var rvc=rvals[ri]>=0?'var(--green)':'var(--red)';html+='<text x="'+rx+'" y="18" text-anchor="middle" font-size="11" font-weight="600" fill="'+rvc+'" font-family="var(--mono)">'+fmtSign(rvals[ri])+'</text>';}}
   html+='</svg>';
   html+='<div style="font-size:11px;color:var(--text3);margin-top:14px;">Nykyisen rytmin kantama. Perustuu liikkumavaraan '+fmt(liikkuma)+' /kk.</div>';
   html+='</div>';
-
-  // HORISONTISSA NÄKYVÄT RAKENTEET
+  // HORISONTISSA
   html+='<div style="border-top:1px solid var(--border);padding-top:22px;">';
   html+='<div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Horisontissa näkyvät rakenteet</div>';
-  ['Asuntolaina','Autolaina','Toistuvat tulot','Toistuvat menot'].forEach(function(r){
-    html+='<div style="font-size:13px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">'+r+'</div>';
-  });
+  [{id:'asuntolaina',label:'Asuntolaina'},{id:'autolaina',label:'Autolaina'},{id:'tulot',label:'Toistuvat tulot'},{id:'menot',label:'Toistuvat menot'}].forEach(function(r){html+='<div data-rakenne="'+r.id+'" style="font-size:13px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">'+r.label+'</div>';});
   html+='</div></div>';
-
   el.innerHTML=html;
-  console.log('[TUTKI] V2 rendered, liikkuma='+liikkuma);
+  console.log('[TUTKI] V2 rendered');
+}
+
+function tutkiToggle(id){
+  _tutkiActive[id]=!_tutkiActive[id];
+  renderSuunnittelupohta();
+}
+
+function hexToRgb(hex){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return r+','+g+','+b;
 }
 
 async function updateNavCount() {
