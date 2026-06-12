@@ -2775,15 +2775,14 @@ function showView(name) {
 // TUTKI — Suunnitteluöytä V1
 // ═══════════════════════════════════════════════
 
-function renderSuunnittelupohta() {
+async function renderSuunnittelupohta() {
   console.log("[FINOS] renderSuunnittelupohta started");
   var el = document.getElementById("view-suunnittelu");
   if (!el) { console.warn("[FINOS] #view-suunnittelu missing"); return; }
-  var snaps = [];
-  try { var rs=localStorage.getItem("finos_snapshots"); if(rs) snaps=JSON.parse(rs); } catch(e){}
-  if(!Array.isArray(snaps)) snaps=[];
-  snaps=snaps.slice().sort(function(a,b){ return a.date<b.date?-1:1; });
+  var snaps = (await DB.getAll("snapshots")).sort(function(a,b){ return a.date<b.date?-1:1; });
+  console.log("[TUTKI] snapshots", snaps.length);
   var latest=snaps.length>0?snaps[snaps.length-1]:null;
+  console.log("[TUTKI] latest keys", latest ? Object.keys(latest).join(",") : "null");
   function fmt(v){ if(v===null||v===undefined||v===""||isNaN(Number(v))) return "—"; return Number(v).toLocaleString("fi-FI",{maximumFractionDigits:0})+" €"; }
   function fmtK(v){ if(v===null||v===undefined||v===""||isNaN(Number(v))) return "—"; var n=Number(v); if(Math.abs(n)>=1000) return (n/1000).toLocaleString("fi-FI",{minimumFractionDigits:1,maximumFractionDigits:1})+" k€"; return n.toLocaleString("fi-FI",{maximumFractionDigits:0})+" €"; }
   function nw(s){ if(!s) return null; var cash=(Number(s.tulotili)||0)+(Number(s.s_pankki)||0)-(Number(s.op_gold)||0); var debt=(Number(s.asuntolaina)||0)+(Number(s.asuntolaina_remontti)||0)+(Number(s.autolaina)||0); return cash-debt; }
