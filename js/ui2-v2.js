@@ -3676,20 +3676,6 @@ function _renderStructures(latest) {
         return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="font-size:14px;color:rgba(255,255,255,0.55);">${label}</span><span style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:14px;color:rgba(255,255,255,0.35);font-variant-numeric:tabular-nums;">${amt ? amt.toLocaleString('fi-FI',{maximumFractionDigits:0})+' € / kk' : '—'}</span><button onclick="entryDeleteMeno('${item.id}')" style="background:none;border:none;color:rgba(255,255,255,0.18);font-size:15px;cursor:pointer;padding:0;font-family:inherit;line-height:1;" title="Poista">×</button></span></div>`;
       }).join('')
     : `<div style="font-size:13px;color:rgba(255,255,255,0.25);padding:10px 0;">Ei toistuvia menoja tallennettu.</div>`;
-  return `
-          <div style="display: flex; justify-content: space-between; align-items: baseline;
-                      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
-            <span style="font-size: 14px; color: rgba(255,255,255,0.4);">${item.label || 'Meno'}</span>
-            <span style="font-size: 14px; color: rgba(255,255,255,0.3);
-                         font-variant-numeric: tabular-nums;">
-              ${amt ? amt.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' € / kk' : '—'}
-            </span>
-          </div>
-        `;
-      }).join('')
-    : `<div style="font-size: 13px; color: rgba(255,255,255,0.25); padding: 10px 0;">
-        Ei toistuvia menoja tallennettu.
-       </div>`;
 
   return `
     <div id="entry-structures" style="padding: 28px 24px 0;">
