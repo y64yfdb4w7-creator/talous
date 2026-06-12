@@ -2796,15 +2796,17 @@ async function renderSuunnittelupohta(){
   function margin(s){if(!s)return 0;var inc=0,exp=0;if(Array.isArray(s.tulot_items))s.tulot_items.forEach(function(x){inc+=Number(x.amount)||0;});if(Array.isArray(s.rytmi_items))s.rytmi_items.forEach(function(x){exp+=Number(x.amount)||0;});return inc-exp;}
   var netWorth=snapNW(latest),cash=snapCash(latest),debt=snapDebt(latest),liikkuma=margin(latest);
   var hasInv=snaps.some(function(s){return snapInv(s)!==null;});
-  var html='<div style="max-width:600px;margin:0 auto;padding:24px 16px 60px;">';
-  html+='<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:22px;">Suunnitteluöytä</div>';
+  var html='<style>.tutki-grid{display:grid;grid-template-columns:1fr;gap:0}.tutki-left,.tutki-right{min-width:0}@media(min-width:1000px){.tutki-grid{grid-template-columns:65fr 35fr;column-gap:32px}.tutki-full{grid-column:1/-1}}</style>';
+  html+='<div class="tutki-grid" style="max-width:1400px;margin:0 auto;padding:24px 16px 60px;">';
+  html+='<div class="tutki-full" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:22px;">Suunnitteluöytä</div>';
   if(!latest){html+='<div style="color:var(--text3);font-size:14px;padding:40px 0;">Ei dataa.</div></div>';el.innerHTML=html;return;}
   // KONTEKSTIRIVI
-  html+='<div style="display:flex;flex-wrap:wrap;gap:20px 36px;align-items:baseline;margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid var(--border);">';
+  html+='<div class="tutki-full" style="display:flex;flex-wrap:wrap;gap:20px 36px;align-items:baseline;margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid var(--border);">';
   [{label:'Nettovarallisuus',val:fmt(netWorth),color:'var(--text)'},{label:'Käteinen',val:fmt(cash),color:'var(--text)'},{label:'Velat',val:fmt(debt),color:'var(--text)'},{label:'Liikkumavara',val:fmt(liikkuma),suffix:'/kk',color:liikkuma>=0?'var(--green)':'var(--red)'}].forEach(function(c){
     html+='<div><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">'+c.label+'</div><div style="font-size:26px;font-weight:700;font-family:var(--mono);color:'+c.color+';">'+c.val+(c.suffix?'<span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:3px;">'+c.suffix+'</span>':'')+'</div></div>';
   });
   html+='</div>';
+  html+='<div class="tutki-left">';
   // TOGGLES
   var tracks=[{id:'nw',label:'Nettovarallisuus',color:'#00c8b0'},{id:'cash',label:'Käteinen',color:'#5ab88a'},{id:'debt',label:'Velat',color:'#d4a857'},{id:'inv',label:'Sijoitukset',color:'#4a90c8',hidden:!hasInv}];
   html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">';
@@ -2829,8 +2831,7 @@ async function renderSuunnittelupohta(){
     });
   }
   var lvS=liikkuma>=0?'+':'',summaryText=(sums.length?sums.join(' ')+('  '):'')+'Nykyinen liikkumavara on '+lvS+Math.round(liikkuma).toLocaleString('fi-FI')+' €/kk.';
-  html+='<div style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:10px;padding:14px 16px;background:rgba(0,200,176,0.04);border:1px solid rgba(0,200,176,0.1);border-radius:8px;">'+summaryText+'</div>';
-  html+='<div style="font-size:11px;color:var(--text3);margin-bottom:20px;font-style:italic;">Vasen puoli: mennyt kehitys · Oikea puoli: nykyisen rytmin mittakaava</div>';
+  // yhteenveto emitted in right col
   // UNIFIED SVG
   var W=600,H=140,pT=22,pB=32;
   var nowX=Math.round(W*0.55),trackH=H-pT-pB;
@@ -2874,6 +2875,10 @@ async function renderSuunnittelupohta(){
   html+='</svg>';
   html+='<div style="font-size:10px;color:var(--text3);margin-top:6px;font-style:italic;">Vasen: kehityskaaret skaalattu erikseen suuntien vertailua varten.</div>';
   html+='</div>';
+  html+='</div>';
+  html+='<div class="tutki-right">';
+  html+='<div style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:10px;padding:14px 16px;background:rgba(0,200,176,0.04);border:1px solid rgba(0,200,176,0.1);border-radius:8px;">'+summaryText+'</div>';
+  html+='<div style="font-size:11px;color:var(--text3);margin-bottom:20px;font-style:italic;">Vasen puoli: mennyt kehitys · Oikea puoli: nykyisen rytmin mittakaava</div>';
   // RYTMIN KANTAMA TAULUKKO
   var horisonttiKk=[3,6,12,24,36,60,120];
   var hLbl={3:'3 kk',6:'6 kk',12:'12 kk',24:'24 kk',36:'36 kk',60:'60 kk',120:'120 kk'};
