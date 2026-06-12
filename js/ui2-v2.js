@@ -2782,46 +2782,6 @@ var _tutkiActive={nw:true,cash:true,debt:true,inv:false};
 var _tutkiMarkerForm=false;
 var _tutkiActivePin=null;
 
-function hexToRgb(hex){
-  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-  return r+','+g+','+b;
-}
-
-function tutkiToggle(id){
-  _tutkiActive[id]=!_tutkiActive[id];
-  renderSuunnittelupohta();
-}
-
-function tutkiShowPin(id){
-  _tutkiActivePin=(_tutkiActivePin===id)?null:id;
-  renderSuunnittelupohta();
-}
-
-async function tutkiDeletePin(id){
-  await DB.deletePin(id);
-  _tutkiActivePin=null;
-  renderSuunnittelupohta();
-}
-
-function tutkiToggleMarkerForm(){
-  _tutkiMarkerForm=!_tutkiMarkerForm;
-  renderSuunnittelupohta();
-}
-
-async function tutkiSaveMarker(){
-  var dateEl=document.getElementById('tutki-pin-date');
-  var iconEl=document.getElementById('tutki-pin-icon');
-  var titleEl=document.getElementById('tutki-pin-title');
-  var descEl=document.getElementById('tutki-pin-desc');
-  if(!dateEl||!titleEl)return;
-  var d=dateEl.value.trim(),ic=iconEl?iconEl.value:'📍',ti=titleEl.value.trim(),de=descEl?descEl.value.trim():'';
-  if(!d||!ti)return;
-  var pin={id:'pin_'+Date.now(),date:d,icon:ic||'📍',title:ti,description:de};
-  await DB.putPin(pin);
-  _tutkiMarkerForm=false;
-  renderSuunnittelupohta();
-}
-
 async function renderSuunnittelupohta(){
   var el=document.getElementById('view-suunnittelu');
   if(!el) return;
@@ -2829,31 +2789,23 @@ async function renderSuunnittelupohta(){
   var pins=(await DB.getAll('pins')).sort(function(a,b){return a.date<b.date?-1:1;});
   console.log('[TUTKI] snapshots',snaps.length,'pins',pins.length);
   var latest=snaps.length>0?snaps[snaps.length-1]:null;
-
-  function fmt(v){if(v===null||v===undefined||v===''||isNaN(Number(v)))return'—';return Number(v).toLocaleString('fi-FI',{maximumFractionDigits:0})+' €';}
-  function fmtSign(v){if(v===null||v===undefined||isNaN(Number(v)))return'—';var n=Math.round(Number(v));return(n>=0?'+':'')+n.toLocaleString('fi-FI')+' €';}
+  function fmt(v){if(v===null||v===undefined||v===''||isNaN(Number(v)))return'—';return Number(v).toLocaleString('fi-FI',{maximumFractionDigits:0})+' €';}
+  function fmtSign(v){if(v===null||v===undefined||isNaN(Number(v)))return'—';var n=Math.round(Number(v));return(n>=0?'+':'')+n.toLocaleString('fi-FI')+' €';}
   function snapNW(s){if(!s)return null;return(Number(s.tulotili)||0)+(Number(s.s_pankki)||0)-(Number(s.op_gold)||0)-(Number(s.asuntolaina)||0)-(Number(s.asuntolaina_remontti)||0)-(Number(s.autolaina)||0);}
   function snapCash(s){if(!s)return null;return(Number(s.tulotili)||0)+(Number(s.s_pankki)||0)-(Number(s.op_gold)||0);}
   function snapDebt(s){if(!s)return null;return(Number(s.asuntolaina)||0)+(Number(s.asuntolaina_remontti)||0)+(Number(s.autolaina)||0);}
   function snapInv(s){if(!s)return null;var v=(Number(s.salkku_arvo)||0);return v>0?v:null;}
   function margin(s){if(!s)return 0;var inc=0,exp=0;if(Array.isArray(s.tulot_items))s.tulot_items.forEach(function(x){inc+=Number(x.amount)||0;});if(Array.isArray(s.rytmi_items))s.rytmi_items.forEach(function(x){exp+=Number(x.amount)||0;});return inc-exp;}
-
   var netWorth=snapNW(latest),cash=snapCash(latest),debt=snapDebt(latest),liikkuma=margin(latest);
   var hasInv=snaps.some(function(s){return snapInv(s)!==null;});
-
-  var html='<div style="max-width:600px;margin:0 auto;padding:24px 16px 80px;">';
+  var html='<div style="max-width:600px;margin:0 auto;padding:24px 16px 60px;">';
   html+='<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:22px;">Suunnittelupöytä</div>';
-
   if(!latest){html+='<div style="color:var(--text3);font-size:14px;padding:40px 0;">Ei dataa.</div></div>';el.innerHTML=html;return;}
-
-  // KONTEKSTIRIVI
   html+='<div style="display:flex;flex-wrap:wrap;gap:20px 36px;align-items:baseline;margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid var(--border);">';
   [{label:'Nettovarallisuus',val:fmt(netWorth),color:'var(--text)'},{label:'Käteinen',val:fmt(cash),color:'var(--text)'},{label:'Velat',val:fmt(debt),color:'var(--text)'},{label:'Liikkumavara',val:fmt(liikkuma),suffix:'/kk',color:liikkuma>=0?'var(--green)':'var(--red)'}].forEach(function(c){
     html+='<div><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">'+c.label+'</div><div style="font-size:26px;font-weight:700;font-family:var(--mono);color:'+c.color+';">'+c.val+(c.suffix?'<span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:3px;">'+c.suffix+'</span>':'')+'</div></div>';
   });
   html+='</div>';
-
-  // TOGGLET
   var tracks=[{id:'nw',label:'Nettovarallisuus',color:'#00c8b0'},{id:'cash',label:'Käteinen',color:'#5ab88a'},{id:'debt',label:'Velat',color:'#d4a857'},{id:'inv',label:'Sijoitukset',color:'#4a90c8',hidden:!hasInv}];
   html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">';
   tracks.forEach(function(tr){
@@ -2862,8 +2814,6 @@ async function renderSuunnittelupohta(){
     html+='<button onclick="tutkiToggle(''+tr.id+'')" style="background:'+(act?'rgba('+hexToRgb(tr.color)+',0.15)':'rgba(255,255,255,0.04)')+';border:1px solid '+(act?tr.color:'rgba(255,255,255,0.1)')+';color:'+(act?tr.color:'var(--text3)')+';border-radius:6px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;">'+tr.label+'</button>';
   });
   html+='</div>';
-
-  // SANALLINEN YHTEENVETO
   var sums=[];
   if(snaps.length>=2){
     var oldest=snaps[0],fnMap={nw:snapNW,cash:snapCash,debt:snapDebt,inv:snapInv},lmap={nw:'Nettovarallisuus',cash:'Käteinen',debt:'Velat',inv:'Sijoitukset'};
@@ -2877,25 +2827,15 @@ async function renderSuunnittelupohta(){
       sums.push(txt);
     });
   }
-  var lvS=liikkuma>=0?'+':'',summaryText=(sums.length?sums.join(' ')+'  ':'')+'Nykyinen liikkumavara on '+lvS+Math.round(liikkuma).toLocaleString('fi-FI')+' €/kk.';
+  var lvS=liikkuma>=0?'+':'',summaryText=(sums.length?sums.join(' ')+'  ':'')+'Nykyinen liikkumavara on '+lvS+Math.round(liikkuma).toLocaleString('fi-FI')+' €/kk.';
   html+='<div style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:10px;padding:14px 16px;background:rgba(0,200,176,0.04);border:1px solid rgba(0,200,176,0.1);border-radius:8px;">'+summaryText+'</div>';
   html+='<div style="font-size:11px;color:var(--text3);margin-bottom:20px;font-style:italic;">Vasen puoli: mennyt kehitys · Oikea puoli: nykyisen rytmin mittakaava</div>';
-
-  // UNIFIED SVG
-  var W=600,H=160,pT=22,pB=32;
+  var W=600,H=140,pT=22,pB=32;
   var nowX=Math.round(W*0.55),trackH=H-pT-pB;
   var hMonths=[6,12,24,36],lnM=Math.log(36),horizW=W-nowX;
   var hxPos=hMonths.map(function(m){return nowX+Math.round((Math.log(m)/lnM)*(horizW*0.92));});
-  var firstDate=snaps.length>0?snaps[0].date:'2020-01-01';
-  var lastDate=latest?latest.date:firstDate;
-  var firstMs=new Date(firstDate).getTime(),lastMs=new Date(lastDate).getTime();
-  var dateRangeMs=Math.max(lastMs-firstMs,1);
-  function pinX(dateStr){var ms=new Date(dateStr).getTime();var frac=Math.max(0,Math.min(1,(ms-firstMs)/dateRangeMs));return Math.round(frac*(nowX-8))+4;}
-
   html+='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block;overflow:visible;" preserveAspectRatio="none">';
   html+='<line x1="'+nowX+'" y1="'+pT+'" x2="'+nowX+'" y2="'+(H-pB)+'" stroke="var(--border-bright)" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>';
-
-  // History kaaret
   var fnMap2={nw:snapNW,cash:snapCash,debt:snapDebt,inv:snapInv},cols={nw:'#00c8b0',cash:'#5ab88a',debt:'#d4a857',inv:'#4a90c8'};
   if(snaps.length>=2){
     ['nw','cash','debt','inv'].forEach(function(k){
@@ -2903,118 +2843,110 @@ async function renderSuunnittelupohta(){
       var fn2=fnMap2[k],vals=snaps.map(function(s){return fn2(s);}),def=vals.filter(function(v){return v!==null;});
       if(def.length<2)return;
       var mnV=Math.min.apply(null,def),mxV=Math.max.apply(null,def),rng=mxV-mnV||1,pts=[];
-      snaps.forEach(function(s,i){var v=fn2(s);if(v===null)return;pts.push(Math.round((i/(snaps.length-1))*(nowX-8))+4+','+(pT+Math.round((1-(v-mnV)/rng)*trackH)));});
+      snaps.forEach(function(s,i){var v=fn2(s);if(v===null)return;pts.push(Math.round((i/(snaps.length-1))*(nowX-6))+','+( pT+Math.round((1-(v-mnV)/rng)*trackH)));});
       if(pts.length<2)return;
       html+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+cols[k]+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.8"/>';
     });
   }
-
-  // Year labels
   var yearsSeen={};
-  snaps.forEach(function(s,i){
-    if(!s.date)return;
-    var yr=s.date.slice(0,4);
-    if(!yearsSeen[yr]){yearsSeen[yr]=true;html+='<text x="'+Math.round((i/(Math.max(snaps.length-1,1)))*(nowX-8)+4)+'" y="'+(H-pB+14)+'" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--mono)">'+yr+'</text>';}
-  });
-
-  // Maamerkit
+  snaps.forEach(function(s,i){if(!s.date)return;var yr=s.date.slice(0,4);if(!yearsSeen[yr]){yearsSeen[yr]=true;html+='<text x="'+Math.round((i/(Math.max(snaps.length-1,1)))*(nowX-6))+'" y="'+(H-pB+14)+'" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--mono)">'+yr+'</text>';}});
+  var firstMs2=snaps.length>0?new Date(snaps[0].date).getTime():0;
+  var lastMs2=latest?new Date(latest.date).getTime():firstMs2;
+  var dRange=Math.max(lastMs2-firstMs2,1);
   pins.forEach(function(pin){
-    var px=pinX(pin.date);
-    var isActive=_tutkiActivePin===pin.id;
-    var pinColor=isActive?'#00c8b0':'rgba(212,168,87,0.85)';
-    html+='<line x1="'+px+'" y1="'+pT+'" x2="'+px+'" y2="'+(H-pB-4)+'" stroke="'+pinColor+'" stroke-width="1" opacity="0.5"/>';
-    html+='<polygon points="'+px+','+(pT-2)+' '+(px+5)+','+(pT+5)+' '+px+','+(pT+12)+' '+(px-5)+','+(pT+5)+'" fill="'+pinColor+'" opacity="0.9" style="cursor:pointer;" onclick="tutkiShowPin(''+pin.id+'')" />';
-    html+='<text x="'+px+'" y="'+(pT-5)+'" text-anchor="middle" font-size="10" style="cursor:pointer;" onclick="tutkiShowPin(''+pin.id+'')">'+pin.icon+'</text>';
+    var px=Math.round(((new Date(pin.date).getTime()-firstMs2)/dRange)*(nowX-8))+4;
+    if(px<4)px=4;if(px>nowX-4)px=nowX-4;
+    var isAct=_tutkiActivePin===pin.id;
+    var pCol=isAct?'#00c8b0':'rgba(212,168,87,0.85)';
+    html+='<line x1="'+px+'" y1="'+pT+'" x2="'+px+'" y2="'+(H-pB-2)+'" stroke="'+pCol+'" stroke-width="1" opacity="0.5"/>';
+    html+='<polygon points="'+px+','+(pT+2)+' '+(px+5)+','+(pT+9)+' '+px+','+(pT+16)+' '+(px-5)+','+(pT+9)+'" fill="'+pCol+'" opacity="0.9" style="cursor:pointer;" onclick="tutkiShowPin(''+pin.id+'')" />';
   });
-
-  // Horizon
   var baseY=Math.round(pT+trackH*0.62),hMaxVal=Math.abs(liikkuma*36)||1;
   var hPts=hMonths.map(function(m,idx){var hval=liikkuma*m,hx=hxPos[idx],yOff=Math.round((hval/hMaxVal)*trackH*0.48),hy=baseY-yOff;return{x:hx,y:hy,val:hval,m:m};});
   var allHLine=[[nowX,baseY]].concat(hPts.map(function(p){return[p.x,p.y];})).map(function(p){return p[0]+','+p[1];}).join(' ');
   var hcol=liikkuma>=0?'#00c8b0':'#d4a857';
   html+='<polyline points="'+allHLine+'" fill="none" stroke="'+hcol+'" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.65"/>';
   html+='<line x1="'+nowX+'" y1="'+baseY+'" x2="'+(nowX+Math.round(horizW*0.95))+'" y2="'+baseY+'" stroke="var(--border-bright)" stroke-width="1"/>';
-  hPts.forEach(function(p){
-    html+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="'+hcol+'" opacity="0.75"/>';
-    html+='<text x="'+p.x+'" y="'+(p.y-8)+'" text-anchor="middle" font-size="10" font-weight="600" fill="'+hcol+'" font-family="var(--mono)">'+fmtSign(p.val)+'</text>';
-    html+='<text x="'+p.x+'" y="'+(H-pB+14)+'" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--mono)">'+p.m+' kk</text>';
-  });
-  html+='<circle cx="'+nowX+'" cy="'+baseY+'" r="8" fill="var(--cyan)"/>';
-  html+='<text x="'+nowX+'" y="'+(baseY-14)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--cyan)" font-family="var(--mono)" letter-spacing=".08em">NYT</text>';
+  hPts.forEach(function(p){html+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="'+hcol+'" opacity="0.75"/>';html+='<text x="'+p.x+'" y="'+(p.y-8)+'" text-anchor="middle" font-size="10" font-weight="600" fill="'+hcol+'" font-family="var(--mono)">'+fmtSign(p.val)+'</text>';html+='<text x="'+p.x+'" y="'+(H-pB+14)+'" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--mono)">'+p.m+' kk</text>';});
+  html+='<circle cx="'+nowX+'" cy="'+baseY+'" r="8" fill="var(--cyan)"/>';html+='<text x="'+nowX+'" y="'+(baseY-14)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--cyan)" font-family="var(--mono)" letter-spacing=".08em">NYT</text>';
   if(latest&&latest.date)html+='<text x="'+nowX+'" y="'+(H-pB+14)+'" text-anchor="middle" font-size="9" fill="var(--cyan)" font-family="var(--mono)">'+latest.date.slice(0,7)+'</text>';
   html+='</svg>';
   html+='<div style="font-size:10px;color:var(--text3);margin-top:6px;font-style:italic;">Vasen: kehityskaaret skaalattu erikseen suuntien vertailua varten.</div>';
-
-  // AKTIIVINEN PIN DETAIL
   if(_tutkiActivePin){
-    var activePin=pins.find(function(p){return p.id===_tutkiActivePin;});
-    if(activePin){
+    var apin=pins.find(function(p){return p.id===_tutkiActivePin;});
+    if(apin){
       html+='<div style="margin-top:16px;padding:14px 16px;background:rgba(212,168,87,0.08);border:1px solid rgba(212,168,87,0.3);border-radius:8px;">';
       html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
-      html+='<span style="font-size:22px;">'+activePin.icon+'</span>';
-      html+='<div><div style="font-size:15px;font-weight:600;color:var(--text);">'+activePin.title+'</div>';
-      html+='<div style="font-size:11px;color:var(--text3);font-family:var(--mono);">'+activePin.date+'</div></div>';
-      html+='<button onclick="tutkiShowPin(''+activePin.id+'')" style="margin-left:auto;background:transparent;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;">✕</button>';
+      html+='<span style="font-size:18px;">'+apin.icon+'</span>';
+      html+='<div style="flex:1"><div style="font-size:15px;font-weight:600;color:var(--text);">'+apin.title+'</div>';
+      html+='<div style="font-size:11px;color:var(--text3);font-family:var(--mono);">'+apin.date+'</div></div>';
+      html+='<button onclick="tutkiShowPin(''+apin.id+'')" style="background:transparent;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;">×</button>';
       html+='</div>';
-      if(activePin.description){
-        html+='<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px;">'+activePin.description+'</div>';
-      }
-      html+='<button onclick="tutkiDeletePin(''+activePin.id+'')" style="font-size:11px;color:var(--red);background:transparent;border:1px solid rgba(192,90,106,0.3);border-radius:5px;padding:4px 10px;cursor:pointer;">Poista maamerkki</button>';
+      if(apin.description)html+='<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px;">'+apin.description+'</div>';
+      html+='<button onclick="tutkiDeletePin(''+apin.id+'')" style="font-size:11px;color:var(--red);background:transparent;border:1px solid rgba(192,90,106,0.3);border-radius:5px;padding:4px 10px;cursor:pointer;">Poista maamerkki</button>';
       html+='</div>';
     }
   }
-
-  // MAAMERKIT LIST + ADD BUTTON
   html+='<div style="margin-top:24px;">';
   html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
   html+='<div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);">Maamerkit</div>';
   html+='<button onclick="tutkiToggleMarkerForm()" style="font-size:11px;color:var(--text2);background:transparent;border:1px solid var(--border);border-radius:5px;padding:4px 10px;cursor:pointer;">'+(pins.length===0?'+ Lisää ensimmäinen':'+ Lisää')+'</button>';
   html+='</div>';
-
   if(pins.length>0){
-    html+='<div style="display:flex;flex-direction:column;gap:2px;margin-bottom:16px;">';
     pins.forEach(function(pin){
-      var isAct=_tutkiActivePin===pin.id;
-      html+='<div onclick="tutkiShowPin(''+pin.id+'')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;background:'+(isAct?'rgba(212,168,87,0.08)':'transparent')+';border:1px solid '+(isAct?'rgba(212,168,87,0.25)':'transparent')+';">';
-      html+='<span style="font-size:16px;">'+pin.icon+'</span>';
+      var isAct2=_tutkiActivePin===pin.id;
+      html+='<div onclick="tutkiShowPin(''+pin.id+'')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;background:'+(isAct2?'rgba(212,168,87,0.08)':'transparent')+';border:1px solid '+(isAct2?'rgba(212,168,87,0.25)':'transparent')+';">';
+      html+='<span style="font-size:15px;">'+pin.icon+'</span>';
       html+='<span style="font-size:13px;color:var(--text2);">'+pin.title+'</span>';
       html+='<span style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-left:auto;">'+pin.date.slice(0,7)+'</span>';
       html+='</div>';
     });
-    html+='</div>';
   } else if(!_tutkiMarkerForm){
-    html+='<div style="font-size:13px;color:var(--text3);padding:12px 0;font-style:italic;">Ei maamerkkejä. Lisää elämäsi käännekohtia aikajanalle.</div>';
+    html+='<div style="font-size:13px;color:var(--text3);padding:12px 0;font-style:italic;">Ei maamerkkejä.</div>';
   }
-
   if(_tutkiMarkerForm){
+    var ICONS=['&#x1F4CD;','&#x1F3E0;','&#x1F697;','&#x1F4BC;','&#x1F4C8;','&#x2705;','&#x1F476;','&#x2B50;','&#x1F511;','&#x1F393;'];
     html+='<div style="padding:16px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;">';
     html+='<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Uusi maamerkki</div>';
     html+='<div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;">';
-    html+='<input id="tutki-pin-title" type="text" placeholder="Otsikko (esim. Asunnon osto)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;" />';
-    html+='<select id="tutki-pin-icon" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px;font-size:16px;cursor:pointer;"><option>📍</option><option>🏠</option><option>🚗</option><option>💼</option><option>📈</option><option>✅</option><option>👶</option><option>⭐</option><option>🔑</option><option>🎓</option></select>';
+    html+='<input id="tutki-pin-title" type="text" placeholder="Otsikko" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;" />';
+    html+='<select id="tutki-pin-icon" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px;font-size:15px;cursor:pointer;">';
+    ICONS.forEach(function(ic){html+='<option value="'+ic+'">'+ic+'</option>';});
+    html+='</select>';
     html+='</div>';
     html+='<input id="tutki-pin-date" type="date" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;margin-bottom:10px;" />';
     html+='<textarea id="tutki-pin-desc" placeholder="Kuvaus (valinnainen)" rows="2" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;resize:vertical;margin-bottom:12px;"></textarea>';
     html+='<div style="display:flex;gap:8px;">';
     html+='<button onclick="tutkiSaveMarker()" style="background:var(--cyan);color:#0d1e28;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;">Tallenna</button>';
     html+='<button onclick="tutkiToggleMarkerForm()" style="background:transparent;color:var(--text3);border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer;">Peruuta</button>';
-    html+='</div>';
-    html+='</div>';
+    html+='</div></div>';
   }
-
   html+='</div>';
-
-  // HORISONTISSA NÄKYVÄT RAKENTEET
-  html+='<div style="border-top:1px solid var(--border);padding-top:22px;margin-top:8px;"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Horisontissa näkyvät rakenteet</div>';
-  [{id:'asuntolaina',label:'Asuntolaina'},{id:'autolaina',label:'Autolaina'},{id:'tulot',label:'Toistuvat tulot'},{id:'menot',label:'Toistuvat menot'}].forEach(function(r){
-    html+='<div data-rakenne="'+r.id+'" style="font-size:13px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">'+r.label+'</div>';
-  });
+  html+='<div style="border-top:1px solid var(--border);padding-top:22px;"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Horisontissa näkyvät rakenteet</div>';
+  [{id:'asuntolaina',label:'Asuntolaina'},{id:'autolaina',label:'Autolaina'},{id:'tulot',label:'Toistuvat tulot'},{id:'menot',label:'Toistuvat menot'}].forEach(function(r){html+='<div data-rakenne="'+r.id+'" style="font-size:13px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">'+r.label+'</div>';});
   html+='</div></div>';
-
   el.innerHTML=html;
   console.log('[TUTKI] V3 rendered, pins='+pins.length);
 }
 
+function tutkiToggle(id){_tutkiActive[id]=!_tutkiActive[id];renderSuunnittelupohta();}
+function hexToRgb(hex){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return r+','+g+','+b;}
+function tutkiShowPin(id){_tutkiActivePin=(_tutkiActivePin===id)?null:id;renderSuunnittelupohta();}
+async function tutkiDeletePin(id){await DB.deletePin(id);_tutkiActivePin=null;renderSuunnittelupohta();}
+function tutkiToggleMarkerForm(){_tutkiMarkerForm=!_tutkiMarkerForm;renderSuunnittelupohta();}
+async function tutkiSaveMarker(){
+  var dateEl=document.getElementById('tutki-pin-date');
+  var iconEl=document.getElementById('tutki-pin-icon');
+  var titleEl=document.getElementById('tutki-pin-title');
+  var descEl=document.getElementById('tutki-pin-desc');
+  if(!dateEl||!titleEl)return;
+  var d=dateEl.value.trim(),ic=(iconEl&&iconEl.value)||'&#x1F4CD;',ti=titleEl.value.trim(),de=descEl?descEl.value.trim():'';
+  if(!d||!ti)return;
+  var pin={id:'pin_'+Date.now(),date:d,icon:ic,title:ti,description:de};
+  await DB.putPin(pin);
+  _tutkiMarkerForm=false;
+  renderSuunnittelupohta();
+}
 
 async function updateNavCount() {
   const n = await DB.count('snapshots');
