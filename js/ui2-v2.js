@@ -2740,7 +2740,7 @@ function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   // Hide Refresh button on Syötä — it does not belong there
   const freezeFloat = document.getElementById('btn-freeze-float');
-  if (freezeFloat) freezeFloat.style.display = name === 'syota' ? 'none' : '';
+  if (freezeFloat) freezeFloat.style.display = (name === 'syota' || name === 'suunnittelu') ? 'none' : '';
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
   const sbEl = document.getElementById('sb-' + name);
@@ -2779,6 +2779,7 @@ function showView(name) {
 // ═══════════════════════════════════════════════
 
 var _tutkiActive={nw:true,cash:true,debt:true,inv:false};
+var _tutkiHorisontti=36;
 
 async function renderSuunnittelupohta(){
   var el=document.getElementById('view-suunnittelu');
@@ -2835,6 +2836,12 @@ async function renderSuunnittelupohta(){
   var nowX=Math.round(W*0.55),trackH=H-pT-pB;
   var hMonths=[6,12,24,36],lnM=Math.log(36),horizW=W-nowX;
   var hxPos=hMonths.map(function(m){return nowX+Math.round((Math.log(m)/lnM)*(horizW*0.92));});
+  var legendItems=[];
+  if(_tutkiActive.nw)legendItems.push('<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#00c8b0;"><span style="display:inline-block;width:10px;height:3px;background:#00c8b0;border-radius:2px;"></span>Nettovarallisuus</span>');
+  if(_tutkiActive.cash)legendItems.push('<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5ab88a;"><span style="display:inline-block;width:10px;height:3px;background:#5ab88a;border-radius:2px;"></span>Käteinen</span>');
+  if(_tutkiActive.debt)legendItems.push('<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#d4a857;"><span style="display:inline-block;width:10px;height:3px;background:#d4a857;border-radius:2px;"></span>Velat</span>');
+  if(hasInv&&_tutkiActive.inv)legendItems.push('<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#4a90c8;"><span style="display:inline-block;width:10px;height:3px;background:#4a90c8;border-radius:2px;"></span>Sijoitukset</span>');
+  if(legendItems.length>0)html+='<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px;">'+legendItems.join('')+'</div>';
   html+='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block;overflow:visible;" preserveAspectRatio="none">';
   html+='<line x1="'+nowX+'" y1="'+pT+'" x2="'+nowX+'" y2="'+( H-pB)+'" stroke="var(--border-bright)" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>';
   // History kaaret
@@ -2867,12 +2874,35 @@ async function renderSuunnittelupohta(){
   html+='</svg>';
   html+='<div style="font-size:10px;color:var(--text3);margin-top:6px;font-style:italic;">Vasen: kehityskaaret skaalattu erikseen suuntien vertailua varten.</div>';
   html+='</div>';
+  // RYTMIN KANTAMA TAULUKKO
+  var horisonttiKk=[3,6,12,24,36,60,120];
+  var hLbl={3:'3 kk',6:'6 kk',12:'12 kk',24:'24 kk',36:'36 kk',60:'60 kk',120:'120 kk'};
+  html+='<div style="margin-top:28px;border-top:1px solid var(--border);padding-top:22px;">';
+  html+='<div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Jos nykyinen rytmi säilyy</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">';
+  horisonttiKk.forEach(function(m){
+    var isS=_tutkiHorisontti===m;
+    html+='<button onclick="tutkiSetHorisontti('+m+')" style="background:'+(isS?'rgba(0,200,176,0.15)':'rgba(255,255,255,0.04)')+';border:1px solid '+(isS?'#00c8b0':'rgba(255,255,255,0.1)')+';color:'+(isS?'#00c8b0':'var(--text3)')+';border-radius:5px;padding:4px 10px;font-size:11px;font-weight:'+(isS?'700':'400')+';cursor:pointer;font-family:var(--mono);">'+hLbl[m]+'</button>';
+  });
+  html+='</div>';
+  var showKk=[3,6,12,24,36,60,120].filter(function(m){return m<=_tutkiHorisontti;});
+  if(showKk.length===0)showKk=[_tutkiHorisontti];
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px;">';
+  showKk.forEach(function(m){
+    var val=liikkuma*m,sign=val>=0?'+':'',col=val>=0?'var(--green)':'var(--red)';
+    html+='<div style="padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;">';
+    html+='<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:var(--mono);">'+hLbl[m]+'</div>';
+    html+='<div style="font-size:15px;font-weight:700;color:'+col+';font-family:var(--mono);">'+sign+Math.round(val).toLocaleString('fi-FI')+' €</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='</div>';
   // HORISONTISSA
   html+='<div style="border-top:1px solid var(--border);padding-top:22px;"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Horisontissa näkyvät rakenteet</div>';
   [{id:'asuntolaina',label:'Asuntolaina'},{id:'autolaina',label:'Autolaina'},{id:'tulot',label:'Toistuvat tulot'},{id:'menot',label:'Toistuvat menot'}].forEach(function(r){html+='<div data-rakenne="'+r.id+'" style="font-size:13px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">'+r.label+'</div>';});
   html+='</div></div>';
   el.innerHTML=html;
-  console.log('[TUTKI] V2.1 rendered');
+  console.log('[TUTKI] V2.2 rendered');
 }
 
 function tutkiToggle(id){_tutkiActive[id]=!_tutkiActive[id];renderSuunnittelupohta();}
@@ -2882,6 +2912,7 @@ function tutkiToggle(id){
   _tutkiActive[id]=!_tutkiActive[id];
   renderSuunnittelupohta();
 }
+function tutkiSetHorisontti(m){_tutkiHorisontti=m;renderSuunnittelupohta();}
 
 function hexToRgb(hex){
   var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
