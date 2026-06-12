@@ -4503,37 +4503,109 @@ function initLayoutToolbar() {
 // ── END LAYOUT TALLENNIN ─────────────────────────────────────────────────
 
 
-// ── ADD RECURRING INCOME / EXPENSE ────────────────────────────────────────
-window.entryAddTulo = async function() {
-  const label = prompt('Toistuvaan tuloon nimi (esim. Palkka):');
-  if (!label || !label.trim()) return;
-  const amtStr = prompt('M&#xE4;&#xE4;r&#xE4; kuukaudessa (&#x20AC;/kk):');
-  if (amtStr === null) return;
-  const amt = parseFloat(amtStr.replace(',', '.'));
-  if (isNaN(amt)) { alert('Virheellinen summa.'); return; }
-  const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date < b.date ? -1 : 1);
-  const latest = snaps.length ? {...snaps[snaps.length - 1]} : {};
-  const items = Array.isArray(latest.tulot_items) ? [...latest.tulot_items] : [];
-  items.push({ id: 'tulo_' + Date.now(), label: label.trim(), amt_kk: amt });
+// ── ADD RECURRING INCOME / EXPENSE (inline form — no prompt) ───────────────────
+window.entryAddTulo = function() {
+  var btn = document.querySelector('[onclick="entryAddTulo()"]');
+  if (!btn || btn.dataset.open === '1') return;
+  btn.dataset.open = '1';
+  var form = document.createElement('div');
+  form.id = 'add-tulo-form';
+  form.style.cssText = 'margin-top:8px;display:flex;flex-direction:column;gap:8px;';
+  form.innerHTML = '<input id="add-tulo-label" type="text" placeholder="Nimi (esim. Palkka)"' +
+    ' style="background:rgba(255,255,255,0.06);border:none;border-bottom:1px solid rgba(255,255,255,0.2);' +
+    'color:rgba(255,255,255,0.9);font-size:15px;padding:8px 4px;outline:none;' +
+    'font-family:inherit;border-radius:0;width:100%;box-sizing:border-box;">' +
+    '<input id="add-tulo-amt" type="number" placeholder="€/kk" inputmode="decimal"' +
+    ' style="background:rgba(255,255,255,0.06);border:none;border-bottom:1px solid rgba(255,255,255,0.2);' +
+    'color:rgba(255,255,255,0.9);font-size:15px;padding:8px 4px;outline:none;' +
+    'font-family:inherit;border-radius:0;width:100%;box-sizing:border-box;">' +
+    '<div style="display:flex;gap:8px;margin-top:4px;">' +
+    '<button onclick="entryAddTuloSave()" style="flex:1;padding:8px;background:rgba(0,200,176,0.15);' +
+    'border:1px solid rgba(0,200,176,0.4);color:var(--cyan);border-radius:6px;' +
+    'font-size:13px;cursor:pointer;font-family:inherit;">Tallenna</button>' +
+    '<button onclick="entryAddTuloCancel()" style="flex:1;padding:8px;background:transparent;' +
+    'border:1px solid rgba(255,255,255,0.15);color:var(--text2);border-radius:6px;' +
+    'font-size:13px;cursor:pointer;font-family:inherit;">Peruuta</button>' +
+    '</div>';
+  btn.style.display = 'none';
+  btn.parentNode.insertBefore(form, btn.nextSibling);
+  document.getElementById('add-tulo-label').focus();
+};
+
+window.entryAddTuloCancel = function() {
+  var form = document.getElementById('add-tulo-form');
+  if (form) form.remove();
+  var btn = document.querySelector('[onclick="entryAddTulo()"]');
+  if (btn) { btn.style.display = ''; delete btn.dataset.open; }
+};
+
+window.entryAddTuloSave = async function() {
+  var labelEl = document.getElementById('add-tulo-label');
+  var amtEl = document.getElementById('add-tulo-amt');
+  var label = (labelEl && labelEl.value || '').trim();
+  var amt = parseFloat((amtEl && amtEl.value || '').replace(',', '.'));
+  if (!label) { if (labelEl) labelEl.focus(); return; }
+  if (isNaN(amt)) { if (amtEl) amtEl.focus(); return; }
+  entryAddTuloCancel();
+  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){return a.date<b.date?-1:1;});
+  var latest = snaps.length ? Object.assign({}, snaps[snaps.length-1]) : {};
+  var items = Array.isArray(latest.tulot_items) ? latest.tulot_items.slice() : [];
+  items.push({ id: 'tulo_' + Date.now(), label: label, amt_kk: amt });
   latest.tulot_items = items;
-  latest.tulot_kk = items.reduce((s, x) => s + (x.amt_kk || 0), 0);
+  latest.tulot_kk = items.reduce(function(s,x){return s+(x.amt_kk||0);},0);
   await DB.putSnapshot(latest);
   await renderEntryView();
 };
 
-window.entryAddMeno = async function() {
-  const label = prompt('Toistuvaan menoon nimi (esim. Vuokra):');
-  if (!label || !label.trim()) return;
-  const amtStr = prompt('M&#xE4;&#xE4;r&#xE4; kuukaudessa (&#x20AC;/kk):');
-  if (amtStr === null) return;
-  const amt = parseFloat(amtStr.replace(',', '.'));
-  if (isNaN(amt)) { alert('Virheellinen summa.'); return; }
-  const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date < b.date ? -1 : 1);
-  const latest = snaps.length ? {...snaps[snaps.length - 1]} : {};
-  const items = Array.isArray(latest.rytmi_items) ? [...latest.rytmi_items] : [];
-  items.push({ id: 'meno_' + Date.now(), label: label.trim(), amt_kk: amt });
+window.entryAddMeno = function() {
+  var btn = document.querySelector('[onclick="entryAddMeno()"]');
+  if (!btn || btn.dataset.open === '1') return;
+  btn.dataset.open = '1';
+  var form = document.createElement('div');
+  form.id = 'add-meno-form';
+  form.style.cssText = 'margin-top:8px;display:flex;flex-direction:column;gap:8px;';
+  form.innerHTML = '<input id="add-meno-label" type="text" placeholder="Nimi (esim. Vuokra)"' +
+    ' style="background:rgba(255,255,255,0.06);border:none;border-bottom:1px solid rgba(255,255,255,0.2);' +
+    'color:rgba(255,255,255,0.9);font-size:15px;padding:8px 4px;outline:none;' +
+    'font-family:inherit;border-radius:0;width:100%;box-sizing:border-box;">' +
+    '<input id="add-meno-amt" type="number" placeholder="€/kk" inputmode="decimal"' +
+    ' style="background:rgba(255,255,255,0.06);border:none;border-bottom:1px solid rgba(255,255,255,0.2);' +
+    'color:rgba(255,255,255,0.9);font-size:15px;padding:8px 4px;outline:none;' +
+    'font-family:inherit;border-radius:0;width:100%;box-sizing:border-box;">' +
+    '<div style="display:flex;gap:8px;margin-top:4px;">' +
+    '<button onclick="entryAddMenoSave()" style="flex:1;padding:8px;background:rgba(0,200,176,0.15);' +
+    'border:1px solid rgba(0,200,176,0.4);color:var(--cyan);border-radius:6px;' +
+    'font-size:13px;cursor:pointer;font-family:inherit;">Tallenna</button>' +
+    '<button onclick="entryAddMenoCancel()" style="flex:1;padding:8px;background:transparent;' +
+    'border:1px solid rgba(255,255,255,0.15);color:var(--text2);border-radius:6px;' +
+    'font-size:13px;cursor:pointer;font-family:inherit;">Peruuta</button>' +
+    '</div>';
+  btn.style.display = 'none';
+  btn.parentNode.insertBefore(form, btn.nextSibling);
+  document.getElementById('add-meno-label').focus();
+};
+
+window.entryAddMenoCancel = function() {
+  var form = document.getElementById('add-meno-form');
+  if (form) form.remove();
+  var btn = document.querySelector('[onclick="entryAddMeno()"]');
+  if (btn) { btn.style.display = ''; delete btn.dataset.open; }
+};
+
+window.entryAddMenoSave = async function() {
+  var labelEl = document.getElementById('add-meno-label');
+  var amtEl = document.getElementById('add-meno-amt');
+  var label = (labelEl && labelEl.value || '').trim();
+  var amt = parseFloat((amtEl && amtEl.value || '').replace(',', '.'));
+  if (!label) { if (labelEl) labelEl.focus(); return; }
+  if (isNaN(amt)) { if (amtEl) amtEl.focus(); return; }
+  entryAddMenoCancel();
+  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){return a.date<b.date?-1:1;});
+  var latest = snaps.length ? Object.assign({}, snaps[snaps.length-1]) : {};
+  var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
+  items.push({ id: 'meno_' + Date.now(), label: label, amt_kk: amt });
   latest.rytmi_items = items;
   await DB.putSnapshot(latest);
   await renderEntryView();
 };
-// ── END ADD RECURRING ─────────────────────────────────────────────────────
+// ── END ADD RECURRING ───────────────────────────────────────────────────────────
