@@ -2773,8 +2773,9 @@ function showView(name) {
 
 
 
+
 // ═══════════════════════════════════════════════
-// TUTKI — Suunnitteluöytä V2
+// TUTKI — Suunnitteluöytä V2.1
 // ═══════════════════════════════════════════════
 
 var _tutkiActive={nw:true,cash:true,debt:true,inv:false};
@@ -2792,97 +2793,90 @@ async function renderSuunnittelupohta(){
   function snapDebt(s){if(!s)return null;return(Number(s.asuntolaina)||0)+(Number(s.asuntolaina_remontti)||0)+(Number(s.autolaina)||0);}
   function snapInv(s){if(!s)return null;var v=(Number(s.salkku_arvo)||0);return v>0?v:null;}
   function margin(s){if(!s)return 0;var inc=0,exp=0;if(Array.isArray(s.tulot_items))s.tulot_items.forEach(function(x){inc+=Number(x.amount)||0;});if(Array.isArray(s.rytmi_items))s.rytmi_items.forEach(function(x){exp+=Number(x.amount)||0;});return inc-exp;}
-  var netWorth=snapNW(latest),cash=snapCash(latest),debt=snapDebt(latest),inv=snapInv(latest),liikkuma=margin(latest);
+  var netWorth=snapNW(latest),cash=snapCash(latest),debt=snapDebt(latest),liikkuma=margin(latest);
   var hasInv=snaps.some(function(s){return snapInv(s)!==null;});
-  var html='<div style="max-width:580px;margin:0 auto;padding:24px 16px 60px;">';
-  html+='<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:20px;">Suunnitteluöytä</div>';
+  var html='<div style="max-width:600px;margin:0 auto;padding:24px 16px 60px;">';
+  html+='<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:22px;">Suunnitteluöytä</div>';
   if(!latest){html+='<div style="color:var(--text3);font-size:14px;padding:40px 0;">Ei dataa.</div></div>';el.innerHTML=html;return;}
   // KONTEKSTIRIVI
-  html+='<div style="display:flex;flex-wrap:wrap;gap:20px 32px;align-items:baseline;margin-bottom:36px;padding-bottom:18px;border-bottom:1px solid var(--border);">';
-  html+='<div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;">Nettovarallisuus</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text);">'+fmt(netWorth)+'</div></div>';
-  html+='<div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;">Käteinen</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text);">'+fmt(cash)+'</div></div>';
-  html+='<div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;">Velat</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text);">'+fmt(debt)+'</div></div>';
-  var lvc=liikkuma>=0?'var(--green)':'var(--red)';
-  html+='<div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px;">Liikkumavara</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:'+lvc+';">'+fmt(liikkuma)+'<span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:3px;">/kk</span></div></div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:20px 36px;align-items:baseline;margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid var(--border);">';
+  [{label:'Nettovarallisuus',val:fmt(netWorth),color:'var(--text)'},{label:'Käteinen',val:fmt(cash),color:'var(--text)'},{label:'Velat',val:fmt(debt),color:'var(--text)'},{label:'Liikkumavara',val:fmt(liikkuma),suffix:'/kk',color:liikkuma>=0?'var(--green)':'var(--red)'}].forEach(function(c){
+    html+='<div><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">'+c.label+'</div><div style="font-size:26px;font-weight:700;font-family:var(--mono);color:'+c.color+';">'+c.val+(c.suffix?'<span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:3px;">'+c.suffix+'</span>':'')+'</div></div>';
+  });
   html+='</div>';
-  // KEHITYSKAARET
-  html+='<div style="margin-bottom:48px;">';
-  html+='<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);font-weight:600;margin-bottom:18px;">Kehityskaaret</div>';
+  // TOGGLES
   var tracks=[{id:'nw',label:'Nettovarallisuus',color:'#00c8b0'},{id:'cash',label:'Käteinen',color:'#5ab88a'},{id:'debt',label:'Velat',color:'#d4a857'},{id:'inv',label:'Sijoitukset',color:'#4a90c8',hidden:!hasInv}];
-  html+='<div id="tutki-toggles" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">';
   tracks.forEach(function(tr){
     if(tr.hidden)return;
     var act=_tutkiActive[tr.id];
-    var bg=act?'rgba('+hexToRgb(tr.color)+',0.15)':'rgba(255,255,255,0.04)';
-    var brd=act?tr.color:'rgba(255,255,255,0.1)';
-    var tc=act?tr.color:'var(--text3)';
-    html+='<button onclick="tutkiToggle(\''+ tr.id +'\')" style="background:'+bg+';border:1px solid '+brd+';color:'+tc+';border-radius:6px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;">'+ tr.label +'</button>';
+    html+='<button onclick="tutkiToggle(\''+ tr.id +'\')" style="background:'+(act?'rgba('+hexToRgb(tr.color)+',0.15)':'rgba(255,255,255,0.04)')+';border:1px solid '+(act?tr.color:'rgba(255,255,255,0.1)')+';color:'+(act?tr.color:'var(--text3)')+';border-radius:6px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;">'+tr.label+'</button>';
   });
   html+='</div>';
-  // Sanallinen yhteenveto
+  // YHTEENVETO
+  var sums=[];
   if(snaps.length>=2){
-    var sums=[],oldest=snaps[0];
-    var fnMap={nw:snapNW,cash:snapCash,debt:snapDebt,inv:snapInv};
-    var lmap={nw:'Nettovarallisuus',cash:'Käteinen',debt:'Velat',inv:'Sijoitukset'};
+    var oldest=snaps[0],fnMap={nw:snapNW,cash:snapCash,debt:snapDebt,inv:snapInv},lmap={nw:'Nettovarallisuus',cash:'Käteinen',debt:'Velat',inv:'Sijoitukset'};
     ['nw','cash','debt','inv'].forEach(function(k){
-      if(!_tutkiActive[k])return;
-      if(k==='inv'&&!hasInv)return;
+      if(!_tutkiActive[k]||k==='inv'&&!hasInv)return;
       var fn=fnMap[k],v0=fn(oldest),v1=fn(latest);
       if(v0===null||v1===null)return;
       var delta=v1-v0,pct=v0!==0?Math.abs(delta/v0):0,txt;
-      if(k==='debt'){if(delta<-Math.abs(v0)*0.03)txt='Velat ovat pienentyneet.';else if(delta>Math.abs(v0)*0.03)txt='Velat ovat kasvaneet.';else txt='Velat ovat pysyneet melko vakaina.';}
-      else{if(pct<0.03||Math.abs(delta)<100)txt=lmap[k]+' on pysynyt melko vakaana.';else if(delta>0)txt=lmap[k]+' on kasvanut.';else txt=lmap[k]+' on pienentynyt.';}
+      if(k==='debt'){txt=delta<-Math.abs(v0)*0.03?'Velat ovat pienentyneet.':delta>Math.abs(v0)*0.03?'Velat ovat kasvaneet.':'Velat ovat pysyneet melko vakaina.';}
+      else{txt=pct<0.03||Math.abs(delta)<100?lmap[k]+' on pysynyt melko vakaana.':delta>0?lmap[k]+' on kasvanut.':lmap[k]+' on pienentynyt.';}
       sums.push(txt);
     });
-    if(sums.length>0)html+='<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:20px;padding:14px 16px;background:rgba(0,200,176,0.04);border:1px solid rgba(0,200,176,0.1);border-radius:8px;">'+sums.join(' ')+'</div>';
   }
-  // Chart
-  if(snaps.length<2){
-    html+='<div style="color:var(--text3);font-size:13px;padding:20px 0;">Tallenna vähintään kaksi snapshottia.</div>';
-  } else {
-    var CW=540,CH=120,pL=4,pR=4,pT=12,pB=4;
-    html+='<svg viewBox="0 0 '+CW+' '+CH+'" style="width:100%;display:block;overflow:visible;" preserveAspectRatio="none">';
-    var fnMap2={nw:snapNW,cash:snapCash,debt:snapDebt,inv:snapInv};
-    var cols={nw:'#00c8b0',cash:'#5ab88a',debt:'#d4a857',inv:'#4a90c8'};
+  var lvS=liikkuma>=0?'+':'',summaryText=(sums.length?sums.join(' ')+('  '):'')+'Nykyinen liikkumavara on '+lvS+Math.round(liikkuma).toLocaleString('fi-FI')+' €/kk.';
+  html+='<div style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:10px;padding:14px 16px;background:rgba(0,200,176,0.04);border:1px solid rgba(0,200,176,0.1);border-radius:8px;">'+summaryText+'</div>';
+  html+='<div style="font-size:11px;color:var(--text3);margin-bottom:20px;font-style:italic;">Vasen puoli: mennyt kehitys · Oikea puoli: nykyisen rytmin mittakaava</div>';
+  // UNIFIED SVG
+  var W=600,H=140,pT=22,pB=32;
+  var nowX=Math.round(W*0.55),trackH=H-pT-pB;
+  var hMonths=[6,12,24,36],lnM=Math.log(36),horizW=W-nowX;
+  var hxPos=hMonths.map(function(m){return nowX+Math.round((Math.log(m)/lnM)*(horizW*0.92));});
+  html+='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block;overflow:visible;" preserveAspectRatio="none">';
+  html+='<line x1="'+nowX+'" y1="'+pT+'" x2="'+nowX+'" y2="'+( H-pB)+'" stroke="var(--border-bright)" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>';
+  // History kaaret
+  var fnMap2={nw:snapNW,cash:snapCash,debt:snapDebt,inv:snapInv},cols={nw:'#00c8b0',cash:'#5ab88a',debt:'#d4a857',inv:'#4a90c8'};
+  if(snaps.length>=2){
     ['nw','cash','debt','inv'].forEach(function(k){
-      if(!_tutkiActive[k])return;
-      if(k==='inv'&&!hasInv)return;
-      var fn2=fnMap2[k];
-      var vals=snaps.map(function(s){return fn2(s);});
-      var def=vals.filter(function(v){return v!==null;});
+      if(!_tutkiActive[k]||k==='inv'&&!hasInv)return;
+      var fn2=fnMap2[k],vals=snaps.map(function(s){return fn2(s);}),def=vals.filter(function(v){return v!==null;});
       if(def.length<2)return;
-      var mnV=Math.min.apply(null,def),mxV=Math.max.apply(null,def),rng=mxV-mnV||1;
-      var pts=[];
-      snaps.forEach(function(s,i){var v=fn2(s);if(v===null)return;var px=pL+(i/(snaps.length-1))*(CW-pL-pR);var py=pT+(1-(v-mnV)/rng)*(CH-pT-pB);pts.push(px.toFixed(1)+','+py.toFixed(1));});
+      var mnV=Math.min.apply(null,def),mxV=Math.max.apply(null,def),rng=mxV-mnV||1,pts=[];
+      snaps.forEach(function(s,i){var v=fn2(s);if(v===null)return;pts.push(Math.round((i/(snaps.length-1))*(nowX-6))+','+( pT+Math.round((1-(v-mnV)/rng)*trackH)));});
       if(pts.length<2)return;
-      var col2=cols[k];
-      html+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+col2+'" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>';
-      var lp=pts[pts.length-1].split(',');
-      html+='<circle cx="'+lp[0]+'" cy="'+lp[1]+'" r="3.5" fill="'+col2+'"/>';
+      html+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+cols[k]+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.8"/>';
     });
-    html+='</svg>';
-    html+='<div style="font-size:10px;color:var(--text3);margin-top:8px;font-style:italic;">Kaaret on skaalattu erikseen, jotta niiden suunnat ovat vertailtavissa.</div>';
   }
-  html+='</div>';
-  // RYTMIN KANTAMA
-  html+='<div style="margin-bottom:52px;border-top:1px solid var(--border);padding-top:28px;">';
-  html+='<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);font-weight:600;margin-bottom:28px;">Rytmin kantama</div>';
-  var lnMx=Math.log(36),xPP=[0,Math.log(3)/Math.log(36),Math.log(6)/Math.log(36),Math.log(12)/Math.log(36),Math.log(24)/Math.log(36),1.0];
-  var rlbls=['Nyt','3 kk','6 kk','12 kk','24 kk','36 kk'],rmonths=[3,6,12,24,36],rvals=[null].concat(rmonths.map(function(m){return liikkuma*m;})),SW2=500,rtY=36;
-  html+='<svg viewBox="0 0 '+SW2+' 80" style="width:100%;display:block;overflow:visible;" preserveAspectRatio="none">';
-  html+='<line x1="'+( xPP[0]*SW2).toFixed(1)+'" y1="'+rtY+'" x2="'+( xPP[5]*SW2).toFixed(1)+'" y2="'+rtY+'" stroke="var(--border-bright)" stroke-width="1.5"/>';
-  for(var ri=0;ri<xPP.length;ri++){var rx=(xPP[ri]*SW2).toFixed(1);if(ri===0){html+='<circle cx="'+rx+'" cy="'+rtY+'" r="7" fill="var(--cyan)"/>'; }else{html+='<circle cx="'+rx+'" cy="'+rtY+'" r="4" fill="none" stroke="var(--cyan)" stroke-width="1.5" opacity="0.6"/>';}html+='<text x="'+rx+'" y="62" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--mono)">'+ rlbls[ri]+'</text>';if(ri>0&&rvals[ri]!==null){var rvc=rvals[ri]>=0?'var(--green)':'var(--red)';html+='<text x="'+rx+'" y="18" text-anchor="middle" font-size="11" font-weight="600" fill="'+rvc+'" font-family="var(--mono)">'+fmtSign(rvals[ri])+'</text>';}}
+  // Year labels
+  var yearsSeen={};
+  snaps.forEach(function(s,i){if(!s.date)return;var yr=s.date.slice(0,4);if(!yearsSeen[yr]){yearsSeen[yr]=true;html+='<text x="'+Math.round((i/(Math.max(snaps.length-1,1)))*(nowX-6))+'" y="'+( H-pB+14)+'" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--mono)">'+yr+'</text>';}});
+  // Horizon
+  var baseY=Math.round(pT+trackH*0.62),hMaxVal=Math.abs(liikkuma*36)||1;
+  var hPts=hMonths.map(function(m,idx){var hval=liikkuma*m,hx=hxPos[idx],yOff=Math.round((hval/hMaxVal)*trackH*0.48),hy=baseY-yOff;return{x:hx,y:hy,val:hval,m:m};});
+  var allHLine=[[nowX,baseY]].concat(hPts.map(function(p){return[p.x,p.y];})).map(function(p){return p[0]+','+p[1];}).join(' ');
+  var hcol=liikkuma>=0?'#00c8b0':'#d4a857';
+  html+='<polyline points="'+allHLine+'" fill="none" stroke="'+hcol+'" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.65"/>';
+  html+='<line x1="'+nowX+'" y1="'+baseY+'" x2="'+( nowX+Math.round(horizW*0.95))+'" y2="'+baseY+'" stroke="var(--border-bright)" stroke-width="1"/>';
+  hPts.forEach(function(p){html+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="'+hcol+'" opacity="0.75"/>';html+='<text x="'+p.x+'" y="'+( p.y-8)+'" text-anchor="middle" font-size="10" font-weight="600" fill="'+hcol+'" font-family="var(--mono)">'+fmtSign(p.val)+'</text>';html+='<text x="'+p.x+'" y="'+( H-pB+14)+'" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--mono)">'+p.m+' kk</text>';});
+  // NYT dot
+  html+='<circle cx="'+nowX+'" cy="'+baseY+'" r="8" fill="var(--cyan)"/>';html+='<text x="'+nowX+'" y="'+( baseY-14)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--cyan)" font-family="var(--mono)" letter-spacing=".08em">NYT</text>';
+  if(latest&&latest.date)html+='<text x="'+nowX+'" y="'+( H-pB+14)+'" text-anchor="middle" font-size="9" fill="var(--cyan)" font-family="var(--mono)">'+latest.date.slice(0,7)+'</text>';
   html+='</svg>';
-  html+='<div style="font-size:11px;color:var(--text3);margin-top:14px;">Nykyisen rytmin kantama. Perustuu liikkumavaraan '+fmt(liikkuma)+' /kk.</div>';
+  html+='<div style="font-size:10px;color:var(--text3);margin-top:6px;font-style:italic;">Vasen: kehityskaaret skaalattu erikseen suuntien vertailua varten.</div>';
   html+='</div>';
   // HORISONTISSA
-  html+='<div style="border-top:1px solid var(--border);padding-top:22px;">';
-  html+='<div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Horisontissa näkyvät rakenteet</div>';
+  html+='<div style="border-top:1px solid var(--border);padding-top:22px;"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Horisontissa näkyvät rakenteet</div>';
   [{id:'asuntolaina',label:'Asuntolaina'},{id:'autolaina',label:'Autolaina'},{id:'tulot',label:'Toistuvat tulot'},{id:'menot',label:'Toistuvat menot'}].forEach(function(r){html+='<div data-rakenne="'+r.id+'" style="font-size:13px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">'+r.label+'</div>';});
   html+='</div></div>';
   el.innerHTML=html;
-  console.log('[TUTKI] V2 rendered');
+  console.log('[TUTKI] V2.1 rendered');
 }
+
+function tutkiToggle(id){_tutkiActive[id]=!_tutkiActive[id];renderSuunnittelupohta();}
+function hexToRgb(hex){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return r+','+g+','+b;}
 
 function tutkiToggle(id){
   _tutkiActive[id]=!_tutkiActive[id];
