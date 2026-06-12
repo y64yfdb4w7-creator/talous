@@ -516,7 +516,7 @@ async function renderDashboard() {
   if (cnt === 0) {
     c.innerHTML = `
       <div class="empty">
-        <div class="empty-icon">📊</div>
+        <div class="empty-icon">&#x1F4CA;</div>
         <div class="empty-title">Ei dataa vielä</div>
         <p style="margin-bottom:20px">Tuo Numbers-historia aloittaaksesi</p>
         <button class="btn-p" onclick="showView('import')">Tuo data →</button>
@@ -671,7 +671,7 @@ async function renderDashboard() {
   c.innerHTML = `
     <div class="db-date" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
       <span>${fmtDateWd(latest.date)}</span>
-      <span id="db-admin-wrap" style="display:flex;gap:5px;align-items:center;"><button id="db-privacy-btn" onclick="(function(){var h=document.body.classList.toggle('hide-amounts');localStorage.setItem('privacy_mode',h?'1':'0');var b=document.getElementById('db-privacy-btn');if(b){b.style.opacity=h?'1':'0.45';b.style.border=h?'1px solid rgba(255,255,255,0.35)':'1px solid rgba(255,255,255,0.1)';b.style.color=h?'rgba(255,255,255,0.9)':'var(--text2)';}})()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;cursor:pointer;font-size:11px;color:var(--text2);padding:3px 9px;line-height:1.4;opacity:0.45;white-space:nowrap;" title="Piilota summat">👁 Summat</button>
+      <span id="db-admin-wrap" style="display:flex;gap:5px;align-items:center;"><button id="db-privacy-btn" onclick="(function(){var h=document.body.classList.toggle('hide-amounts');localStorage.setItem('privacy_mode',h?'1':'0');var b=document.getElementById('db-privacy-btn');if(b){b.style.opacity=h?'1':'0.45';b.style.border=h?'1px solid rgba(255,255,255,0.35)':'1px solid rgba(255,255,255,0.1)';b.style.color=h?'rgba(255,255,255,0.9)':'var(--text2)';}})()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;cursor:pointer;font-size:11px;color:var(--text2);padding:3px 9px;line-height:1.4;opacity:0.45;white-space:nowrap;" title="Piilota summat">&#x1F441; Summat</button>
         <span class="db-admin-item">${backupStatusBadge()}</span>
         <span class="db-sync-dot" style="color:${fmtSyncLabel().color};font-size:14px;">${fmtSyncLabel().text}</span>
         <span class="db-admin-item"><button onclick="rollbackLatestSnapshot()" style="font-size:10px;padding:3px 8px;
@@ -1184,7 +1184,7 @@ async function renderHistoria() {
   autoBackup();
   const cnt = await DB.count('snapshots');
   if (cnt === 0) {
-    c.innerHTML = `<div class="empty"><div class="empty-icon">📈</div>
+    c.innerHTML = `<div class="empty"><div class="empty-icon">&#x1F4C8;</div>
       <div class="empty-title">Ei dataa</div></div>`;
     return;
   }
@@ -1211,7 +1211,7 @@ async function renderHistoria() {
           border-radius:7px;color:#6ab87a;cursor:pointer;font-family:var(--mono);">↓ Lataa backup</button>
         <button onclick="showBackupList()" style="font-size:10px;padding:5px 11px;
           background:none;border:1px solid var(--border);
-          border-radius:7px;color:var(--text3);cursor:pointer;font-family:var(--mono);">📋 Backupit</button>
+          border-radius:7px;color:var(--text3);cursor:pointer;font-family:var(--mono);">&#x1F4CB; Backupit</button>
       </div>
     </div>
     <div id="backup-list-panel"></div>
@@ -1337,13 +1337,13 @@ function showEvInfo(text) {
 // ═══════════════════════════════════════════════
 // ── Tapahtuma-tyypit ────────────────────────────────────────────────────
 const EV_TYPES = [
-  { id: 'dividend',      label: 'Osinko',          icon: '💰', color: 'var(--green)'  },
-  { id: 'purchase',      label: 'Osto',             icon: '📈', color: 'var(--cyan)'   },
-  { id: 'sale',          label: 'Myynti',           icon: '📉', color: 'var(--amber)'  },
+  { id: 'dividend',      label: 'Osinko',          icon: '&#x1F4B0;', color: 'var(--green)'  },
+  { id: 'purchase',      label: 'Osto',             icon: '&#x1F4C8;', color: 'var(--cyan)'   },
+  { id: 'sale',          label: 'Myynti',           icon: '&#x1F4C9;', color: 'var(--amber)'  },
   { id: 'transfer_in',   label: 'Siirto sisään',    icon: '⬇',  color: 'var(--cyan)'   },
   { id: 'transfer_out',  label: 'Siirto ulos',      icon: '⬆',  color: 'var(--text3)'  },
-  { id: 'fee',           label: 'Kulu/välityspalkkio', icon: '💸', color: 'var(--red)' },
-  { id: 'other',         label: 'Muu',              icon: '📝', color: 'var(--text2)'  },
+  { id: 'fee',           label: 'Kulu/välityspalkkio', icon: '&#x1F4B8;', color: 'var(--red)' },
+  { id: 'other',         label: 'Muu',              icon: '&#x1F4DD;', color: 'var(--text2)'  },
 ];
 
 let _evFormOpen = false;
@@ -2047,7 +2047,7 @@ async function renderLikviditeetti() {
 
   const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date.localeCompare(b.date));
   if (snaps.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">💧</div><div class="empty-title">Ei dataa vielä</div><div class="empty-sub">Tallenna ensin päivän tiedot Dashboardilta.</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">&#x1F4A7;</div><div class="empty-title">Ei dataa vielä</div><div class="empty-sub">Tallenna ensin päivän tiedot Dashboardilta.</div></div>';
     return;
   }
 
@@ -2144,7 +2144,7 @@ async function renderLikviditeetti() {
     // Tulotili
     '<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">' +
       '<div>' +
-        '<div style="font-weight:600;font-size:14px;">🏦 Tulotili</div>' +
+        '<div style="font-weight:600;font-size:14px;">&#x1F3E6; Tulotili</div>' +
         '<div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);">Käytettävissä</div>' +
       '</div>' +
       '<div style="text-align:right;">' +
@@ -2155,7 +2155,7 @@ async function renderLikviditeetti() {
     // OP Gold
     '<div style="padding:14px 16px;' + (visa || luottotili ? 'border-bottom:1px solid var(--border);' : '') + 'display:flex;justify-content:space-between;align-items:flex-start;">' +
       '<div>' +
-        '<div style="font-weight:600;font-size:14px;">💳 OP Gold</div>' +
+        '<div style="font-weight:600;font-size:14px;">&#x1F4B3; OP Gold</div>' +
         '<div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);">Maksuvelvoite kuun lopussa</div>' +
         (diff !== null ? '<div style="font-size:10px;margin-top:4px;color:' + (diff > 50 ? 'var(--red)' : diff < -50 ? 'var(--green)' : 'var(--text3)') + ';">' +
           (diff > 50 ? '↑ ' + fmt(diff) + ' normaalia enemmän' : diff < -50 ? '↓ ' + fmt(Math.abs(diff)) + ' normaalia vähemmän' : '→ normaali tahti') + '</div>' : '') +
@@ -2168,7 +2168,7 @@ async function renderLikviditeetti() {
 
     // Visa (jos olemassa)
     (visa ? '<div style="padding:14px 16px;' + (luottotili ? 'border-bottom:1px solid var(--border);' : '') + 'display:flex;justify-content:space-between;align-items:center;">' +
-      '<div><div style="font-weight:600;font-size:14px;">💳 Visa</div>' +
+      '<div><div style="font-weight:600;font-size:14px;">&#x1F4B3; Visa</div>' +
       '<div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);">Maksuvelvoite kuun lopussa</div></div>' +
       '<div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--gold);">−' + fmt(visa) + '</div></div>' : '') +
 
@@ -2279,7 +2279,7 @@ async function renderLedger() {
     .sort((a, b) => b.date.localeCompare(a.date));
 
   if (snaps.length === 0) {
-    c.innerHTML = '<div class="empty"><div class="empty-icon">📒</div>' +
+    c.innerHTML = '<div class="empty"><div class="empty-icon">&#x1F4D2;</div>' +
       '<div class="empty-title">Ei dataa</div>' +
       '<div class="empty-sub">Tallenna päivän tiedot Dashboardilta niin historia kertyy tähän.</div></div>';
     return;
@@ -2376,10 +2376,10 @@ async function renderLedger() {
     rows += '<td>' + fmtK(calc.lapset || 0) + '</td>';
     rows += '<td style="text-align:right;white-space:nowrap">';
     if (!snaps[ri]._archived) {
-      rows += '<button onclick="archiveSnap(\'' + s.date + '\',true)" title="Arkistoi" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">📦</button>';
+      rows += '<button onclick="archiveSnap(\'' + s.date + '\',true)" title="Arkistoi" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">&#x1F4E6;</button>';
       if (ri === 0) rows += '<button onclick="rollbackTo(\'' + s.date + '\')" title="Palauta tähän" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">↩</button>';
     } else {
-      rows += '<button onclick="archiveSnap(\'' + s.date + '\',false)" title="Palauta näkyviin" style="background:none;border:none;color:var(--gold-dim);cursor:pointer;font-size:11px;padding:2px 4px">↩📦</button>';
+      rows += '<button onclick="archiveSnap(\'' + s.date + '\',false)" title="Palauta näkyviin" style="background:none;border:none;color:var(--gold-dim);cursor:pointer;font-size:11px;padding:2px 4px">↩&#x1F4E6;</button>';
     }
     rows += '</td>';
     rows += '</tr>';
@@ -2428,9 +2428,9 @@ async function renderLedger() {
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
       '<button onclick="openPinForm()" style="background:none;border:1px solid var(--gold-dim);' +
-        'border-radius:7px;padding:4px 10px;color:var(--gold);font-size:11px;cursor:pointer;">📍 Lisää nastamuistiinpano</button>' +
+        'border-radius:7px;padding:4px 10px;color:var(--gold);font-size:11px;cursor:pointer;">&#x1F4CD; Lisää nastamuistiinpano</button>' +
       '<button onclick="_showArchived=!_showArchived;renderLedger()" style="background:none;border:1px solid var(--border);' +
-        'border-radius:7px;padding:4px 10px;color:var(--text3);font-size:11px;cursor:pointer;">' + (_showArchived ? '👁 Piilota arkisto' : '📦 Näytä arkisto') + '</button>' +
+        'border-radius:7px;padding:4px 10px;color:var(--text3);font-size:11px;cursor:pointer;">' + (_showArchived ? '&#x1F441; Piilota arkisto' : '&#x1F4E6; Näytä arkisto') + '</button>' +
     '</div>' +
     '</div>' +
     '<div id="pin-form-wrap"></div>' +
@@ -2505,7 +2505,7 @@ function openPinForm() {
     '<div style="margin-bottom:10px;"><div style="font-size:9px;color:var(--text3);margin-bottom:4px;">Muistiinpano</div>' +
       '<input id="pin-note" type="text" placeholder="Vapaaehtoinen lisätieto" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;"></div>' +
     '<div style="display:flex;gap:8px;">' +
-      '<button onclick="savePin()" style="flex:1;background:rgba(184,149,106,0.15);border:1px solid var(--gold-dim);border-radius:7px;padding:8px;color:var(--gold);font-weight:700;cursor:pointer;">Tallenna 📍</button>' +
+      '<button onclick="savePin()" style="flex:1;background:rgba(184,149,106,0.15);border:1px solid var(--gold-dim);border-radius:7px;padding:8px;color:var(--gold);font-weight:700;cursor:pointer;">Tallenna &#x1F4CD;</button>' +
       '<button onclick="document.getElementById(\'pin-form-wrap\').innerHTML=\'\'" style="background:none;border:1px solid var(--border);border-radius:7px;padding:8px 14px;color:var(--text3);cursor:pointer;">Peru</button>' +
     '</div></div>';
 }
@@ -3065,7 +3065,7 @@ async function renderMyynnit() {
   let salesHTML = '';
   if (sales.length === 0) {
     salesHTML = `<div class="empty" style="padding:48px;">
-      <div class="empty-icon">📉</div>
+      <div class="empty-icon">&#x1F4C9;</div>
       <div class="empty-title">Ei myyntejä vielä</div>
       <p style="color:var(--text2);">Kirjaa ensimmäinen myynti yllä olevalla lomakkeella.</p>
     </div>`;
@@ -3199,7 +3199,7 @@ function renderSaleCard(s) {
         <div style="padding:10px 14px;background:rgba(90,158,106,.04);
                     border-top:1px solid rgba(90,158,106,.15);
                     font-family:var(--mono);font-size:11px;color:var(--text2);">
-          💡 Suositellulla menetelmällä vapautuu toimintavaraan
+          &#x1F4A1; Suositellulla menetelmällä vapautuu toimintavaraan
           <span style="color:var(--green);font-weight:700;">${fmt(netCash)}</span>
           verojen jälkeen.
           ${s.purchasePrice ? `Hankintahinta oli ${s.purchasePrice.toFixed(2)} €/kpl.` : ''}
