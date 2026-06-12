@@ -3663,29 +3663,20 @@ function _renderStructures(latest) {
 
   const tulotItems = latest.tulot_items || [];
   const incomeHTML = tulotItems.length
-    ? tulotItems.map(item => {
-        const amt = parseFloat(item.amount) || 0;
-        const label = item.label || (item.type === 'palkka' ? 'Palkka' : item.type || 'Tulo');
-        return `
-          <div style="display: flex; justify-content: space-between; align-items: baseline;
-                      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
-            <span style="font-size: 14px; color: rgba(255,255,255,0.4);">${label}</span>
-            <span style="font-size: 14px; color: rgba(255,255,255,0.3);
-                         font-variant-numeric: tabular-nums;">
-              ${amt ? amt.toLocaleString('fi-FI', {maximumFractionDigits:0}) + ' € / kk' : '—'}
-            </span>
-          </div>
-        `;
+    ? tulotItems.map(function(item) {
+        var amt = parseFloat(item.amt_kk != null ? item.amt_kk : item.amount) || 0;
+        var label = item.label || 'Tulo';
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="font-size:14px;color:rgba(255,255,255,0.55);">${label}</span><span style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:14px;color:rgba(255,255,255,0.35);font-variant-numeric:tabular-nums;">${amt ? amt.toLocaleString('fi-FI',{maximumFractionDigits:0})+' € / kk' : '—'}</span><button onclick="entryDeleteTulo('${item.id}')" style="background:none;border:none;color:rgba(255,255,255,0.18);font-size:15px;cursor:pointer;padding:0;font-family:inherit;line-height:1;" title="Poista">×</button></span></div>`;
       }).join('')
-    : `<div style="font-size: 13px; color: rgba(255,255,255,0.25); padding: 10px 0;">
-        Ei tuloja tallennettu.
-       </div>`;
-
-  const rytmiItems = latest.rytmi_items || [];
+    : `<div style="font-size:13px;color:rgba(255,255,255,0.25);padding:10px 0;">Ei tuloja tallennettu.</div>`;
   const expenseHTML = rytmiItems.length
-    ? rytmiItems.map(item => {
-        const amt = parseFloat(item.amount) || 0;
-        return `
+    ? rytmiItems.map(function(item) {
+        var amt = parseFloat(item.amt_kk != null ? item.amt_kk : item.amount) || 0;
+        var label = item.label || 'Meno';
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="font-size:14px;color:rgba(255,255,255,0.55);">${label}</span><span style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:14px;color:rgba(255,255,255,0.35);font-variant-numeric:tabular-nums;">${amt ? amt.toLocaleString('fi-FI',{maximumFractionDigits:0})+' € / kk' : '—'}</span><button onclick="entryDeleteMeno('${item.id}')" style="background:none;border:none;color:rgba(255,255,255,0.18);font-size:15px;cursor:pointer;padding:0;font-family:inherit;line-height:1;" title="Poista">×</button></span></div>`;
+      }).join('')
+    : `<div style="font-size:13px;color:rgba(255,255,255,0.25);padding:10px 0;">Ei toistuvia menoja tallennettu.</div>`;
+  return `
           <div style="display: flex; justify-content: space-between; align-items: baseline;
                       padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
             <span style="font-size: 14px; color: rgba(255,255,255,0.4);">${item.label || 'Meno'}</span>
@@ -4619,4 +4610,22 @@ window.entryAddMenoSave = async function() {
   await DB.putSnapshot(latest);
   await renderEntryView();
 };
+
+// ---- DELETE ----
+window.entryDeleteTulo = async function(id) {
+  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){return a.date<b.date?-1:1;});
+  var latest = snaps.length ? Object.assign({}, snaps[snaps.length-1]) : {};
+  latest.tulot_items = (Array.isArray(latest.tulot_items) ? latest.tulot_items : []).filter(function(x){return x.id !== id;});
+  latest.tulot_kk = latest.tulot_items.reduce(function(s,x){return s+(x.amt_kk||0);},0);
+  await DB.putSnapshot(latest);
+  await renderEntryView();
+};
+window.entryDeleteMeno = async function(id) {
+  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){return a.date<b.date?-1:1;});
+  var latest = snaps.length ? Object.assign({}, snaps[snaps.length-1]) : {};
+  latest.rytmi_items = (Array.isArray(latest.rytmi_items) ? latest.rytmi_items : []).filter(function(x){return x.id !== id;});
+  await DB.putSnapshot(latest);
+  await renderEntryView();
+};
+
 // ── END ADD RECURRING ───────────────────────────────────────────────────────────
