@@ -3720,6 +3720,14 @@ function _renderStructures(latest) {
       </div>
       ${incomeHTML}
 
+      <button onclick="entryAddTulo()"
+              style="display:block; margin-top:10px; background:none; border:none;
+                     color:var(--text2); font-size:13px; cursor:pointer;
+                     padding:8px 0; font-family:inherit; letter-spacing:0.01em;
+                     text-align:left; -webkit-tap-highlight-color:transparent;">
+        + Lis&#xE4;&#xE4; tulo
+      </button>
+
       <div style="border-top: 1px dashed rgba(255,255,255,0.06); margin: 8px 0 0;"></div>
 
       <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
@@ -3727,6 +3735,14 @@ function _renderStructures(latest) {
         Toistuvat menot
       </div>
       ${expenseHTML}
+
+      <button onclick="entryAddMeno()"
+              style="display:block; margin-top:10px; background:none; border:none;
+                     color:var(--text2); font-size:13px; cursor:pointer;
+                     padding:8px 0; font-family:inherit; letter-spacing:0.01em;
+                     text-align:left; -webkit-tap-highlight-color:transparent;">
+        + Lis&#xE4;&#xE4; meno
+      </button>
 
     </div>
   `;
@@ -4485,3 +4501,39 @@ function initLayoutToolbar() {
   render();
 }
 // ── END LAYOUT TALLENNIN ─────────────────────────────────────────────────
+
+
+// ── ADD RECURRING INCOME / EXPENSE ────────────────────────────────────────
+window.entryAddTulo = async function() {
+  const label = prompt('Toistuvaan tuloon nimi (esim. Palkka):');
+  if (!label || !label.trim()) return;
+  const amtStr = prompt('M&#xE4;&#xE4;r&#xE4; kuukaudessa (&#x20AC;/kk):');
+  if (amtStr === null) return;
+  const amt = parseFloat(amtStr.replace(',', '.'));
+  if (isNaN(amt)) { alert('Virheellinen summa.'); return; }
+  const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date < b.date ? -1 : 1);
+  const latest = snaps.length ? {...snaps[snaps.length - 1]} : {};
+  const items = Array.isArray(latest.tulot_items) ? [...latest.tulot_items] : [];
+  items.push({ id: 'tulo_' + Date.now(), label: label.trim(), amt_kk: amt });
+  latest.tulot_items = items;
+  latest.tulot_kk = items.reduce((s, x) => s + (x.amt_kk || 0), 0);
+  await DB.putSnapshot(latest);
+  await renderEntryView();
+};
+
+window.entryAddMeno = async function() {
+  const label = prompt('Toistuvaan menoon nimi (esim. Vuokra):');
+  if (!label || !label.trim()) return;
+  const amtStr = prompt('M&#xE4;&#xE4;r&#xE4; kuukaudessa (&#x20AC;/kk):');
+  if (amtStr === null) return;
+  const amt = parseFloat(amtStr.replace(',', '.'));
+  if (isNaN(amt)) { alert('Virheellinen summa.'); return; }
+  const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date < b.date ? -1 : 1);
+  const latest = snaps.length ? {...snaps[snaps.length - 1]} : {};
+  const items = Array.isArray(latest.rytmi_items) ? [...latest.rytmi_items] : [];
+  items.push({ id: 'meno_' + Date.now(), label: label.trim(), amt_kk: amt });
+  latest.rytmi_items = items;
+  await DB.putSnapshot(latest);
+  await renderEntryView();
+};
+// ── END ADD RECURRING ─────────────────────────────────────────────────────
