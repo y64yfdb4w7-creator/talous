@@ -3662,6 +3662,7 @@ function _renderStructures(latest) {
   ].join('');
 
   const tulotItems = latest.tulot_items || [];
+  const rytmiItems = latest.rytmi_items || [];
   const incomeHTML = tulotItems.length
     ? tulotItems.map(function(item) {
         var amt = parseFloat(item.amt_kk != null ? item.amt_kk : item.amount) || 0;
