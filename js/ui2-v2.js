@@ -2793,7 +2793,7 @@ async function renderSuunnittelupohta(){
   function snapCash(s){if(!s)return null;return(Number(s.tulotili)||0)+(Number(s.s_pankki)||0)-(Number(s.op_gold)||0);}
   function snapDebt(s){if(!s)return null;return(Number(s.asuntolaina)||0)+(Number(s.asuntolaina_remontti)||0)+(Number(s.autolaina)||0);}
   function snapInv(s){if(!s)return null;var v=(Number(s.salkku_arvo)||0);return v>0?v:null;}
-  function margin(s){if(!s)return 0;var inc=0,exp=0;if(Array.isArray(s.tulot_items))s.tulot_items.forEach(function(x){inc+=Number(x.amount)||0;});if(Array.isArray(s.rytmi_items))s.rytmi_items.forEach(function(x){exp+=Number(x.amount)||0;});return inc-exp;}
+  function margin(s){if(!s)return 0;var inc=0,exp=0;if(Array.isArray(s.tulot_items))s.tulot_items.forEach(function(x){inc+=Number(x.amt_kk)||0;});if(Array.isArray(s.rytmi_items))s.rytmi_items.forEach(function(x){exp+=Number(x.amt_kk)||0;});return inc-exp;}
   var netWorth=snapNW(latest),cash=snapCash(latest),debt=snapDebt(latest),liikkuma=margin(latest);
   var hasInv=snaps.some(function(s){return snapInv(s)!==null;});
   var html='<style>.tutki-grid{display:grid;grid-template-columns:1fr;gap:0}.tutki-left,.tutki-right{min-width:0}@media(min-width:1000px){.tutki-grid{grid-template-columns:65fr 35fr;column-gap:32px}.tutki-full{grid-column:1/-1}}</style>';
@@ -4095,7 +4095,7 @@ function renderRightPanel(snaps, latest, calc) {
     // Tulot eriteltynä
     if (tulot_items_p.length > 0) {
       tulot_items_p.forEach(function(t) {
-        var amt = parseFloat(t.amount) || 0;
+        var amt = parseFloat(t.amt_kk) || 0;
         if (!amt) return;
         var typeLabel = t.type === 'palkka' ? 'Palkka' : t.type === 'sivutyo' ? 'Sivutyö'
           : t.type === 'elake' ? 'Eläke' : t.type === 'osingot' ? 'Osingot'
@@ -4112,7 +4112,7 @@ function renderRightPanel(snaps, latest, calc) {
     if (rytmi_items_p.length > 0) {
       html += '<div style="height:1px;background:var(--border);margin:5px 0;"></div>';
       rytmi_items_p.forEach(function(r) {
-        var amt = parseFloat(r.amount) || 0;
+        var amt = parseFloat(r.amt_kk) || 0;
         if (!amt) return;
         html += '<div class="panel-row"><span class="panel-row-lbl" style="font-size:11px;color:var(--text3);">'
           +(r.label||'Rakennerivi')+'</span><span class="panel-row-val neg">−'+fmtP(amt)+'</span></div>';
