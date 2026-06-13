@@ -4540,6 +4540,7 @@ window.entryAddTuloSave = async function() {
   latest.tulot_kk = items.reduce(function(s,x){return s+(x.amt_kk||0);},0);
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
+      try { setTimeout(function(){ syncToSupabase([latest]); }, 500); } catch(e) {}
   await renderEntryView();
 };
 
@@ -4599,6 +4600,7 @@ window.entryAddMenoSave = async function() {
   latest.rytmi_items = items;
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
+      try { setTimeout(function(){ syncToSupabase([latest]); }, 500); } catch(e) {}
   await renderEntryView();
 };
 
@@ -4611,6 +4613,7 @@ window.entryDeleteTulo = async function(id) {
   latest.tulot_kk = latest.tulot_items.reduce(function(s,x){return s+(x.amt_kk||0);},0);
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
+      try { setTimeout(function(){ syncToSupabase([latest]); }, 500); } catch(e) {}
   await renderEntryView();
 };
 window.entryDeleteMeno = async function(id) {
@@ -4620,6 +4623,7 @@ window.entryDeleteMeno = async function(id) {
   latest.rytmi_items = (Array.isArray(latest.rytmi_items) ? latest.rytmi_items : []).filter(function(x){return x.id !== id;});
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
+      try { setTimeout(function(){ syncToSupabase([latest]); }, 500); } catch(e) {}
   await renderEntryView();
 };
 
