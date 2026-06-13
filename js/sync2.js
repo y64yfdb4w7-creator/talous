@@ -214,6 +214,7 @@ async function refreshAndFreeze() {
       tulot_pvm:            latest?.tulot_pvm,
       menot_kk:             latest?.menot_kk,
       nordnet_cash:         latest?.nordnet_cash,
+      _updatedAt:           new Date().toISOString(),
     };
 
     await DB.bulkPutSnapshots([snap]);
@@ -364,7 +365,19 @@ async function syncFromSupabase(showStatus) {
       const local = localByDate[remote.date];
       if (!local) {
         // Uusi päivä — tuo suoraan
-        toImport.push(convertOldSnap(remote));
+        const imported = convertOldSnap(remote);
+        if (remote.finos) {
+          if (Array.isArray(remote.finos.tulot_items))   imported.tulot_items       = remote.finos.tulot_items;
+          if (Array.isArray(remote.finos.rytmi_items))    imported.rytmi_items       = remote.finos.rytmi_items;
+          if (remote.finos.tulot_kk          != null)    imported.tulot_kk          = remote.finos.tulot_kk;
+          if (remote.finos.menot_kk          != null)    imported.menot_kk          = remote.finos.menot_kk;
+          if (remote.finos.muut_tulot        != null)    imported.muut_tulot        = remote.finos.muut_tulot;
+          if (remote.finos.tulot_pvm         != null)    imported.tulot_pvm         = remote.finos.tulot_pvm;
+          if (remote.finos.holdings_snapshot != null)    imported.holdings_snapshot = remote.finos.holdings_snapshot;
+          if (remote.finos.nordnet_cash      != null)    imported.nordnet_cash      = remote.finos.nordnet_cash;
+          if (remote.finos._updatedAt)                   imported._updatedAt        = remote.finos._updatedAt;
+        }
+        toImport.push(imported);
         continue;
       }
       // Sama päivä — vertaa tilitietoja
@@ -377,8 +390,13 @@ async function syncFromSupabase(showStatus) {
       const tuloChanged = remTulotili !== null && remTulotili !== (local.tulotili ?? null);
       const goldChanged = remOpGold   !== null &&
         Math.abs(remOpGold) !== Math.abs(local.op_gold ?? 0);
+      // snapChanged: remote has a newer _updatedAt than local
+      const snapChanged = !!(remote.finos?._updatedAt &&
+        (!local._updatedAt || remote.finos._updatedAt > local._updatedAt));
+      // finosMissing: bootstrap — local has never had finos fields, take remote's
+      const finosMissing = !!(remote.finos && !('tulot_items' in local));
 
-      if (tuloChanged || goldChanged) {
+      if (tuloChanged || goldChanged || snapChanged || finosMissing) {
         // Merge: säilytä paikalliset kurssitiedot, päivitä tilitiedot remotesta
         const merged = {
           ...local,
@@ -390,6 +408,18 @@ async function syncFromSupabase(showStatus) {
           s_pankki:             rt.spankki  != null ? rt.spankki             : local.s_pankki,
           _mergedFromRemote:    true,
         };
+        // Apply finos fields when remote is newer or local is missing them
+        if (remote.finos && (snapChanged || finosMissing)) {
+          if (Array.isArray(remote.finos.tulot_items))   merged.tulot_items       = remote.finos.tulot_items;
+          if (Array.isArray(remote.finos.rytmi_items))    merged.rytmi_items       = remote.finos.rytmi_items;
+          if (remote.finos.tulot_kk          != null)    merged.tulot_kk          = remote.finos.tulot_kk;
+          if (remote.finos.menot_kk          != null)    merged.menot_kk          = remote.finos.menot_kk;
+          if (remote.finos.muut_tulot        != null)    merged.muut_tulot        = remote.finos.muut_tulot;
+          if (remote.finos.tulot_pvm         != null)    merged.tulot_pvm         = remote.finos.tulot_pvm;
+          if (remote.finos.holdings_snapshot != null)    merged.holdings_snapshot = remote.finos.holdings_snapshot;
+          if (remote.finos.nordnet_cash      != null)    merged.nordnet_cash      = remote.finos.nordnet_cash;
+          if (remote.finos._updatedAt)                   merged._updatedAt        = remote.finos._updatedAt;
+        }
         toMerge.push(merged);
       }
     }
@@ -468,6 +498,17 @@ async function syncToSupabase(newSnap) {
         asunto:   Math.abs(s.asuntolaina||0),
         remontti: Math.abs(s.asuntolaina_remontti||0),
         auto:     Math.abs(s.autolaina||0),
+      },
+      finos: {
+        tulot_items:       s.tulot_items       || [],
+        rytmi_items:       s.rytmi_items       || [],
+        tulot_kk:          s.tulot_kk          ?? null,
+        menot_kk:          s.menot_kk          ?? null,
+        muut_tulot:        s.muut_tulot        ?? null,
+        tulot_pvm:         s.tulot_pvm         ?? null,
+        holdings_snapshot: s.holdings_snapshot || null,
+        nordnet_cash:      s.nordnet_cash      ?? null,
+        _updatedAt:        s._updatedAt        || null,
       },
     }));
     convertedSnaps.forEach(s => {
