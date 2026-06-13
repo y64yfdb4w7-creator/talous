@@ -1812,6 +1812,7 @@ async function saveDayFromHoldings() {
       market_value: (h.quantity||0) * h.last_price,
       account:      h.account,
     })),
+    _updatedAt: new Date().toISOString(),
     raw_import: { source: 'manual_entry', engine: 'v1', saved_at: new Date().toISOString() },
   };
 
@@ -3915,6 +3916,7 @@ window.entrySaveDay = async function() {
     menot_kk:             latest.menot_kk             ?? null,
     tulot_pvm:            latest.tulot_pvm            ?? null,
     muut_tulot:           latest.muut_tulot           ?? null,
+    _updatedAt: new Date().toISOString(),
     raw_import: { source: 'entry_v1.1', engine: 'v1', saved_at: new Date().toISOString() },
   };
 
@@ -4536,6 +4538,7 @@ window.entryAddTuloSave = async function() {
   items.push({ id: 'tulo_' + Date.now(), label: label, amt_kk: a });
   latest.tulot_items = items;
   latest.tulot_kk = items.reduce(function(s,x){return s+(x.amt_kk||0);},0);
+  latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   await renderEntryView();
 };
@@ -4594,6 +4597,7 @@ window.entryAddMenoSave = async function() {
   var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
   items.push({ id: 'meno_' + Date.now(), label: label, amt_kk: a });
   latest.rytmi_items = items;
+  latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   await renderEntryView();
 };
@@ -4605,6 +4609,7 @@ window.entryDeleteTulo = async function(id) {
   var latest = snaps.length ? Object.assign({}, snaps[snaps.length-1]) : {};
   latest.tulot_items = (Array.isArray(latest.tulot_items) ? latest.tulot_items : []).filter(function(x){return x.id !== id;});
   latest.tulot_kk = latest.tulot_items.reduce(function(s,x){return s+(x.amt_kk||0);},0);
+  latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   await renderEntryView();
 };
@@ -4613,6 +4618,7 @@ window.entryDeleteMeno = async function(id) {
   var snaps = (await DB.getAll('snapshots')).sort(function(a,b){return a.date<b.date?-1:1;});
   var latest = snaps.length ? Object.assign({}, snaps[snaps.length-1]) : {};
   latest.rytmi_items = (Array.isArray(latest.rytmi_items) ? latest.rytmi_items : []).filter(function(x){return x.id !== id;});
+  latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   await renderEntryView();
 };
