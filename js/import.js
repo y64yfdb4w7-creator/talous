@@ -343,6 +343,26 @@ async function runImport() {
   fill.style.width = '65%';
   await new Promise(r => setTimeout(r, 30)); // yield
 
+  // --- Merge phase: inherit structural fields from nearest previous snapshot ---
+  txt.textContent = 'Yhdistet\u00e4\u00e4n rakenteet...';
+  const existingSnaps = (await DB.getAll('snapshots'))
+    .filter(s => !s._archived)
+    .sort((a, b) => a.date < b.date ? -1 : 1);
+  for (let i = 0; i < snaps.length; i++) {
+    const csvSnap = snaps[i];
+    let base = null;
+    for (let j = existingSnaps.length - 1; j >= 0; j--) {
+      if (existingSnaps[j].date <= csvSnap.date) { base = existingSnaps[j]; break; }
+    }
+    if (base) {
+      snaps[i] = { ...base, ...csvSnap, _source: 'csv_import' };
+      delete snaps[i]._archived;
+      delete snaps[i]._archivedAt;
+    } else {
+      snaps[i]._source = 'csv_import';
+    }
+  }
+
   await DB.bulkPutSnapshots(snaps);
 
   if (evts.length > 0) {
