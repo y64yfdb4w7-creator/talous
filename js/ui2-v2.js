@@ -4043,7 +4043,7 @@ function renderRightPanel(snaps, latest, calc) {
   // Aikarakenne
   if (loans.length > 0) {
     html += '<div class="panel-section">';
-    html += '<div class="panel-label">Aikarakenne · pitkät velat</div>';
+  html += '<div class="panel-label">RAKENTEET</div>';
     loans.forEach(function(l) {
       var pct = loanPct(l);
       var near = (l.cfg.year - curYear) <= 2;
@@ -4066,7 +4066,7 @@ function renderRightPanel(snaps, latest, calc) {
   var kassavirta = tulot_yht > 0 ? tulot_yht - menot_kk_p - opGold_p : null;
 
   html += '<div class="panel-section">';
-  html += '<div class="panel-label">Kuukauden kassavirta</div>';
+  html += '<div class="panel-label">NYKYINEN RYTMI</div>';
 
   // Käytä tulot_items-listaa jos saatavilla
   var tulot_items_p = latest.tulot_items || [];
