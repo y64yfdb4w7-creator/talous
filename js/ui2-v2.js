@@ -4100,13 +4100,11 @@ function renderRightPanel(snaps, latest, calc) {
         + '<span class="panel-row-val ' + signCls(kassavirta) + '" style="font-size:12px;">'
         + (kassavirta >= 0 ? '+' : '') + fmtP(kassavirta) + '</span></div>';
     }
-  } else {
     // Ei dataa — näytä nettorytmi ja ohje
     html += '<div class="panel-row"><span class="panel-row-lbl">Tulotili − käyttöluotto</span>'
       + '<span class="panel-row-val ' + signCls(nettorytmi_p) + '">' + fmtP(nettorytmi_p) + '</span></div>';
     html += '<div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.6;">'
       + 'Lisää tulot &amp; menot +Päivitä-näkymässä.</div>';
-  }
   html += '</div>';
 
   return html;
