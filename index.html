@@ -102,7 +102,7 @@
     .nav-btn {
       background: none;
       border: none;
-      color: var(--text2);
+      color: rgba(255,255,255,0.75);
       font-family: var(--sans);
       font-size: 13px;
       font-weight: 500;
@@ -908,13 +908,13 @@ if ('serviceWorker' in navigator) {
   <span class="nav-logo">Finance OS</span>
   <button class="nav-btn" id="btn-syota" onclick="showView('syota')" style="font-weight:600;color:var(--gold);">Syötä</button>
   <button class="nav-btn" id="btn-dashboard" onclick="showView('dashboard')">Etusivu</button>
-  <button class="nav-btn" id="btn-paivakirja" onclick="showView('paivakirja')">Päiväkirja</button>
+  <button class="nav-btn" id="btn-suunnittelu" onclick="showView('suunnittelu')">Tutki</button>
   <button class="nav-btn" id="btn-salkku" onclick="showView('salkku')">Salkku</button>
+  <button class="nav-btn" id="btn-paivakirja" onclick="showView('paivakirja')">Päiväkirja</button>
   <button class="nav-btn" id="btn-likviditeetti" onclick="showView('likviditeetti')">Kassavirta</button>
   <button class="nav-btn" id="btn-historia" onclick="showView('historia')">Historia</button>
   <button class="nav-btn" id="btn-ledger" onclick="showView('ledger')">Ledger</button>
   <button class="nav-btn" id="btn-events" onclick="showView('events')">Tapahtumat</button>
-  <button class="nav-btn" id="btn-suunnittelu" onclick="showView('suunnittelu')">Tutki</button>
   <button class="nav-btn" id="btn-myynnit" onclick="showView('myynnit')">Myynnit</button>
   <div class="nav-spacer"></div>
   <span class="nav-count" id="nav-count"></span>
