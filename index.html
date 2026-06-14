@@ -849,6 +849,21 @@
   .tulot-row > input[type="text"]{ grid-row:2; grid-column:1 / -1; width:auto; }
 }
 </style>
+<style>
+/* Paivita-napin painalluspalaute */
+#btn-freeze-nav:active,
+.sb-freeze:active {
+  transform: translateY(2px) scale(0.97);
+  opacity: 0.82;
+  transition: transform 80ms, opacity 80ms, box-shadow 80ms;
+  box-shadow: none;
+}
+#btn-freeze-float:active {
+  transform: translateY(2px) scale(0.96);
+  box-shadow: 0 1px 6px rgba(90,158,106,0.3);
+  transition: transform 80ms, box-shadow 80ms;
+}
+</style>
 </head>
 <body>
 <script>
