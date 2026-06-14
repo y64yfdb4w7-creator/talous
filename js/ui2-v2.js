@@ -3498,7 +3498,7 @@ async function renderEntryView() {
         </span>
         <div style="display: flex; align-items: baseline; gap: 0;">
           <span id="entry-disp-${acc.id}"
-                style="font-size: 26px; font-weight: 700; font-family:var(--mono); ${valueColor}
+                style="font-size: 19px; font-weight: 700; font-family:var(--mono); ${valueColor}
                        font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
                        line-height: 1;">
             ${displayVal}
@@ -3511,7 +3511,7 @@ async function renderEntryView() {
                  style="display: none; width: 130px; padding: 4px 8px 4px 0;
                         border: none; border-bottom: 2px solid rgba(255,255,255,0.5);
                         background: transparent; color: rgba(255,255,255,0.9);
-                        font-size: 26px; font-weight: 600; text-align: right;
+                        font-size: 19px; font-weight: 600; text-align: right;
                         font-variant-numeric: tabular-nums; outline: none;
                         letter-spacing: -0.02em;"
                  onblur="entryAccountDeactivate('${acc.id}')"
@@ -3524,7 +3524,7 @@ async function renderEntryView() {
   const manageAccountsHTML = `
     <div style="padding: 16px 0 0;">
       <button onclick="entryShowAccountManager()"
-              style="background: none; border: none; color: rgba(255,255,255,0.25);
+              style="background: none; border: none; color: rgba(255,255,255,0.60);
                      font-size: 12px; cursor: pointer; padding: 0;
                      font-family: inherit; letter-spacing: 0.01em;">
         Hallinnoi tilejä
