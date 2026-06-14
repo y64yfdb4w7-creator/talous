@@ -4040,27 +4040,6 @@ function renderRightPanel(snaps, latest, calc) {
 
   var html = '';
 
-  // Kuukausikatsaus
-  html += '<div class="panel-section">';
-  html += '<div class="panel-month-title">' + moLabel + '</div>';
-  if (moChg !== null) {
-    html += '<div class="panel-row"><span class="panel-row-lbl">Netto</span>'
-      + '<span class="panel-row-val ' + signCls(moChg) + '">'
-      + signPfx(moChg) + fmtP(moChg)
-      + (moPct ? ' <span style="font-size:9px;opacity:.7">' + signPfx(moPct) + moPct.toFixed(1) + '%</span>' : '')
-      + '</span></div>';
-  }
-  if (invChg !== null) {
-    html += '<div class="panel-row"><span class="panel-row-lbl">Sijoitukset</span>'
-      + '<span class="panel-row-val ' + signCls(invChg) + '">' + signPfx(invChg) + fmtP(invChg) + '</span></div>';
-  }
-  html += '<div style="height:1px;background:var(--border);margin:8px 0;"></div>';
-  html += '<div class="panel-row"><span class="panel-row-lbl">Tulotili − käyttöluotto</span>'
-    + '<span class="panel-row-val ' + signCls(nettorytmi) + '">' + fmtP(nettorytmi) + '</span></div>';
-  html += '<div class="panel-row"><span class="panel-row-lbl">Strateginen reservi</span>'
-    + '<span class="panel-row-val">' + (calc.runway ? Math.round(calc.runway) + ' kk' : '—') + '</span></div>';
-  html += '</div>';
-
   // Aikarakenne
   if (loans.length > 0) {
     html += '<div class="panel-section">';
@@ -4093,20 +4072,7 @@ function renderRightPanel(snaps, latest, calc) {
   var tulot_items_p = latest.tulot_items || [];
   var rytmi_items_p = latest.rytmi_items || [];
 
-  if (tulot_items_p.length > 0 || rytmi_items_p.length > 0 || tulot_kk || menot_kk_p > 0) {
-    // Tulot eriteltynä
-    if (tulot_items_p.length > 0) {
-      tulot_items_p.forEach(function(t) {
-        var amt = parseFloat(t.amt_kk) || 0;
-        if (!amt) return;
-        var typeLabel = t.type === 'palkka' ? 'Palkka' : t.type === 'sivutyo' ? 'Sivutyö'
-          : t.type === 'elake' ? 'Eläke' : t.type === 'osingot' ? 'Osingot'
-          : t.type === 'vuokra' ? 'Vuokra' : t.type === 'freelance' ? 'Freelance' : 'Muu';
-        var label = t.label ? t.label : typeLabel;
-        html += '<div class="panel-row"><span class="panel-row-lbl" style="font-size:11px;">'
-          +label+'</span><span class="panel-row-val pos">+'+fmtP(amt)+'</span></div>';
-      });
-    } else if (tulot_yht > 0) {
+    if (tulot_yht > 0) {
       html += '<div class="panel-row"><span class="panel-row-lbl">Tulot</span>'
         + '<span class="panel-row-val pos">+' + fmtP(tulot_yht) + '</span></div>';
     }
@@ -4142,29 +4108,6 @@ function renderRightPanel(snaps, latest, calc) {
       + 'Lisää tulot &amp; menot +Päivitä-näkymässä.</div>';
   }
   html += '</div>';
-
-  // Broker-snapshot
-  if (calc.brokers) {
-    var bk = calc.brokers;
-    html += '<div class="panel-section">';
-    html += '<div class="panel-label">Salkku nyt</div>';
-    if (bk.nordnet.total > 0) {
-      html += '<div class="panel-row"><span class="panel-row-lbl">Nordnet</span>'
-        + '<span class="panel-row-val">' + fmtP(bk.nordnet.total)
-        + (bk.nordnet.cash > 0 ? ' <span style="font-size:9px;color:var(--text3);">+'
-          + fmtP(bk.nordnet.cash) + ' kät.</span>' : '')
-        + '</span></div>';
-    }
-    if (bk.op.total > 0) {
-      html += '<div class="panel-row"><span class="panel-row-lbl">OP</span>'
-        + '<span class="panel-row-val">' + fmtP(bk.op.total) + '</span></div>';
-    }
-    if (bk.spankki.total > 0) {
-      html += '<div class="panel-row"><span class="panel-row-lbl">S-Pankki</span>'
-        + '<span class="panel-row-val">' + fmtP(bk.spankki.total) + '</span></div>';
-    }
-    html += '</div>';
-  }
 
   return html;
 }
