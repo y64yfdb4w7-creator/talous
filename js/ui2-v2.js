@@ -35,7 +35,7 @@ function renderHeartbeatCard(sig) {
       + '<div style="position:absolute;left:0;top:0;bottom:0;width:' + barPct + '%;background:' + barColor + ';opacity:0.65;border-radius:5px;transition:width .4s;"></div>'
       + '<div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 8px;justify-content:space-between;">'
       + '<span style="font-family:var(--mono);font-size:11px;color:#fff;font-weight:600;">' + fmt(-tempo.curSpend) + '</span>'
-      + '<span style="font-size:10px;color:rgba(255,255,255,0.35);">ka. ' + fmt(-tempo.paceAvg) + '</span>'
+      + '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.68);">ka. ' + fmt(-tempo.paceAvg) + '</span>'
       + '</div></div></div>';
   })() : '';
 
@@ -3084,21 +3084,21 @@ async function renderMyynnit() {
                       gap:8px;margin-bottom:16px;">
             <div class="card" style="padding:14px 16px;">
               <div class="card-label">Myyntiä yhteensä</div>
-              <div class="card-value" style="font-size:20px;">${fmt(sum.proceeds)}</div>
+              <div class="card-value" style="font-family:var(--mono);font-size:20px;">${fmt(sum.proceeds)}</div>
             </div>
             <div class="card" style="padding:14px 16px;">
               <div class="card-label">Voitto (suos. menet.)</div>
-              <div class="card-value ${sum.profit >= 0 ? 'pos' : 'neg'}" style="font-size:20px;">
+              <div class="card-value ${sum.profit >= 0 ? 'pos' : 'neg'}" style="font-family:var(--mono);font-size:20px;">
                 ${fmtDelta(sum.profit)}
               </div>
             </div>
             <div class="card" style="padding:14px 16px;">
               <div class="card-label">Veroarvio 30/34 %</div>
-              <div class="card-value neg" style="font-size:20px;">${fmt(sum.tax)}</div>
+              <div class="card-value neg" style="font-family:var(--mono);font-size:20px;">${fmt(sum.tax)}</div>
             </div>
             <div class="card" style="padding:14px 16px;">
               <div class="card-label">Netto käteen</div>
-              <div class="card-value pos" style="font-size:20px;">${fmt(sum.proceeds - sum.tax)}</div>
+              <div class="card-value pos" style="font-family:var(--mono);font-size:20px;">${fmt(sum.proceeds - sum.tax)}</div>
             </div>
           </div>
 
@@ -3534,7 +3534,7 @@ async function renderEntryView() {
 
   const accountsHTML = `
     <div id="entry-accounts" style="padding: 0 24px;">
-      <div style="font-size: 10px; color: rgba(255,255,255,0.58); letter-spacing: 0.08em;
+      <div style="font-size: 11px; color: rgba(255,255,255,0.70); letter-spacing: 0.08em;
                   text-transform: uppercase; padding-bottom: 6px;
                   border-bottom: 1px solid rgba(255,255,255,0.06);">
         Tilit
@@ -3682,7 +3682,7 @@ function _renderStructures(latest) {
   return `
     <div id="entry-structures" style="padding: 28px 24px 0;">
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.58); letter-spacing: 0.08em;
+      <div style="font-size: 11px; color: rgba(255,255,255,0.70); letter-spacing: 0.08em;
                   text-transform: uppercase; padding-bottom: 6px;
                   border-bottom: 1px solid rgba(255,255,255,0.05);">
         Perusta
@@ -3693,7 +3693,7 @@ function _renderStructures(latest) {
       <div style="border-top: 1px dashed rgba(255,255,255,0.06);
                   margin: 8px 0 0; padding-top: 0;"></div>
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.58); letter-spacing: 0.08em;
+      <div style="font-size: 11px; color: rgba(255,255,255,0.70); letter-spacing: 0.08em;
                   text-transform: uppercase; padding: 20px 0 6px;">
         Toistuvat tulot
       </div>
@@ -3709,7 +3709,7 @@ function _renderStructures(latest) {
 
       <div style="border-top: 1px dashed rgba(255,255,255,0.06); margin: 8px 0 0;"></div>
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.58); letter-spacing: 0.08em;
+      <div style="font-size: 11px; color: rgba(255,255,255,0.70); letter-spacing: 0.08em;
                   text-transform: uppercase; padding: 20px 0 6px;">
         Toistuvat menot
       </div>
