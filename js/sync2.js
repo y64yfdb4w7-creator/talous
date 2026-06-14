@@ -251,6 +251,14 @@ async function refreshAndFreeze() {
       if (btn)       { btn.disabled = false; btn.style.opacity = ''; btn.style.color = ''; btn.style.borderColor = ''; }
       if (btnFloat)  { btnFloat.disabled = false; btnFloat.style.opacity = ''; }
       renderDashboard();
+        try {
+          var syotaView = document.getElementById('view-syota');
+          if (syotaView && syotaView.classList.contains('active') && typeof renderEntryView === 'function') {
+            renderEntryView();
+          }
+        } catch (e) {
+          console.warn('Entry refresh failed', e);
+        }
     }, 2500);
 
   } catch(e) {
