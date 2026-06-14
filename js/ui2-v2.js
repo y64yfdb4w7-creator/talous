@@ -3463,7 +3463,7 @@ async function renderEntryView() {
   // Just the date. Nothing else.
   const orientationHTML = `
     <div style="padding: 36px 24px 28px;">
-      <div style="font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400;
+      <div style="font-size: 14px; color: rgba(255,255,255,0.75); font-weight: 500;
                   letter-spacing: 0.01em; line-height: 1.4;">
         ${entryDateLabel()}
       </div>
@@ -3492,13 +3492,13 @@ async function renderEntryView() {
            style="display: flex; justify-content: space-between; align-items: baseline;
                   padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
                   cursor: pointer; -webkit-tap-highlight-color: transparent;">
-        <span style="font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400;
+        <span style="font-size: 14px; color: rgba(255,255,255,0.75); font-weight: 400;
                      letter-spacing: 0.01em;">
           ${acc.label}
         </span>
         <div style="display: flex; align-items: baseline; gap: 0;">
           <span id="entry-disp-${acc.id}"
-                style="font-size: 26px; font-weight: 600; ${valueColor}
+                style="font-size: 26px; font-weight: 700; font-family:var(--mono); ${valueColor}
                        font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
                        line-height: 1;">
             ${displayVal}
@@ -3534,7 +3534,7 @@ async function renderEntryView() {
 
   const accountsHTML = `
     <div id="entry-accounts" style="padding: 0 24px;">
-      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+      <div style="font-size: 10px; color: rgba(255,255,255,0.58); letter-spacing: 0.08em;
                   text-transform: uppercase; padding-bottom: 6px;
                   border-bottom: 1px solid rgba(255,255,255,0.06);">
         Tilit
@@ -3632,11 +3632,11 @@ function _renderStructures(latest) {
            style="display: flex; justify-content: space-between; align-items: baseline;
                   padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
                   cursor: pointer; -webkit-tap-highlight-color: transparent;">
-        <span style="font-size: 14px; color: rgba(255,255,255,0.45);">${label}</span>
+        <span style="font-size: 14px; color: rgba(255,255,255,0.75);">${label}</span>
         <div style="display: flex; align-items: center; gap: 8px;">
           <span id="struct-disp-${fieldKey}"
-                style="font-size: 18px; font-weight: 500;
-                       color: rgba(255,255,255,0.35);
+                style="font-size: 18px; font-weight: 600; font-family:var(--mono);
+                       color: rgba(255,255,255,0.72);
                        font-variant-numeric: tabular-nums;">
             ${displayVal}
           </span>
@@ -3647,7 +3647,7 @@ function _renderStructures(latest) {
                  style="display: none; width: 110px; padding: 4px 0;
                         border: none; border-bottom: 2px solid rgba(255,255,255,0.4);
                         background: transparent; color: rgba(255,255,255,0.8);
-                        font-size: 18px; font-weight: 500; text-align: right;
+                        font-size: 18px; font-weight: 600; font-family:var(--mono); text-align: right;
                         outline: none; font-variant-numeric: tabular-nums;"
                  onblur="entryStructureDeactivate('${fieldKey}')"
                  oninput="markDirty('${fieldKey}')">
@@ -3668,21 +3668,21 @@ function _renderStructures(latest) {
     ? tulotItems.map(function(item) {
         var amt = parseFloat(item.amt_kk != null ? item.amt_kk : item.amount) || 0;
         var label = item.label || 'Tulo';
-        return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="font-size:14px;color:rgba(255,255,255,0.55);">${label}</span><span style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:14px;color:rgba(255,255,255,0.35);font-variant-numeric:tabular-nums;">${amt ? amt.toLocaleString('fi-FI',{maximumFractionDigits:0})+' &#x20AC; / kk' : '&#x2014;'}</span><button onclick="entryDeleteTulo('${item.id}')" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:11px;cursor:pointer;padding:2px 0;font-family:inherit;letter-spacing:0.03em;line-height:1;">Poista</button></span></div>`;
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="font-size:14px;color:rgba(255,255,255,0.55);">${label}</span><span style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:14px;color:rgba(255,255,255,0.72);font-family:var(--mono);font-variant-numeric:tabular-nums;">${amt ? amt.toLocaleString('fi-FI',{maximumFractionDigits:0})+' &#x20AC; / kk' : '&#x2014;'}</span><button onclick="entryDeleteTulo('${item.id}')" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:11px;cursor:pointer;padding:2px 0;font-family:inherit;letter-spacing:0.03em;line-height:1;">Poista</button></span></div>`;
       }).join('')
     : `<div style="font-size:13px;color:rgba(255,255,255,0.25);padding:10px 0;">Ei tuloja tallennettu.</div>`;
   const expenseHTML = rytmiItems.length
     ? rytmiItems.map(function(item) {
         var amt = parseFloat(item.amt_kk != null ? item.amt_kk : item.amount) || 0;
         var label = item.label || 'Meno';
-        return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="font-size:14px;color:rgba(255,255,255,0.55);">${label}</span><span style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:14px;color:rgba(255,255,255,0.35);font-variant-numeric:tabular-nums;">${amt ? amt.toLocaleString('fi-FI',{maximumFractionDigits:0})+' &#x20AC; / kk' : '&#x2014;'}</span><button onclick="entryDeleteMeno('${item.id}')" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:11px;cursor:pointer;padding:2px 0;font-family:inherit;letter-spacing:0.03em;line-height:1;">Poista</button></span></div>`;
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="font-size:14px;color:rgba(255,255,255,0.55);">${label}</span><span style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:14px;color:rgba(255,255,255,0.72);font-family:var(--mono);font-variant-numeric:tabular-nums;">${amt ? amt.toLocaleString('fi-FI',{maximumFractionDigits:0})+' &#x20AC; / kk' : '&#x2014;'}</span><button onclick="entryDeleteMeno('${item.id}')" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:11px;cursor:pointer;padding:2px 0;font-family:inherit;letter-spacing:0.03em;line-height:1;">Poista</button></span></div>`;
       }).join('')
     : `<div style="font-size:13px;color:rgba(255,255,255,0.25);padding:10px 0;">Ei toistuvia menoja tallennettu.</div>`;
 
   return `
     <div id="entry-structures" style="padding: 28px 24px 0;">
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+      <div style="font-size: 10px; color: rgba(255,255,255,0.58); letter-spacing: 0.08em;
                   text-transform: uppercase; padding-bottom: 6px;
                   border-bottom: 1px solid rgba(255,255,255,0.05);">
         Perusta
@@ -3693,7 +3693,7 @@ function _renderStructures(latest) {
       <div style="border-top: 1px dashed rgba(255,255,255,0.06);
                   margin: 8px 0 0; padding-top: 0;"></div>
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+      <div style="font-size: 10px; color: rgba(255,255,255,0.58); letter-spacing: 0.08em;
                   text-transform: uppercase; padding: 20px 0 6px;">
         Toistuvat tulot
       </div>
@@ -3709,7 +3709,7 @@ function _renderStructures(latest) {
 
       <div style="border-top: 1px dashed rgba(255,255,255,0.06); margin: 8px 0 0;"></div>
 
-      <div style="font-size: 10px; color: rgba(255,255,255,0.28); letter-spacing: 0.08em;
+      <div style="font-size: 10px; color: rgba(255,255,255,0.58); letter-spacing: 0.08em;
                   text-transform: uppercase; padding: 20px 0 6px;">
         Toistuvat menot
       </div>
@@ -3797,7 +3797,7 @@ window.entryShowAccountManager = function() {
       <button onclick="document.getElementById('entry-account-manager')?.remove()"
               style="padding: 9px 16px; border-radius: 8px;
                      border: 1px solid rgba(255,255,255,0.08); background: none;
-                     color: rgba(255,255,255,0.35); font-size: 13px; cursor: pointer;
+                     color: rgba(255,255,255,0.72); font-size: 13px; cursor: pointer;
                      font-family: inherit;">
         Peruuta
       </button>
