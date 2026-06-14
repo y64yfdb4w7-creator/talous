@@ -2880,29 +2880,6 @@ async function renderSuunnittelupohta(){
   html+='<div class="tutki-right">';
   html+='<div style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:10px;padding:14px 16px;background:rgba(0,200,176,0.04);border:1px solid rgba(0,200,176,0.1);border-radius:8px;">'+summaryText+'</div>';
   html+='<div style="font-size:11px;color:var(--text3);margin-bottom:20px;font-style:italic;">Vasen puoli: mennyt kehitys · Oikea puoli: nykyisen rytmin mittakaava</div>';
-  // RYTMIN KANTAMA TAULUKKO
-  var horisonttiKk=[3,6,12,24,36,60,120];
-  var hLbl={3:'3 kk',6:'6 kk',12:'12 kk',24:'24 kk',36:'36 kk',60:'60 kk',120:'120 kk'};
-  html+='<div style="margin-top:28px;border-top:1px solid var(--border);padding-top:22px;">';
-  html+='<div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Jos nykyinen rytmi säilyy</div>';
-  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">';
-  horisonttiKk.forEach(function(m){
-    var isS=_tutkiHorisontti===m;
-    html+='<button onclick="tutkiSetHorisontti('+m+')" style="background:'+(isS?'rgba(0,200,176,0.15)':'rgba(255,255,255,0.04)')+';border:1px solid '+(isS?'#00c8b0':'rgba(255,255,255,0.1)')+';color:'+(isS?'#00c8b0':'var(--text3)')+';border-radius:5px;padding:4px 10px;font-size:11px;font-weight:'+(isS?'700':'400')+';cursor:pointer;font-family:var(--mono);">'+hLbl[m]+'</button>';
-  });
-  html+='</div>';
-  var showKk=[3,6,12,24,36,60,120].filter(function(m){return m<=_tutkiHorisontti;});
-  if(showKk.length===0)showKk=[_tutkiHorisontti];
-  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px;">';
-  showKk.forEach(function(m){
-    var val=liikkuma*m,sign=val>=0?'+':'',col=val>=0?'var(--green)':'var(--red)';
-    html+='<div style="padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;">';
-    html+='<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:var(--mono);">'+hLbl[m]+'</div>';
-    html+='<div style="font-size:15px;font-weight:700;color:'+col+';font-family:var(--mono);">'+sign+Math.round(val).toLocaleString('fi-FI')+' €</div>';
-    html+='</div>';
-  });
-  html+='</div>';
-  html+='</div>';
   // HORISONTISSA
   html+='<div style="border-top:1px solid var(--border);padding-top:22px;"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Horisontissa näkyvät rakenteet</div>';
   [{id:'asuntolaina',label:'Asuntolaina'},{id:'autolaina',label:'Autolaina'},{id:'tulot',label:'Toistuvat tulot'},{id:'menot',label:'Toistuvat menot'}].forEach(function(r){html+='<div data-rakenne="'+r.id+'" style="font-size:13px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">'+r.label+'</div>';});
