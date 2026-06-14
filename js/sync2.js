@@ -145,6 +145,14 @@ async function refreshAndFreeze() {
   const label      = null;
   const status     = document.getElementById('freeze-status');
 
+try {
+  if (btn) btn.classList.add('pressed');
+  if (btnFloat) btnFloat.classList.add('pressed');
+  setTimeout(function() {
+    if (btn) btn.classList.remove('pressed');
+    if (btnFloat) btnFloat.classList.remove('pressed');
+  }, 120);
+} catch(e) {}
   if (btn)       { btn.disabled = true; btn.style.opacity = '0.5'; }
   if (btnFloat)  { btnFloat.disabled = true; btnFloat.style.opacity = '0.7'; }
   if (icon)       icon.textContent = '⟳';
