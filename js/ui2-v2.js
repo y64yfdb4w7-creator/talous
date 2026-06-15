@@ -1633,6 +1633,10 @@ async function renderSalkku() {
           <input class="form-input" id="f-purchase" type="number" step="0.01" placeholder="3.50">
         </div>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+        <input type="checkbox" id="f-manual-price" style="width:14px;height:14px;cursor:pointer;">
+        <label for="f-manual-price" style="font-size:12px;color:var(--text2);cursor:pointer;">Manuaalinen kurssi (ei päivitetä automaattisesti)</label>
+      </div>
       <div style="display:flex;gap:8px;">
         <button class="btn-p" onclick="saveHoldingForm()">Tallenna</button>
         <button class="btn-s" onclick="cancelForm()">Peruuta</button>
@@ -1723,6 +1727,7 @@ async function editHolding(id) {
   document.getElementById('f-price').value    = h.last_price || '';
   document.getElementById('f-purchase').value = h.purchase_price || '';
   document.getElementById('f-account').value  = h.account || 'nordnet';
+  document.getElementById('f-manual-price').checked = h.last_price_src === 'Manuaalinen';
   document.getElementById('holding-form').style.display = 'block';
   document.getElementById('holding-form').scrollIntoView({ behavior: 'smooth' });
 }
@@ -1740,6 +1745,7 @@ async function saveHoldingForm() {
     purchase_price: parseFloat(document.getElementById('f-purchase').value) || null,
     account:        document.getElementById('f-account').value,
     active:         true,
+    last_price_src: document.getElementById('f-manual-price')?.checked ? 'Manuaalinen' : null,
   };
 
   if (_editingId) h.id = _editingId;
