@@ -2799,7 +2799,6 @@ async function renderSuunnittelupohta(){
   var hasInv=snaps.some(function(s){return snapInv(s)!==null;});
   var html='<style>.tutki-grid{display:grid;grid-template-columns:1fr;gap:0}.tutki-left,.tutki-right{min-width:0}@media(min-width:1000px){.tutki-grid{grid-template-columns:65fr 35fr;column-gap:32px}.tutki-full{grid-column:1/-1}}</style>';
   html+='<div class="tutki-grid" style="max-width:1400px;margin:0 auto;padding:24px 16px 60px;">';
-  html+='<div class="tutki-full" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:22px;">Suunnitteluöytä</div>';
   if(!latest){html+='<div style="color:var(--text3);font-size:14px;padding:40px 0;">Ei dataa.</div></div>';el.innerHTML=html;return;}
   // KONTEKSTIRIVI
   html+='<div class="tutki-full" style="display:flex;flex-wrap:wrap;gap:20px 36px;align-items:baseline;margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid var(--border);">';
@@ -2880,10 +2879,6 @@ async function renderSuunnittelupohta(){
   html+='<div class="tutki-right">';
   html+='<div style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:10px;padding:14px 16px;background:rgba(0,200,176,0.04);border:1px solid rgba(0,200,176,0.1);border-radius:8px;">'+summaryText+'</div>';
   html+='<div style="font-size:11px;color:var(--text3);margin-bottom:20px;font-style:italic;">Vasen puoli: mennyt kehitys · Oikea puoli: nykyisen rytmin mittakaava</div>';
-  // HORISONTISSA
-  html+='<div style="border-top:1px solid var(--border);padding-top:22px;"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Horisontissa näkyvät rakenteet</div>';
-  [{id:'asuntolaina',label:'Asuntolaina'},{id:'autolaina',label:'Autolaina'},{id:'tulot',label:'Toistuvat tulot'},{id:'menot',label:'Toistuvat menot'}].forEach(function(r){html+='<div data-rakenne="'+r.id+'" style="font-size:13px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">'+r.label+'</div>';});
-  html+='</div></div>';
   el.innerHTML=html;
   console.log('[TUTKI] V2.2 rendered');
 }
