@@ -1664,6 +1664,15 @@ async function renderSalkku() {
             placeholder="0" value="${nordnetCashVal > 0 ? nordnetCashVal : ''}"
             oninput="updateNordnetCashDisplay(this.value)">
         </div>` : ''}
+        ${a.id === 's_sijoitus' ? `
+        <div class="nordnet-cash-row">
+          <span class="nordnet-cash-lbl">kokonaisarvo (€)</span>
+          <span class="nordnet-cash-val" id="s-sijoitus-display">${_latest?.s_sijoitus > 0 ? fmt(_latest.s_sijoitus) : ''}</span>
+          <input id="s-sijoitus-input" class="nordnet-cash-input" type="number"
+            placeholder="0" value="${_latest?.s_sijoitus > 0 ? _latest.s_sijoitus : ''}"
+            oninput="updateSSijoitusDisplay(this.value)"
+            onblur="saveSSijoitusValue(this.value)">
+        </div>` : ''}
         <div class="holding-table">
           <div class="holding-hd">
             <div>Ticker</div><div>Nimi</div><div style="text-align:right">Kpl</div>
@@ -1700,6 +1709,26 @@ async function renderSalkku() {
 function updateNordnetCashDisplay(val) {
   const disp = document.querySelector('.nordnet-cash-val')
   if (disp) disp.textContent = val && parseFloat(val) > 0 ? fmt(parseFloat(val)) : ''
+}
+
+function updateSSijoitusDisplay(val) {
+  const disp = document.getElementById('s-sijoitus-display');
+  if (disp) disp.textContent = val && parseFloat(val) > 0 ? fmt(parseFloat(val)) : '';
+}
+
+async function saveSSijoitusValue(val) {
+  const v = parseFloat(val);
+  if (!Number.isFinite(v) || v < 0) return;
+  const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date.localeCompare(b.date));
+  const latest = snaps[snaps.length - 1];
+  if (!latest) return;
+  const snap = { ...latest, s_sijoitus: v, _updatedAt: new Date().toISOString() };
+  await DB.putSnapshot(snap);
+  await updateNavCount();
+  try { setTimeout(() => syncToSupabase([snap]), 300); } catch(e) {}
+  requestAnimationFrame(() => {
+    renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
+  });
 }
 
 function toggleAddForm() {
