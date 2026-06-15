@@ -1654,7 +1654,7 @@ async function renderSalkku() {
       return `
         <div class="acct-header">
           <span class="acct-name">${a.label}</span>
-          <span class="acct-total">${fmt(total + (a.id==='nordnet' ? nordnetCashVal : 0))}</span>
+          <span class="acct-total">${fmt(a.id==='s_sijoitus' ? (_latest?.s_sijoitus || total) : (a.id==='nordnet' ? total + nordnetCashVal : total))}</span>
         </div>
         ${a.id === 'nordnet' ? `
         <div class="nordnet-cash-row">
@@ -1667,41 +1667,73 @@ async function renderSalkku() {
         ${a.id === 's_sijoitus' ? `
         <div class="nordnet-cash-row">
           <span class="nordnet-cash-lbl">kokonaisarvo (€)</span>
-          <span class="nordnet-cash-val" id="s-sijoitus-display">${_latest?.s_sijoitus > 0 ? fmt(_latest.s_sijoitus) : ''}</span>
           <input id="s-sijoitus-input" class="nordnet-cash-input" type="number"
             placeholder="0" value="${_latest?.s_sijoitus > 0 ? _latest.s_sijoitus : ''}"
-            oninput="updateSSijoitusDisplay(this.value)"
             onblur="saveSSijoitusValue(this.value)">
         </div>` : ''}
-        <div class="holding-table">
-          <div class="holding-hd">
-            <div>Ticker</div><div>Nimi</div><div style="text-align:right">Kpl</div>
-            <div style="text-align:right">Kurssi</div><div style="text-align:right">Arvo</div>
-            <div>Hankinta</div><div></div>
+        ${a.id === 's_sijoitus' ? `
+        <div class="s-sijoitus-toggle" onclick="toggleSSijoitusDetails(this)" style="cursor:pointer;color:var(--text2);font-size:12px;padding:6px 0 4px;">▶ Rahaston tiedot</div>
+        <div class="s-sijoitus-details" style="display:none;">
+          <div class="holding-table">
+            <div class="holding-hd">
+              <div>Ticker</div><div>Nimi</div><div style="text-align:right">Kpl</div>
+              <div style="text-align:right">Kurssi</div><div style="text-align:right">Arvo</div>
+              <div>Hankinta</div><div></div>
+            </div>
+            ${rows.map(h => {
+              const val = (h.quantity||0) * (h.last_price||0);
+              const gain = h.purchase_price ? val - (h.quantity||0)*h.purchase_price : null;
+              return `
+                <div class="holding-row">
+                  <div class="h-ticker">${h.ticker}</div>
+                  <div class="h-name">${h.display_name || '—'}</div>
+                  <div class="h-qty">${(h.quantity||0).toLocaleString('fi-FI')}</div>
+                  <div class="h-price" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
+                    <span>${h.last_price ? h.last_price.toFixed(2)+' €' : '—'}</span>
+                    ${h.last_price_src && h.last_price_src !== 'Supabase' ? `<span class="h-src">${h.last_price_time||''} ${h.last_price_src}</span>` : (h.last_price_time ? `<span class="h-src">${h.last_price_time}</span>` : '')}
+                  </div>
+                  <div class="h-val">${fmt(val)}</div>
+                  <div class="h-acct" style="color:${gain===null?'var(--text3)':gain>=0?'var(--green)':'var(--red)'}">
+                    ${gain !== null ? fmtDelta(gain) : h.purchase_price ? h.purchase_price.toFixed(2)+' €' : '—'}
+                  </div>
+                  <div class="h-actions">
+                    <button class="h-btn" onclick="editHolding(${h.id})">✎</button>
+                    <button class="h-btn del" onclick="deleteHolding(${h.id})">✕</button>
+                  </div>
+                </div>`;
+            }).join('')}
           </div>
-          ${rows.map(h => {
-            const val = (h.quantity||0) * (h.last_price||0);
-            const gain = h.purchase_price ? val - (h.quantity||0)*h.purchase_price : null;
-            return `
-              <div class="holding-row">
-                <div class="h-ticker">${h.ticker}</div>
-                <div class="h-name">${h.display_name || '—'}</div>
-                <div class="h-qty">${(h.quantity||0).toLocaleString('fi-FI')}</div>
-                <div class="h-price" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
-                  <span>${h.last_price ? h.last_price.toFixed(2)+' €' : '—'}</span>
-                  ${h.last_price_src && h.last_price_src !== 'Supabase' ? `<span class="h-src">${h.last_price_time||''} ${h.last_price_src}</span>` : (h.last_price_time ? `<span class="h-src">${h.last_price_time}</span>` : '')}
-                </div>
-                <div class="h-val">${fmt(val)}</div>
-                <div class="h-acct" style="color:${gain===null?'var(--text3)':gain>=0?'var(--green)':'var(--red)'}">
-                  ${gain !== null ? fmtDelta(gain) : h.purchase_price ? h.purchase_price.toFixed(2)+' €' : '—'}
-                </div>
-                <div class="h-actions">
-                  <button class="h-btn" onclick="editHolding(${h.id})">✎</button>
-                  <button class="h-btn del" onclick="deleteHolding(${h.id})">✕</button>
-                </div>
-              </div>`;
-          }).join('')}
-        </div>`;
+        </div>` : `
+          <div class="holding-table">
+            <div class="holding-hd">
+              <div>Ticker</div><div>Nimi</div><div style="text-align:right">Kpl</div>
+              <div style="text-align:right">Kurssi</div><div style="text-align:right">Arvo</div>
+              <div>Hankinta</div><div></div>
+            </div>
+            ${rows.map(h => {
+              const val = (h.quantity||0) * (h.last_price||0);
+              const gain = h.purchase_price ? val - (h.quantity||0)*h.purchase_price : null;
+              return `
+                <div class="holding-row">
+                  <div class="h-ticker">${h.ticker}</div>
+                  <div class="h-name">${h.display_name || '—'}</div>
+                  <div class="h-qty">${(h.quantity||0).toLocaleString('fi-FI')}</div>
+                  <div class="h-price" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
+                    <span>${h.last_price ? h.last_price.toFixed(2)+' €' : '—'}</span>
+                    ${h.last_price_src && h.last_price_src !== 'Supabase' ? `<span class="h-src">${h.last_price_time||''} ${h.last_price_src}</span>` : (h.last_price_time ? `<span class="h-src">${h.last_price_time}</span>` : '')}
+                  </div>
+                  <div class="h-val">${fmt(val)}</div>
+                  <div class="h-acct" style="color:${gain===null?'var(--text3)':gain>=0?'var(--green)':'var(--red)'}">
+                    ${gain !== null ? fmtDelta(gain) : h.purchase_price ? h.purchase_price.toFixed(2)+' €' : '—'}
+                  </div>
+                  <div class="h-actions">
+                    <button class="h-btn" onclick="editHolding(${h.id})">✎</button>
+                    <button class="h-btn del" onclick="deleteHolding(${h.id})">✕</button>
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>
+        `}
     }).join('')}
   `;
 }
@@ -1711,9 +1743,11 @@ function updateNordnetCashDisplay(val) {
   if (disp) disp.textContent = val && parseFloat(val) > 0 ? fmt(parseFloat(val)) : ''
 }
 
-function updateSSijoitusDisplay(val) {
-  const disp = document.getElementById('s-sijoitus-display');
-  if (disp) disp.textContent = val && parseFloat(val) > 0 ? fmt(parseFloat(val)) : '';
+function toggleSSijoitusDetails(btn) {
+  const details = btn.nextElementSibling;
+  const open = details.style.display !== 'none';
+  details.style.display = open ? 'none' : 'block';
+  btn.textContent = (open ? '▶' : '▼') + ' Rahaston tiedot';
 }
 
 async function saveSSijoitusValue(val) {
@@ -1724,9 +1758,16 @@ async function saveSSijoitusValue(val) {
   if (!latest) return;
   const snap = { ...latest, s_sijoitus: v, _updatedAt: new Date().toISOString() };
   await DB.putSnapshot(snap);
+  // Sync SPANKKI-ESG holding: last_price = snapshotValue / quantity
+  const hs = await DB.getAll('holdings');
+  const sh = hs.find(h => h.account === 's_sijoitus' && h.active !== false);
+  if (sh && sh.quantity > 0) {
+    await DB.putHolding({ ...sh, last_price: v / sh.quantity, last_price_src: 'Manuaalinen' });
+  }
   await updateNavCount();
   try { setTimeout(() => syncToSupabase([snap]), 300); } catch(e) {}
   requestAnimationFrame(() => {
+    renderSalkku();
     renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
   });
 }
