@@ -56,7 +56,7 @@ async function fetchAndUpdatePrices() {
 // ═══════════════════════════════════════════════
 
 async function refreshAllMarketData() {
-  const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false && h.ticker);
+  const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false && h.ticker && h.last_price_src !== 'Manuaalinen');
   const tickers  = [...new Set(holdings.map(h => h.ticker))];
   const today    = new Date().toISOString().slice(0,10);
   const timeNow  = new Date().toLocaleTimeString('fi-FI', {hour:'2-digit',minute:'2-digit'});
