@@ -451,8 +451,35 @@ async function syncFromSupabase(showStatus) {
       console.log('Sync: tuotu ' + toImport.length + ' uutta, päivitetty ' + toMerge.length + ' olemassa olevaa');
     }
 
-    // 5. Synkronoi holdings (kappalemäärät + hankintahinnat)
-    if (data.shares || data.costBasis) {
+    // 5. Synkronoi holdings (kentät _key-matchauksella)
+    if (data.holdingsFull && data.holdingsFull.length > 0) {
+      const localHoldings = await DB.getAll('holdings');
+      const byKey = {};
+      localHoldings.forEach(h => {
+        const k = (h.ticker||'')+'|'+(h.display_name||'')+'|'+(h.account||'');
+        byKey[k] = h;
+      });
+      for (const r of data.holdingsFull) {
+        const existing = byKey[r._key];
+        if (!existing) continue;
+        const useRemote = r.last_price !== null && r.last_price !== undefined &&
+          (!existing.last_price || (r.last_price_date||'') >= (existing.last_price_date||''));
+        const qChanged  = r.quantity       !== undefined && r.quantity       !== existing.quantity;
+        const cpChanged = r.purchase_price !== undefined && r.purchase_price !== existing.purchase_price;
+        const dnChanged = r.display_name   !== undefined && r.display_name   !== existing.display_name;
+        if (!useRemote && !qChanged && !cpChanged && !dnChanged) continue;
+        await DB.putHolding({
+          ...existing,
+          quantity:        qChanged  ? (r.quantity       ?? existing.quantity)       : existing.quantity,
+          purchase_price:  cpChanged ? (r.purchase_price ?? existing.purchase_price) : existing.purchase_price,
+          display_name:    dnChanged ? (r.display_name   ?? existing.display_name)   : existing.display_name,
+          last_price:      useRemote ? r.last_price      : existing.last_price,
+          last_price_date: useRemote ? r.last_price_date : existing.last_price_date,
+          last_price_src:  useRemote ? r.last_price_src  : existing.last_price_src,
+        });
+      }
+    } else if (data.shares || data.costBasis) {
+      // Fallback: vanha logiikka (iOS/vanha versio ilman holdingsFull)
       const holdings = await DB.getAll('holdings');
       for (const h of holdings) {
         const kpl  = data.shares    && data.shares[h.id];
@@ -535,9 +562,18 @@ async function syncToSupabase(newSnap) {
     const costBasis = {};
     holdings.forEach(h => { if (h.quantity) shares[h.id] = h.quantity; if (h.purchase_price) costBasis[h.id] = h.purchase_price; });
 
+    const holdingsFull = holdings.map(h => ({
+      _key:            (h.ticker||'')+'|'+(h.display_name||'')+'|'+(h.account||''),
+      quantity:        h.quantity        ?? 0,
+      purchase_price:  h.purchase_price  ?? null,
+      last_price:      h.last_price      ?? null,
+      last_price_date: h.last_price_date || null,
+      last_price_src:  h.last_price_src  || null,
+      display_name:    h.display_name    || null,
+    }));
     const state = {
       snaps: convertedSnaps,
-      shares, costBasis,
+      shares, costBasis, holdingsFull,
       accs: {}, customStocks: [], stockBrokers: {}, sales: [],
       _financeOS: true,
       updated_at: new Date().toISOString(),
