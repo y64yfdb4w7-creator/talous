@@ -1775,14 +1775,21 @@ async function saveSSijoitusValue(val) {
 }
 function saveSSijoitusValueBtn() {
   const input = document.getElementById('s-sijoitus-input');
-  const btn = document.getElementById('s-sijoitus-save-btn');
   if (!input) return;
-  saveSSijoitusValue(input.value);
-  if (btn) {
-    btn.textContent = '✓ Tallennettu';
-    btn.disabled = true;
-    setTimeout(() => { btn.textContent = 'Tallenna'; btn.disabled = false; }, 1500);
-  }
+  const val = input.value;
+  // Show feedback immediately (before render replaces DOM)
+  const btn0 = document.getElementById('s-sijoitus-save-btn');
+  if (btn0) { btn0.textContent = '✓ Tallennettu'; btn0.disabled = true; }
+  saveSSijoitusValue(val);
+  // Re-query after renderSalkku replaces DOM (rAF + small margin)
+  setTimeout(() => {
+    const btn1 = document.getElementById('s-sijoitus-save-btn');
+    if (btn1) { btn1.textContent = '✓ Tallennettu'; btn1.disabled = true; }
+    setTimeout(() => {
+      const btn2 = document.getElementById('s-sijoitus-save-btn');
+      if (btn2) { btn2.textContent = 'Tallenna'; btn2.disabled = false; }
+    }, 1500);
+  }, 50);
 }
 
 
