@@ -193,16 +193,16 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     var detailId     = 'ld-' + ld.key;
 
     loanRows += '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="toggleLoanDetail(this)" data-did="' + detailId + '">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
-        +'<span style="font-size:13px;flex-shrink:0;">'+ld.icon+'</span>'
-        +'<span style="font-size:12px;color:var(--text2);font-weight:500;flex:1;">'+ld.label+'</span>'
-        +'<span style="font-family:var(--mono);font-size:12px;color:var(--text2);">'+fmt(-absbal)+'</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+ld.monthly+' €/kk</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+(monthsLeft > 0 ? monthsLeft : 0)+' kk</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:'+dateClr+';flex-shrink:0;">'+mmYY+'</span>'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
+        +'<span style="font-size:13px;flex-shrink:0;">'+ ld.icon +'</span>'
+        +'<span style="font-size:12px;color:var(--text1);font-weight:600;flex:1;">'+ ld.label +'</span>'
+        +'<span style="font-family:var(--mono);font-size:11px;color:'+ dateClr +';flex-shrink:0;">'+ mmYY +'</span>'
       +'</div>'
-      +'<div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:2px;">' + 'Σ ' + fmt(paidTotal) + '</div>'
-      +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;">'+ bar +'</div>'
+      +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:4px;">'+ bar +'</div>'
+      +'<div style="display:flex;gap:14px;font-family:var(--mono);font-size:11px;">'
+        +'<span style="color:var(--text2);">'+ fmt(absBal) +'\u00a0j\u00e4ljell\u00e4</span>'
+        +'<span style="color:var(--text3);">'+ fmt(paidTotal) +'\u00a0maksettu</span>'
+      +'</div>'
       +'<div id="' + detailId + '" style="display:none;margin-top:7px;padding:7px 10px;'
         +'background:rgba(255,255,255,0.03);border-radius:6px;font-family:var(--mono);font-size:11px;">'
         +'<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;">'
@@ -213,6 +213,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
             ? '<span style="color:var(--text3);">'+(nowYear-1)+'</span><span style="color:var(--text2);">−'+fmt(paidLastYear)+'</span>'
             : '')
           +'<span style="color:var(--text3);">Σ</span><span style="color:#5a9e6a;">−'+fmt(paidTotal)+'</span>'
+          +'<span style="color:var(--text3);">'+ ld.monthly +'\u00a0\u20ac/kk</span><span></span>'
         +'</div>'
       +'</div>'
     +'</div>';
@@ -235,7 +236,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     + '</div>'
     + '<div class="card-right">'
     + (_pref('debt','expanded',true)
-       ? timelineBlock + loanRows
+       ? loanRows
        : '<div style="font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.02em;">'
          + collapsedSummary
          + '</div>')
