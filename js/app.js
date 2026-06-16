@@ -95,11 +95,28 @@ async function init() {
       if (result.ok && result.imported > 0) {
         await updateNavCount();
         renderDashboard();
+        if (typeof renderSalkku === 'function') { const sv = document.getElementById('view-salkku'); if (sv && sv.style.display !== 'none') renderSalkku(); }
         console.log('Taustasynkka: ' + result.imported + ' uutta snapshottia ladattu');
       }
     }, 2000);
   }
 }
+
+// Automaattinen re-sync kun käyttäjä palaa tabiin (desktop päivittyy ilman refreshiä)
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    const result = await syncFromSupabase(false);
+    if (result.ok && (result.imported > 0 || !result.skipped)) {
+      await updateNavCount();
+      if (typeof renderDashboard === 'function') renderDashboard();
+      if (typeof renderSalkku === 'function') {
+        const salkkuView = document.getElementById('view-salkku');
+        if (salkkuView && salkkuView.style.display !== 'none') renderSalkku();
+      }
+    }
+  } catch(e) {}
+});
 
 // iOS "Add to Home Screen" nudge
 (function() {
