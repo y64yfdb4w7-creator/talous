@@ -163,10 +163,12 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     + '</div>';
 
   // ── toggleLoanDetail global helper ──
-  window.toggleLoanDetail = function(key) {
-    var el = document.getElementById('ld-'+key);
-    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  window.toggleLoanDetail = function(el) {
+    var did = el.dataset.did;
+    var detail = document.getElementById(did);
+    if (detail) detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
   };
+
 
   // ── Lainakohtaiset rivit ──
   var loanRows = '';
@@ -183,13 +185,12 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     var yLeft  = ld.endsYear - nowYear;
     var dateClr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
 
-    // Yearly payment history from snapshots
     var paidThisYear = _yearPaid(snaps, ld.key, nowYear);
     var paidLastYear = _yearPaid(snaps, ld.key, nowYear - 1);
     var paidTotal    = paid;
+    var detailId     = 'ld-' + ld.key;
 
-    loanRows += '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="toggleLoanDetail(''+ld.key+'')">'
-      // Perustiedot — aina näkyvä
+    loanRows += '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="toggleLoanDetail(this)" data-did="' + detailId + '">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
         +'<span style="font-size:13px;flex-shrink:0;">'+ld.icon+'</span>'
         +'<span style="font-size:12px;color:var(--text2);font-weight:500;flex:1;">'+ld.label+'</span>'
@@ -197,10 +198,8 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
         +'<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+ld.monthly+' €/kk</span>'
         +'<span style="font-family:var(--mono);font-size:11px;color:'+dateClr+';flex-shrink:0;">'+mmYY+'</span>'
       +'</div>'
-      // Etenemispalkki — aina näkyvä
       +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;">'+bar+'</div>'
-      // Vuositason historia — klikattava expand
-      +'<div id="ld-'+ld.key+'" style="display:none;margin-top:7px;padding:7px 10px;'
+      +'<div id="' + detailId + '" style="display:none;margin-top:7px;padding:7px 10px;'
         +'background:rgba(255,255,255,0.03);border-radius:6px;font-family:var(--mono);font-size:11px;">'
         +'<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;">'
           +(paidThisYear > 0
