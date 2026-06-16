@@ -98,19 +98,24 @@ function renderHeartbeatCard(sig) {
 // ═══════════════════════════════════════════════
 
 // Lue lainan konfiguraatio localStoragesta (tai käytä oletuksia)
+// Laske lainan korkein historiassa havaittu saldo (peakBalance, ei välttämättä alkuperäinen)
+function _peakBal(snaps, key) {
+  return Math.max(0, ...snaps.map(function(s){ return Math.abs(s[key] || 0); }));
+}
+
 function _loanCfg(key, endsYear, monthly) {
   try {
     const cfg = JSON.parse(localStorage.getItem('loan_cfg_' + key) || '{}');
     return { endsYear: cfg.endsYear || endsYear, monthly: cfg.monthly || monthly };
   } catch(e) { return { endsYear, monthly }; }
 }
-function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
+function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
   var nowYear = new Date().getFullYear();
 
   var loanDefs = [
-    Object.assign({ key:'asuntolaina',          label:'As.laina'    }, _loanCfg('asuntolaina',          2029, 200)),
-    Object.assign({ key:'autolaina',            label:'Autolaina'   }, _loanCfg('autolaina',            2027, 255)),
-    Object.assign({ key:'asuntolaina_remontti', label:'As.remontti' }, _loanCfg('asuntolaina_remontti', 2026, 170)),
+    Object.assign({ key:'asuntolaina',          label:'Asuntolaina',   peakBalance: _peakBal(snaps,'asuntolaina')          }, _loanCfg('asuntolaina',          2029, 200)),
+    Object.assign({ key:'autolaina',            label:'Autolaina',     peakBalance: _peakBal(snaps,'autolaina')            }, _loanCfg('autolaina',            2027, 255)),
+    Object.assign({ key:'asuntolaina_remontti', label:'Remonttilaina', peakBalance: _peakBal(snaps,'asuntolaina_remontti') }, _loanCfg('asuntolaina_remontti', 2026, 170)),
   ];
 
   // % muutos vs ed. kk
@@ -120,23 +125,87 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
       +(lainatPct>=0?'+':'')+lainatPct.toFixed(1)+'% vs ed. kk</span>'
     : '';
 
-  // Yksinkertaiset laina-rivit — grid estää rivinvaihdon
+  // ── Velkapolku-yhteenveto ──
+  var totalPeak = 0, totalCurrent = 0;
+  loanDefs.forEach(function(ld) {
+    var bal = Math.abs(latest[ld.key] || 0);
+    if (bal < 10) return;
+    totalPeak    += ld.peakBalance;
+    totalCurrent += bal;
+  });
+  var totalPaid   = totalPeak - totalCurrent;
+  var totalPct    = totalPeak > 0 ? Math.round(totalPaid / totalPeak * 100) : 0;
+  var barFilled   = Math.round(totalPct / 10);
+  var barEmpty    = 10 - barFilled;
+  var overallBar  = '█'.repeat(barFilled) + '░'.repeat(barEmpty);
+
+  var summaryBlock = totalPeak > 0
+    ? '<div style="background:rgba(90,158,106,0.06);border:1px solid rgba(90,158,106,0.18);'
+      +'border-radius:9px;padding:11px 13px;margin-bottom:12px;">'
+      +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Velkapolku</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+        +'<span style="font-family:var(--mono);font-size:22px;font-weight:700;color:#5a9e6a;">'+totalPct+' %</span>'
+        +'<span style="font-size:11px;color:var(--text3);">matkasta takana</span>'
+      +'</div>'
+      +'<div style="font-family:var(--mono);font-size:13px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:8px;">'+overallBar+'</div>'
+      +'<div style="display:flex;gap:16px;">'
+        +'<div><div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Maksettu yhteensä</div>'
+          +'<div style="font-family:var(--mono);font-size:13px;color:#5a9e6a;font-weight:600;">+'+fmt(totalPaid)+'</div></div>'
+        +'<div><div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Jäljellä</div>'
+          +'<div style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(-totalCurrent)+'</div></div>'
+      +'</div>'
+    +'</div>'
+    : '';
+
+  // ── Lainakohtaiset etenemisrivit ──
   var loanRows = '';
   loanDefs.forEach(function(ld) {
     var bal = latest[ld.key];
     if (!bal || Math.abs(bal) < 10) return;
-    var yLeft = ld.endsYear - nowYear;
+    var absbal  = Math.abs(bal);
+    var paid    = ld.peakBalance - absbal;
+    var pct     = ld.peakBalance > 0 ? Math.round(paid / ld.peakBalance * 100) : 0;
+    var filled  = Math.round(pct / 10);
+    var empty   = 10 - filled;
+    var bar     = '█'.repeat(filled) + '░'.repeat(empty);
+    var yLeft   = ld.endsYear - nowYear;
     var yearClr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
-    loanRows += '<div style="display:grid;grid-template-columns:1fr auto auto;'
-      +'gap:6px;align-items:baseline;margin-bottom:7px;min-width:0;">'
-      +'<span style="font-size:12px;color:var(--text2);white-space:nowrap;'
-      +'overflow:hidden;text-overflow:ellipsis;">'+ld.label+'</span>'
-      +'<span style="font-family:var(--mono);font-size:12px;color:var(--text2);'
-      +'white-space:nowrap;text-align:right;">'+fmt(bal)+'</span>'
-      +'<span style="font-size:10px;color:'+yearClr+';white-space:nowrap;">'
-      +'\u2192\u00a0'+ld.endsYear+'</span>'
-      +'</div>';
+
+    loanRows += '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+        +'<span style="font-size:12px;color:var(--text2);font-weight:500;">'+ld.label+'</span>'
+        +'<span style="font-family:var(--mono);font-size:12px;color:#5a9e6a;font-weight:600;">'+pct+' %</span>'
+      +'</div>'
+      +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:5px;">'+bar+'</div>'
+      +'<div style="display:flex;gap:12px;margin-bottom:4px;">'
+        +'<span style="font-size:11px;color:var(--text3);">Maksettu <b style="color:#5a9e6a;">'+fmt(paid)+'</b></span>'
+        +'<span style="font-size:11px;color:var(--text3);">Jäljellä <b style="color:var(--text2);">'+fmt(-absbal)+'</b></span>'
+      +'</div>'
+      +'<div style="font-size:11px;color:'+yearClr+';">Loppuu '+ld.endsYear+' · Vapauttaa '+ld.monthly+' €/kk</div>'
+    +'</div>';
   });
+
+  // ── Etappilista ──
+  var sortedDefs = loanDefs
+    .filter(function(ld){ return Math.abs(latest[ld.key]||0) >= 10; })
+    .slice().sort(function(a,b){ return a.endsYear - b.endsYear; });
+  var etappiRows = '';
+  sortedDefs.forEach(function(ld) {
+    var yLeft = ld.endsYear - nowYear;
+    var dot   = yLeft <= 1 ? '🟢' : yLeft <= 3 ? '🟡' : '⚪';
+    etappiRows += '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px;">'
+      +'<span style="font-size:13px;">'+dot+'</span>'
+      +'<span style="font-family:var(--mono);font-size:11px;color:var(--text3);min-width:32px;">'+ld.endsYear+'</span>'
+      +'<span style="font-size:11px;color:var(--text2);">'+ld.label+' valmis</span>'
+      +'<span style="font-size:11px;color:#5a9e6a;margin-left:auto;">+'+ld.monthly+' €/kk vapautuu</span>'
+    +'</div>';
+  });
+  var etappiBlock = etappiRows
+    ? '<div style="margin-top:12px;padding:10px 13px;background:var(--surface);border:1px solid var(--border);border-radius:9px;">'
+      +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Seuraavat etapit</div>'
+      + etappiRows
+    +'</div>'
+    : '';
 
   return '<div class="db-item card" data-item-id="debt">'
     + _cardHeader('Pitkät velat', 'debt', [
@@ -148,10 +217,11 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt) {
     + '<div class="card-value" style="color:var(--text);margin-bottom:12px;">'+fmt(-ltDebt)+'</div>'+lainatBadge
     + '</div>'
     + '<div class="card-right">'
-    + (_pref('debt','expanded',true) ? loanRows
+    + (_pref('debt','expanded',true)
+       ? summaryBlock + loanRows + etappiBlock
        : '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
-         + loanDefs.filter(l=>latest[l.key]&&Math.abs(latest[l.key])>10)
-             .map(l=>'→ '+l.endsYear).join(' · ')
+         + loanDefs.filter(function(l){ return latest[l.key] && Math.abs(latest[l.key]) > 10; })
+             .map(function(l){ return '→ '+l.endsYear; }).join(' · ')
          + '</div>')
     + '</div>'
     + '</div>';
@@ -785,7 +855,7 @@ async function renderDashboard() {
           window._opGoldPrevPct = null;
           window._lainatPrevPct = null;
         }
-        return renderSitoumusCard(sig, latest, creditDebt, ltDebt);
+        return renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps);
       })()}
 
       <!-- 3. KÄYTTÖTILIT + OPERATIIVINEN RYTMI -->
