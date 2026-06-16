@@ -1654,7 +1654,7 @@ async function renderSalkku() {
       return `
         <div class="acct-header">
           <span class="acct-name">${a.label}</span>
-          <span class="acct-total">${fmt(a.id==='s_sijoitus' ? (_latest?.s_sijoitus || total) : (a.id==='nordnet' ? total + nordnetCashVal : total))}</span>
+          <span class="acct-total">${a.id === 's_sijoitus' ? '' : fmt(a.id==='nordnet' ? total + nordnetCashVal : total)}</span>
         </div>
         ${a.id === 'nordnet' ? `
         <div class="nordnet-cash-row">
@@ -1665,11 +1665,12 @@ async function renderSalkku() {
             oninput="updateNordnetCashDisplay(this.value)">
         </div>` : ''}
         ${a.id === 's_sijoitus' ? `
-        <div class="nordnet-cash-row">
+        <div class="nordnet-cash-row" style="gap:6px;align-items:center;flex-wrap:wrap;">
           <span class="nordnet-cash-lbl">kokonaisarvo (€)</span>
           <input id="s-sijoitus-input" class="nordnet-cash-input" type="number"
             placeholder="0" value="${_latest?.s_sijoitus > 0 ? _latest.s_sijoitus : ''}"
-            onblur="saveSSijoitusValue(this.value)">
+            onkeydown="if(event.key==='Enter'){event.preventDefault();saveSSijoitusValueBtn();}">
+          <button id="s-sijoitus-save-btn" class="btn-s" onclick="saveSSijoitusValueBtn()" style="font-size:11px;padding:4px 10px;min-width:76px;">Tallenna</button>
         </div>` : ''}
         ${a.id === 's_sijoitus' ? `
         <div class="s-sijoitus-toggle" onclick="toggleSSijoitusDetails(this)" style="cursor:pointer;color:var(--text2);font-size:12px;padding:6px 0 4px;">▶ Rahaston tiedot</div>
@@ -1772,6 +1773,18 @@ async function saveSSijoitusValue(val) {
     renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
   });
 }
+function saveSSijoitusValueBtn() {
+  const input = document.getElementById('s-sijoitus-input');
+  const btn = document.getElementById('s-sijoitus-save-btn');
+  if (!input) return;
+  saveSSijoitusValue(input.value);
+  if (btn) {
+    btn.textContent = '✓ Tallennettu';
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = 'Tallenna'; btn.disabled = false; }, 1500);
+  }
+}
+
 
 function toggleAddForm() {
   _editingId = null;
