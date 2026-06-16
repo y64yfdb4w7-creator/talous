@@ -99,6 +99,19 @@ function renderHeartbeatCard(sig) {
 
 // Lue lainan konfiguraatio localStoragesta (tai käytä oletuksia)
 // Laske lainan korkein historiassa havaittu saldo (peakBalance, ei välttämättä alkuperäinen)
+// Laske lainasta maksettu määrä yhden kalenterivuoden aikana (alku-saldo − loppu-saldo)
+function _yearPaid(snaps, key, year) {
+  function snapNear(target) {
+    var f = snaps.filter(function(s){ return s.date <= target; });
+    return f.length ? f[f.length-1] : null;
+  }
+  var s0 = snapNear((year-1)+'-12-31');
+  var s1 = snapNear(year+'-12-31');
+  var b0 = Math.abs(s0 ? (s0[key]||0) : 0);
+  var b1 = Math.abs(s1 ? (s1[key]||0) : 0);
+  return b0 - b1; // positive = paid down
+}
+
 function _peakBal(snaps, key) {
   return Math.max(0, ...snaps.map(function(s){ return Math.abs(s[key] || 0); }));
 }
@@ -116,7 +129,7 @@ function _loanCfg(key, endsYear, endsMonth, monthly) {
 function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
   var now = new Date();
   var nowYear  = now.getFullYear();
-  var nowMonth = now.getMonth() + 1; // 1-indexed
+  var nowMonth = now.getMonth() + 1;
 
   var loanDefs = [
     Object.assign({ key:'asuntolaina',          label:'Asuntolaina',   icon:'🏠', peakBalance: _peakBal(snaps,'asuntolaina')          }, _loanCfg('asuntolaina',          2029, 3,  200)),
@@ -131,106 +144,76 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
       +(lainatPct>=0?'+':'')+lainatPct.toFixed(1)+'% vs ed. kk</span>'
     : '';
 
-  // Helper: MM/YYYY string
-  function fmtMY(m, y) {
-    return String(m).padStart(2,'0') + '/' + y;
-  }
-  // Helper: months remaining (negative = already past)
-  function monthsLeft(endsYear, endsMonth) {
-    return (endsYear - nowYear) * 12 + (endsMonth - nowMonth);
-  }
+  function fmtMY(m, y) { return String(m).padStart(2,'0') + '/' + y; }
 
-  // ── Velkapolku-yhteenveto ──
-  var totalPeak = 0, totalCurrent = 0;
-  loanDefs.forEach(function(ld) {
-    var bal = Math.abs(latest[ld.key] || 0);
-    if (bal < 10) return;
-    totalPeak    += ld.peakBalance;
-    totalCurrent += bal;
+  // ── Kompakti aikajana (korvaa summaryBlock) ──
+  var sortedForTimeline = loanDefs
+    .filter(function(ld){ return Math.abs(latest[ld.key]||0) >= 10; })
+    .slice().sort(function(a,b){ return (a.endsYear*12+a.endsMonth)-(b.endsYear*12+b.endsMonth); });
+
+  var timelineParts = sortedForTimeline.map(function(ld, i) {
+    var yLeft = ld.endsYear - nowYear;
+    var clr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
+    return '<span style="font-size:11px;color:'+clr+';">'+ld.icon+' '+fmtMY(ld.endsMonth, ld.endsYear)+'</span>';
   });
-  var totalPaid  = totalPeak - totalCurrent;
-  var totalPct   = totalPeak > 0 ? Math.round(totalPaid / totalPeak * 100) : 0;
-  var barFilled  = Math.round(totalPct / 10);
-  var barEmpty   = 10 - barFilled;
-  var overallBar = '█'.repeat(barFilled) + '░'.repeat(barEmpty);
+  var separator = '<span style="font-size:10px;color:rgba(255,255,255,0.2);margin:0 6px;">─●─</span>';
+  var timelineBlock = '<div style="margin-bottom:10px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
+    + timelineParts.join(separator)
+    + '<span style="font-size:11px;color:rgba(255,255,255,0.25);margin-left:4px;">🏁</span>'
+    + '</div>';
 
-  var summaryBlock = totalPeak > 0
-    ? '<div style="background:rgba(90,158,106,0.06);border:1px solid rgba(90,158,106,0.18);'
-      +'border-radius:9px;padding:11px 13px;margin-bottom:12px;">'
-      +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Velkapolku</div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
-        +'<span style="font-family:var(--mono);font-size:22px;font-weight:700;color:#5a9e6a;">'+totalPct+' %</span>'
-        +'<span style="font-size:11px;color:var(--text3);">matkasta takana</span>'
-      +'</div>'
-      +'<div style="font-family:var(--mono);font-size:13px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:8px;">'+overallBar+'</div>'
-      +'<div style="display:flex;gap:16px;">'
-        +'<div><div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Maksettu yhteensä</div>'
-          +'<div style="font-family:var(--mono);font-size:13px;color:#5a9e6a;font-weight:600;">+'+fmt(totalPaid)+'</div></div>'
-        +'<div><div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Jäljellä</div>'
-          +'<div style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(-totalCurrent)+'</div></div>'
-      +'</div>'
-    +'</div>'
-    : '';
+  // ── toggleLoanDetail global helper ──
+  window.toggleLoanDetail = function(key) {
+    var el = document.getElementById('ld-'+key);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  };
 
-  // ── Lainakohtaiset etenemisrivit ──
+  // ── Lainakohtaiset rivit ──
   var loanRows = '';
   loanDefs.forEach(function(ld) {
     var bal = latest[ld.key];
     if (!bal || Math.abs(bal) < 10) return;
-    var absbal  = Math.abs(bal);
-    var paid    = ld.peakBalance - absbal;
-    var pct     = ld.peakBalance > 0 ? Math.round(paid / ld.peakBalance * 100) : 0;
-    var filled  = Math.round(pct / 10);
-    var empty   = 10 - filled;
-    var bar     = '█'.repeat(filled) + '░'.repeat(empty);
-    var mLeft   = monthsLeft(ld.endsYear, ld.endsMonth);
-    var mmYY    = fmtMY(ld.endsMonth, ld.endsYear);
-    var yLeft   = ld.endsYear - nowYear;
-    var yearClr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
-    var kkStr   = mLeft > 0 ? mmYY + ' · ' + mLeft + ' kk jäljellä' : mmYY + ' · päättyy pian';
+    var absbal = Math.abs(bal);
+    var paid   = ld.peakBalance - absbal;
+    var pct    = ld.peakBalance > 0 ? Math.round(paid / ld.peakBalance * 100) : 0;
+    var filled = Math.round(pct / 10);
+    var empty  = 10 - filled;
+    var bar    = '█'.repeat(filled) + '░'.repeat(empty);
+    var mmYY   = fmtMY(ld.endsMonth, ld.endsYear);
+    var yLeft  = ld.endsYear - nowYear;
+    var dateClr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
 
-    loanRows += '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
-        +'<span style="font-size:12px;color:var(--text2);font-weight:500;">'+ld.icon+' '+ld.label+'</span>'
-        +'<span style="font-family:var(--mono);font-size:12px;color:#5a9e6a;font-weight:600;">'+pct+' %</span>'
+    // Yearly payment history from snapshots
+    var paidThisYear = _yearPaid(snaps, ld.key, nowYear);
+    var paidLastYear = _yearPaid(snaps, ld.key, nowYear - 1);
+    var paidTotal    = paid;
+
+    loanRows += '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="toggleLoanDetail(''+ld.key+'')">'
+      // Perustiedot — aina näkyvä
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+        +'<span style="font-size:13px;flex-shrink:0;">'+ld.icon+'</span>'
+        +'<span style="font-size:12px;color:var(--text2);font-weight:500;flex:1;">'+ld.label+'</span>'
+        +'<span style="font-family:var(--mono);font-size:12px;color:var(--text2);">'+fmt(-absbal)+'</span>'
+        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+ld.monthly+' €/kk</span>'
+        +'<span style="font-family:var(--mono);font-size:11px;color:'+dateClr+';flex-shrink:0;">'+mmYY+'</span>'
       +'</div>'
-      +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:5px;">'+bar+'</div>'
-      +'<div style="display:flex;gap:12px;margin-bottom:4px;">'
-        +'<span style="font-size:11px;color:var(--text3);">Maksettu <b style="color:#5a9e6a;">'+fmt(paid)+'</b></span>'
-        +'<span style="font-size:11px;color:var(--text3);">Jäljellä <b style="color:var(--text2);">'+fmt(-absbal)+'</b></span>'
+      // Etenemispalkki — aina näkyvä
+      +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;">'+bar+'</div>'
+      // Vuositason historia — klikattava expand
+      +'<div id="ld-'+ld.key+'" style="display:none;margin-top:7px;padding:7px 10px;'
+        +'background:rgba(255,255,255,0.03);border-radius:6px;font-family:var(--mono);font-size:11px;">'
+        +'<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;">'
+          +(paidThisYear > 0
+            ? '<span style="color:var(--text3);">'+nowYear+'</span><span style="color:var(--text2);">−'+fmt(paidThisYear)+'</span>'
+            : '')
+          +(paidLastYear > 0
+            ? '<span style="color:var(--text3);">'+(nowYear-1)+'</span><span style="color:var(--text2);">−'+fmt(paidLastYear)+'</span>'
+            : '')
+          +'<span style="color:var(--text3);">Σ</span><span style="color:#5a9e6a;">−'+fmt(paidTotal)+'</span>'
+        +'</div>'
       +'</div>'
-      +'<div style="font-family:var(--mono);font-size:11px;color:'+yearClr+';margin-bottom:2px;">'+kkStr+'</div>'
-      +'<div style="font-size:11px;color:var(--text3);">Vapauttaa '+ld.monthly+' €/kk</div>'
     +'</div>';
   });
-
-  // ── Etappilista ──
-  var sortedDefs = loanDefs
-    .filter(function(ld){ return Math.abs(latest[ld.key]||0) >= 10; })
-    .slice().sort(function(a,b){
-      return (a.endsYear * 12 + a.endsMonth) - (b.endsYear * 12 + b.endsMonth);
-    });
-  var etappiRows = '';
-  sortedDefs.forEach(function(ld) {
-    var yLeft = ld.endsYear - nowYear;
-    var dot   = yLeft <= 1 ? '🟢' : yLeft <= 3 ? '🟡' : '⚪';
-    var mmYY  = fmtMY(ld.endsMonth, ld.endsYear);
-    etappiRows += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">'
-      +'<span style="font-size:11px;">'+dot+'</span>'
-      +'<span style="font-size:13px;">'+ld.icon+'</span>'
-      +'<div style="flex:1;min-width:0;">'
-        +'<div style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+mmYY+'</div>'
-        +'<div style="font-size:11px;color:var(--text2);">'+ld.label+' valmis</div>'
-      +'</div>'
-      +'<span style="font-size:11px;color:#5a9e6a;flex-shrink:0;">+'+ld.monthly+' €/kk vapautuu</span>'
-    +'</div>';
-  });
-  var etappiBlock = etappiRows
-    ? '<div style="margin-top:12px;padding:10px 13px;background:var(--surface);border:1px solid var(--border);border-radius:9px;">'
-      +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Seuraavat etapit</div>'
-      + etappiRows
-    +'</div>'
-    : '';
 
   // Collapsed quick-view: icon + MM/YYYY per loan
   var collapsedSummary = loanDefs
@@ -249,7 +232,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     + '</div>'
     + '<div class="card-right">'
     + (_pref('debt','expanded',true)
-       ? summaryBlock + loanRows + etappiBlock
+       ? timelineBlock + loanRows
        : '<div style="font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.02em;">'
          + collapsedSummary
          + '</div>')
