@@ -200,7 +200,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
       +'</div>'
       +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:4px;">'+ bar +'</div>'
       +'<div style="display:flex;gap:14px;font-family:var(--mono);font-size:11px;">'
-        +'<span style="color:var(--text2);">'+ fmt(absBal) +'\u00a0j\u00e4ljell\u00e4</span>'
+        +'<span style="color:var(--text2);">'+ fmt(absbal) +'\u00a0j\u00e4ljell\u00e4</span>'
         +'<span style="color:var(--text3);">'+ fmt(paidTotal) +'\u00a0maksettu</span>'
       +'</div>'
       +'<div id="' + detailId + '" style="display:none;margin-top:7px;padding:7px 10px;'
