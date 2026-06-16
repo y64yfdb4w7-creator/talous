@@ -1766,7 +1766,7 @@ async function saveSSijoitusValue(val) {
     await DB.putHolding({ ...sh, last_price: v / sh.quantity, last_price_src: 'Manuaalinen' });
   }
   await updateNavCount();
-  try { setTimeout(() => syncToSupabase([snap]), 300); } catch(e) {}
+  try { setTimeout(() => syncToSupabase(snap), 300); } catch(e) {}
   requestAnimationFrame(() => {
     renderSalkku();
     renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
