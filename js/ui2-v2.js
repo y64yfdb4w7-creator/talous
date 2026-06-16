@@ -152,13 +152,14 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     .slice().sort(function(a,b){ return (a.endsYear*12+a.endsMonth)-(b.endsYear*12+b.endsMonth); });
 
   var timelineParts = sortedForTimeline.map(function(ld, i) {
-    var yLeft = ld.endsYear - nowYear;
-    var clr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
+    var tlMo = (ld.endsYear - nowYear) * 12 + (ld.endsMonth - nowMonth);
+    var clr  = tlMo < 12 ? '#5a9e6a' : tlMo < 30 ? '#b8956a' : 'var(--text3)';
     return '<span style="font-size:11px;color:'+clr+';">'+ld.icon+' '+fmtMY(ld.endsMonth, ld.endsYear)+'</span>';
   });
   var separator = '<span style="font-size:10px;color:rgba(255,255,255,0.2);margin:0 6px;">─●─</span>';
   var timelineBlock = '<div style="margin-bottom:10px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
-    + timelineParts.join(separator)
+    + '<span style="font-size:11px;color:#5a9e6a;font-weight:600;">● NOW</span>'
+    + separator + timelineParts.join(separator)
     + '<span style="font-size:11px;color:rgba(255,255,255,0.25);margin-left:4px;">🏁</span>'
     + '</div>';
 
@@ -184,6 +185,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     var mmYY   = fmtMY(ld.endsMonth, ld.endsYear);
     var yLeft  = ld.endsYear - nowYear;
     var dateClr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
+    var monthsLeft = (ld.endsYear - nowYear) * 12 + (ld.endsMonth - nowMonth);
 
     var paidThisYear = _yearPaid(snaps, ld.key, nowYear);
     var paidLastYear = _yearPaid(snaps, ld.key, nowYear - 1);
@@ -196,9 +198,11 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
         +'<span style="font-size:12px;color:var(--text2);font-weight:500;flex:1;">'+ld.label+'</span>'
         +'<span style="font-family:var(--mono);font-size:12px;color:var(--text2);">'+fmt(-absbal)+'</span>'
         +'<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+ld.monthly+' €/kk</span>'
+        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">'+(monthsLeft > 0 ? monthsLeft : 0)+' kk</span>'
         +'<span style="font-family:var(--mono);font-size:11px;color:'+dateClr+';flex-shrink:0;">'+mmYY+'</span>'
       +'</div>'
-      +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;">'+bar+'</div>'
+      +'<div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:2px;">' + 'Σ ' + fmt(paidTotal) + '</div>'
+      +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;">'+ bar +'</div>'
       +'<div id="' + detailId + '" style="display:none;margin-top:7px;padding:7px 10px;'
         +'background:rgba(255,255,255,0.03);border-radius:6px;font-family:var(--mono);font-size:11px;">'
         +'<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;">'
