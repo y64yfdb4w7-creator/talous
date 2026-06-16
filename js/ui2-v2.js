@@ -126,6 +126,20 @@ function _loanCfg(key, endsYear, endsMonth, monthly) {
     };
   } catch(e) { return { endsYear, endsMonth, monthly }; }
 }
+window.saveLoanDate = function(key, btnEl) {
+  var mo = parseInt(document.getElementById('ld-mo-'+key).value, 10);
+  var yr = parseInt(document.getElementById('ld-yr-'+key).value, 10);
+  if (isNaN(mo) || mo < 1 || mo > 12 || isNaN(yr) || yr < 2024 || yr > 2040) return;
+  var stored = {};
+  try { stored = JSON.parse(localStorage.getItem('loan_cfg_'+key)||'{}')||{}; } catch(e){}
+  stored.endsMonth = mo; stored.endsYear = yr;
+  localStorage.setItem('loan_cfg_'+key, JSON.stringify(stored));
+  // DOM: update date span in header row
+  var dateEl = document.getElementById('ld-date-'+key);
+  if (dateEl) dateEl.textContent = String(mo).padStart(2,'0')+'/'+yr;
+  // Feedback: show ✓ on button
+  if (btnEl) { var prev = btnEl.textContent; btnEl.textContent = '\u2713'; setTimeout(function(){ btnEl.textContent = prev; }, 1500); }
+};
 function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
   var now = new Date();
   var nowYear  = now.getFullYear();
@@ -196,7 +210,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
       +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
         +'<span style="font-size:13px;flex-shrink:0;">'+ ld.icon +'</span>'
         +'<span style="font-size:12px;color:var(--text1);font-weight:600;flex:1;">'+ ld.label +'</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:'+ dateClr +';flex-shrink:0;">'+ mmYY +'</span>'
+        +'<span id="ld-date-'+key+'" style="font-family:var(--mono);font-size:11px;color:'+dateClr+';flex-shrink:0;">'+ mmYY +'</span>'
       +'</div>'
       +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:4px;">'+ bar +'</div>'
       +'<div style="display:flex;gap:14px;font-family:var(--mono);font-size:11px;">'
@@ -214,6 +228,12 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
             : '')
           +'<span style="color:var(--text3);">Σ</span><span style="color:#5a9e6a;">−'+fmt(paidTotal)+'</span>'
           +'<span style="color:var(--text3);">'+ ld.monthly +'\u00a0\u20ac/kk</span><span></span>'
+          +'<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:7px;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3);">'
+          +'P\u00e4\u00e4ttyy\u00a0'
+          +'<input id="ld-mo-'+key+'" type="number" min="1" max="12" value="'+ld.endsMonth+'" style="width:36px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;padding:2px 3px;text-align:center;" onclick="event.stopPropagation()">'
+          +'<input id="ld-yr-'+key+'" type="number" min="2024" max="2040" value="'+ld.endsYear+'" style="width:50px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;padding:2px 3px;text-align:center;" onclick="event.stopPropagation()">'
+          +'<button data-lid="'+key+'" onclick="event.stopPropagation();saveLoanDate(this.dataset.lid,this)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;padding:2px 8px;cursor:pointer;">Tallenna</button>'
+          +'</div>'
         +'</div>'
       +'</div>'
     +'</div>';
