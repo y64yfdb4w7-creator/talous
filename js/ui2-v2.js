@@ -991,7 +991,7 @@ async function renderDashboard() {
             var col  = t.amount >= 0 ? "var(--green)" : "var(--red)";
             _tulosRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
             _tulosRow += '<span style="font-size:11px;color:var(--text2);font-family:var(--mono);">' + t.month + " " + t.label + '</span>';
-            _tulosRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + ';">' + t.icon + " " + sign + Math.abs(t.amount).toLocaleString("fi-FI") + " \u20AC" + '</span>';
+            _tulosRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + ';">' + t.icon + " " + (t.amount >= 0 ? "+" : "") + t.amount.toLocaleString("fi-FI") + " \u20AC" + '</span>';
             _tulosRow += '</div>';
           });
           _tulosRow += '</div>';
