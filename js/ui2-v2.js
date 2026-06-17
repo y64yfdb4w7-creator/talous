@@ -219,15 +219,15 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
       +'</div>'
       +'<div id="' + detailId + '" style="display:none;margin-top:7px;padding:7px 10px;'
         +'background:rgba(255,255,255,0.03);border-radius:6px;font-family:var(--mono);font-size:11px;">'
-        +'<div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;">'
+        +'<div style="display:flex;flex-direction:column;gap:3px;">'
           +(paidThisYear > 0
-            ? '<span style="color:var(--text3);">'+nowYear+'</span><span style="color:var(--text2);">−'+fmt(paidThisYear)+'</span>'
+            ? '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">'+nowYear+'</span><span style="color:var(--text2);">−'+fmt(paidThisYear)+'</span></div>'
             : '')
           +(paidLastYear > 0
-            ? '<span style="color:var(--text3);">'+(nowYear-1)+'</span><span style="color:var(--text2);">−'+fmt(paidLastYear)+'</span>'
+            ? '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">'+(nowYear-1)+'</span><span style="color:var(--text2);">−'+fmt(paidLastYear)+'</span></div>'
             : '')
-          +'<span style="color:var(--text3);">Σ</span><span style="color:#5a9e6a;">−'+fmt(paidTotal)+'</span>'
-          +'<span style="color:var(--text3);">'+ ld.monthly +'\u00a0\u20ac/kk</span><span></span>'
+          +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">Σ</span><span style="color:#5a9e6a;">−'+fmt(paidTotal)+'</span></div>'
+          +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">'+ ld.monthly +' €/kk</span><span></span></div>'
           +'<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:7px;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3);">'
           +'P\u00e4\u00e4ttyy\u00a0'
           +'<input id="ld-mo-'+ld.key+'" type="number" min="1" max="12" value="'+ld.endsMonth+'" style="width:36px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;padding:2px 3px;text-align:center;" onclick="event.stopPropagation()">'
