@@ -219,7 +219,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
       +'</div>'
       +'<div id="' + detailId + '" style="display:none;margin-top:7px;padding:7px 10px;'
         +'background:rgba(255,255,255,0.03);border-radius:6px;font-family:var(--mono);font-size:11px;">'
-        +'<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;">'
+        +'<div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;">'
           +(paidThisYear > 0
             ? '<span style="color:var(--text3);">'+nowYear+'</span><span style="color:var(--text2);">−'+fmt(paidThisYear)+'</span>'
             : '')
