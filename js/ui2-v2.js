@@ -957,45 +957,68 @@ async function renderDashboard() {
               +'tulorytmi ~'+Math.round(tlot2).toLocaleString('fi-FI')+' €/kk</div>';
           }
 
-          // ── Kassakortti: Historia + Tulossa (prototyyppi, kovakoodattu data) ──
+          // ── Kassakortti: Palkki + Historia + Tulossa (prototyyppi) ──
           var _mockHistory = [
-            {label:"Huhti", delta:172,  icons:""},
-            {label:"Touko", delta:519,  icons:"\uD83D\uDD27 \u26FA"},
-            {label:"Kes\u00e4",  delta:16,   icons:"", partial:true}
+            { label: "Huhti", delta: 172, icons: [] },
+            { label: "Touko", delta: 519, icons: ["\uD83D\uDD27", "\u26FA"] },
+            { label: "Kes\u00e4",  delta: 16,  icons: [], partial: true }
           ];
           var _mockTulossa = [
-            {month:"Hein\u00e4", label:"Autohuolto", icon:"\uD83D\uDD27", amount:-450},
-            {month:"Hein\u00e4", label:"Vaellus",     icon:"\u26FA",       amount:-300},
-            {month:"Elo",   label:"Bonus",       icon:"\uD83D\uDCB0", amount:800}
+            { month: "Hein\u00e4", label: "Autohuolto", icon: "\uD83D\uDD27", amount: -450 },
+            { month: "Hein\u00e4", label: "Vaellus",    icon: "\u26FA",        amount: -300 },
+            { month: "Elo",   label: "Bonus",      icon: "\uD83D\uDCB0",  amount: 800 }
           ];
-          var _moRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.07);">';
-          _moRow += '<div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Viime kuukaudet</div>';
-          _mockHistory.forEach(function(m) {
-            var sign = m.delta >= 0 ? "+" : "";
-            var col  = m.delta >= 0 ? "var(--green)" : "var(--red)";
-            var lbl  = m.label + (m.partial ? " \u2026" : "");
-            var iconsHtml = m.icons ? '<span style="font-size:11px;margin-left:4px;">' + m.icons + '</span>' : "";
-            _moRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
-            _moRow += '<span style="font-size:11px;color:var(--text3);font-family:var(--mono);">' + lbl + iconsHtml + '</span>';
-            _moRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + ';">' + sign + m.delta.toLocaleString("fi-FI") + " \u20AC" + '</span>';
+
+          // Segmenttipalkki (koko kortin leveys)
+          var _barHtml = '<div style="margin:12px 0 8px 0;height:6px;border-radius:3px;overflow:hidden;display:flex;gap:2px;">';
+          _barHtml += '<div style="flex:6;background:#5a9e6a;border-radius:3px 0 0 3px;"></div>';
+          _barHtml += '<div style="flex:2;background:#b8956a;"></div>';
+          _barHtml += '<div style="flex:2;background:rgba(255,255,255,0.12);border-radius:0 3px 3px 0;"></div>';
+          _barHtml += '</div>';
+          html2 += _barHtml;
+
+          // Collapsed: vain viimeisin valmis kuukausi
+          var _lastMonth = _mockHistory.filter(function(m){ return !m.partial; }).slice(-1)[0];
+          if (!_pref('cash', 'expanded', true)) {
+            if (_lastMonth) {
+              var _lCol = _lastMonth.delta >= 0 ? 'var(--green)' : 'var(--red)';
+              var _lSign = (_lastMonth.delta >= 0 ? "+" : "") + _lastMonth.delta.toLocaleString("fi-FI");
+              var _lIcons = _lastMonth.icons.length ? '<span style="font-size:11px;margin-left:4px;">' + _lastMonth.icons.join('') + '</span>' : '';
+              html2 += '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);">' + _lastMonth.label + _lIcons + ' <span style="color:' + _lCol + '">' + _lSign + '\u00a0\u20ac</span></div>';
+            }
+          } else {
+
+            // Expanded: KUUKAUSITULOS + TULOSSA
+            var _moRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
+            _moRow += '<div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Kuukausitulos</div>';
+            _mockHistory.forEach(function(m) {
+              var sign = (m.delta >= 0 ? "+" : "") + m.delta.toLocaleString("fi-FI");
+              var col = m.delta >= 0 ? 'var(--green)' : 'var(--red)';
+              var lbl = m.label + (m.partial ? "\u2026" : "");
+              var iconsHtml = m.icons.length ? '<span style="font-size:11px;margin-left:4px;">' + m.icons.join('') + '</span>' : '';
+              _moRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
+              _moRow += '<span style="font-size:11px;color:var(--text3);font-family:var(--mono);">' + lbl + iconsHtml + '</span>';
+              _moRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + '">' + sign + '\u00a0\u20ac</span>';
+              _moRow += '</div>';
+            });
             _moRow += '</div>';
-          });
-          _moRow += '</div>';
-          var _tulosRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:10px;">';
-          _tulosRow += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-          _tulosRow += '<span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Tulossa</span>';
-          _tulosRow += '<span style="font-size:10px;color:var(--cyan);cursor:pointer;padding:2px 6px;border:1px solid rgba(0,200,255,0.2);border-radius:4px;">+ Lis\u00e4\u00e4</span>';
-          _tulosRow += '</div>';
-          _mockTulossa.forEach(function(t) {
-            var sign = t.amount >= 0 ? "+" : "";
-            var col  = t.amount >= 0 ? "var(--green)" : "var(--red)";
-            _tulosRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
-            _tulosRow += '<span style="font-size:11px;color:var(--text2);font-family:var(--mono);">' + t.month + " " + t.label + '</span>';
-            _tulosRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + ';">' + t.icon + " " + (t.amount >= 0 ? "+" : "") + t.amount.toLocaleString("fi-FI") + " \u20AC" + '</span>';
+
+            var _tulosRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:10px;">';
+            _tulosRow += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+            _tulosRow += '<span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Tulossa</span>';
             _tulosRow += '</div>';
-          });
-          _tulosRow += '</div>';
-          html2 += _moRow + _tulosRow;
+            _mockTulossa.forEach(function(t) {
+              var col = t.amount >= 0 ? 'var(--green)' : 'var(--red)';
+              var sign = (t.amount >= 0 ? "+" : "") + t.amount.toLocaleString("fi-FI");
+              _tulosRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
+              _tulosRow += '<span style="font-size:11px;color:var(--text2);font-family:var(--mono);">' + t.month + ' ' + t.label + '</span>';
+              _tulosRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + '">' + t.icon + ' ' + sign + '\u00a0\u20ac</span>';
+              _tulosRow += '</div>';
+            });
+            _tulosRow += '</div>';
+            html2 += _moRow + _tulosRow;
+          }
+
           return html2;
                 })()}
         </div>
