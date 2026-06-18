@@ -970,7 +970,13 @@ async function renderDashboard() {
           ];
 
           // Segmenttipalkki (koko kortin leveys)
-          var _barHtml = '<div style="margin:12px 0 8px 0;height:6px;border-radius:3px;background:linear-gradient(to right,#5a9e6a 60%,#b8956a 80%,rgba(255,255,255,0.15) 80%);"></div>';
+                    var _barHtml = '<div style="margin:12px 0 8px 0;height:6px;border-radius:3px;overflow:hidden;display:flex;">';
+          _barHtml += '<div style="flex:6;height:6px;background:#5a9e6a;"></div>';
+          _barHtml += '<div style="width:2px;height:6px;background:rgba(0,0,0,0.5);"></div>';
+          _barHtml += '<div style="flex:2;height:6px;background:#b8956a;"></div>';
+          _barHtml += '<div style="width:2px;height:6px;background:rgba(0,0,0,0.5);"></div>';
+          _barHtml += '<div style="flex:2;height:6px;background:rgba(255,255,255,0.15);"></div>';
+          _barHtml += '</div>';
           html2 += _barHtml;
 
           // Collapsed: vain viimeisin valmis kuukausi
