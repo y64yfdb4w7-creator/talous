@@ -970,7 +970,7 @@ async function renderDashboard() {
           ];
 
           // Segmenttipalkki (koko kortin leveys)
-          var _barHtml = '<div style="margin:12px 0 8px 0;height:6px;border-radius:3px;overflow:hidden;display:flex;gap:2px;">';
+          var _barHtml = '<div style="margin:12px 0 8px 0;height:6px;border-radius:3px;overflow:hidden;display:flex;align-items:stretch;gap:2px;">';
           _barHtml += '<div style="flex:6;height:100%;background:#5a9e6a;border-radius:3px 0 0 3px;"></div>';
           _barHtml += '<div style="flex:2;height:100%;background:#b8956a;"></div>';
           _barHtml += '<div style="flex:2;height:100%;background:rgba(255,255,255,0.12);border-radius:0 3px 3px 0;"></div>';
