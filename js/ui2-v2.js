@@ -943,20 +943,6 @@ async function renderDashboard() {
             +(_pref('cash','row_tulotili',true)||_pref('cash','row_op_gold',true)
               ? '<div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:8px;"></div>'
               : '')
-            // vs. normaali (käyttövara-delta; pääluku näkyy jo kortin otsikossa)
-            + (devEur2 !== null && Math.abs(devEur2) > 50
-              ? '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:4px;">'
-                +(devEur2>0?'+':'')+fmt(devEur2)+' vs. normaali</div>'
-              : '')
-            + '</div>';
-
-          // Tulorytmi-vihje
-          var tlot2 = (latest.tulot_kk||0) + (latest.muut_tulot||0);
-          if (tlot2 > 0) {
-            html2 += '<div style="margin-top:8px;font-size:10px;color:var(--text3);">'
-              +'tulorytmi ~'+Math.round(tlot2).toLocaleString('fi-FI')+' €/kk</div>';
-          }
-
           // ── Kassakortti: Palkki + Historia + Tulossa (prototyyppi) ──
           var _mockHistory = [
             { label: "Huhti", delta: 172, icons: [] },
@@ -978,6 +964,19 @@ async function renderDashboard() {
           _barHtml += '<div style="flex:2;height:8px;background:rgba(255,255,255,0.15);"></div>';
           _barHtml += '</div>';
           html2 += _barHtml;
+          // ── päivä / ylensä / nyt ──
+          if (baseline2 !== null) {
+            var _dn2 = latest.date ? new Date(latest.date).getDate() : null;
+            html2 += '<div style="margin:8px 0 0;padding:0 2px;">'
+              + (_dn2 ? '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">' + _dn2 + '. päivä</div>' : '')
+              + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
+              + '<span style="font-size:11px;color:var(--text3);">ylensä</span>'
+              + '<span style="font-family:var(--mono);font-size:12px;">' + fmt(baseline2) + '</span></div>'
+              + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+              + '<span style="font-size:11px;color:var(--text3);">nyt</span>'
+              + '<span style="font-family:var(--mono);font-size:12px;color:' + (nettorytmi2 >= baseline2 ? 'var(--green)' : 'var(--red)') + ';">' + fmt(nettorytmi2) + '</span></div>'
+              + '</div>';
+          }
 
           // Collapsed: vain viimeisin valmis kuukausi
           var _lastMonth = _mockHistory.filter(function(m){ return !m.partial; }).slice(-1)[0];
