@@ -1027,8 +1027,8 @@ async function renderDashboard() {
 
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
       <div class="db-item card kpi-wide" data-item-id="netto" style="background:var(--surface2);">
-        <div class="card-label">Nettovarallisuus</div>
-        <div class="card-value tip" style="font-size:38px;"
+        <div class="card-label" style="grid-column:1/-1;">Nettovarallisuus</div>
+        <div class="card-value tip" style="grid-column:1/-1;font-size:38px;"
           data-tip="Omaisuus (${fmt(calc.assets)}) − Luottokortit (${fmt(-calc.shortTermDebt)}) − Lainat (${fmt(-calc.longTermDebt)})"
         >${fmt(nw)}</div>
         ${delta !== null ? '<div class="card-delta ' + dcls(delta) + '">' + fmtDelta(delta) + ' vs. ' + fmtDate(prev.date) + '</div>' : ''}
