@@ -682,7 +682,7 @@ async function renderDashboard() {
         const diff = Math.abs(sDay - dayNum);
         if (diff < bestDiff) { bestDiff = diff; best = s; }
       }
-      if (best && bestDiff <= 3) paceVals.push(Math.abs(best.op_gold));
+      if (best && bestDiff <= 3) paceVals.push((best.tulotili||0) + (best.op_gold||0));
     }
 
     return {
