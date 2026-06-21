@@ -2,7 +2,6 @@
 // VERTAILU CARD  (korvaa Tilanne normaali)
 // ══════════════════════════════════════════════
 function renderVertailuCard(snaps, latest){
-  if(!latest || !snaps || snaps.length===0) return '';
   function nettoOf(s){ try{ return calcuateNetWorth(s).netWorth; }catch(e){ return null; } }
   function kvOf(s){ return (s.tulotili||0) - Math.abs(s.op_gold||0); }
   function nearest(targetMs){ var best=null,bd=Infinity; for(var i=0;i<snaps.length;i++){ var d=Math.abs(new Date(snaps[i].date).getTime()-targetMs); if(d<bd){bd=d;best=snaps[i];} } return best; }
@@ -1024,7 +1023,7 @@ async function renderDashboard() {
                 })()}
         </div>
       </div>
-
+      </div>
       <!-- 4. NETTOVARALLISUUS — viimeisenä, koko leveys -->
       <div class="db-item card kpi-wide" data-item-id="netto" style="background:var(--surface2);">
         <div class="card-label" style="grid-column:1/-1;">Nettovarallisuus</div>
