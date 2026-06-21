@@ -1194,73 +1194,7 @@ if ('serviceWorker' in navigator) {
 
   #db-admin-panel .db-admin-item { display:block; }
 
-  /* iv-grp: Sijoitukset mobiili — pinottu hierarkia */
-  .iv-hdr { display:none; }
-  .iv-grp { display:grid; grid-template-columns:1fr 56px;
-            grid-template-areas:"name amt" "cash camt" "pcts pcts";
-            align-items:center; column-gap:4px; row-gap:1px; margin-bottom:7px; }
-  .iv-grp:not(:has(.iv-cash)) { grid-template-areas:"name amt" "pcts pcts"; }
-  .iv-name { grid-area:name; font-size:11px; color:var(--text2); border-left:2px solid rgba(255,255,255,0.08); padding-left:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  .iv-amt  { grid-area:amt;  font-family:var(--mono); font-size:11px; text-align:right; white-space:nowrap; color:var(--text); }
-  .iv-cash { grid-area:cash; font-size:9px; color:var(--text3); padding-left:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  .iv-camt { grid-area:camt; font-family:var(--mono); font-size:10px; text-align:right; white-space:nowrap; color:var(--text); }
-  .iv-ed, .iv-mo { display:none; }
-  .iv-pctsm { grid-area:pcts; font-size:10px; color:var(--text3); padding-left:8px; white-space:nowrap; }
-  .iv-pctsm b { font-weight:600; }
-  /* Tavoite 1: käteinen hillityn sinertävä — erottuu sijoitetusta pääomasta */
-  .iv-cash { color: rgba(145,175,220,0.85); }
-  .iv-camt { color: rgba(145,175,220,0.85); }
-  /* Tavoite 2: järjestelmäfontti pienille riviteksteille — parempi luettavuus iPhonella */
-  .iv-name, .iv-cash, .iv-pctsm {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  }s [data-item-id="cash"] .card-right > div:not(.sub-rows) span:nth-child(2)::before { content:"••••"; font-size:11px; color:var(--text3); }
-  body.hide-amounts [data-item-id="cash"] .card-right > div:not(.sub-rows) span:nth-child(2) { visibility:hidden; }
-  body.hide-amounts [data-item-id="debt"] .card-right > div > span:nth-child(2) { font-size:0 !important; }
-  body.hide-amounts [data-item-id="debt"] .card-right > div > span:nth-child(2)::before { content:"••••"; font-size:11px; color:var(--text3); }
 
-
-  /* Kassa separator block: reduce gap */
-  .db-item.card .card-right > div:not(.sub-rows) { margin-top:8px !important; padding-top:6px !important; }
-
-  /* Header pills */
-  #db-privacy-btn {
-    background:rgba(255,255,255,0.07) !important;
-    border:1px solid rgba(255,255,255,0.13) !important;
-    border-radius:20px !important;
-    font-size:11px !important;
-    color:rgba(255,255,255,0.55) !important;
-    padding:3px 9px !important;
-    line-height:1.4;
-    cursor:pointer;
-    font-family:var(--mono);
-  }
-  body.hide-amounts #db-privacy-btn {
-    background:rgba(255,255,255,0.14) !important;
-    border-color:rgba(255,255,255,0.28) !important;
-    color:rgba(255,255,255,0.9) !important;
-    opacity:1 !important;
-  }
-  .db-sync-dot {
-    background:rgba(255,255,255,0.06) !important;
-    border:1px solid rgba(255,255,255,0.10) !important;
-    border-radius:20px !important;
-    font-size:11px !important;
-    padding:3px 8px !important;
-    line-height:1.4;
-    cursor:default;
-  }
-  #db-menu-btn {
-    background:rgba(255,255,255,0.07) !important;
-    border:1px solid rgba(255,255,255,0.13) !important;
-    border-radius:20px !important;
-    font-size:15px !important;
-    color:rgba(255,255,255,0.55) !important;
-    padding:2px 9px !important;
-    line-height:1.4;
-    font-family:inherit;
-  }
-  #db-admin-wrap { gap:5px !important; }
-}
   /* === Syötä-sivu: iOS Safari zoom-esto + touch-target korjaus (mobiili) === */
   /* iOS Safari zoomaa automaattisesti jos font-size < 16px */
   #view-syota input,
@@ -1289,20 +1223,10 @@ if ('serviceWorker' in navigator) {
   }
 @media (min-width: 900px) {
   #btn-freeze-float  { display: none !important; }
-  /* iv-grp: Sijoitukset desktop — yksi rivi (nimi ed% 1kk% summa) */
-  .iv-hdr { display:grid; grid-template-columns:1fr 40px 44px 56px; margin-bottom:3px; }
-  .iv-h-ed, .iv-h-mo { font-size:9px; color:var(--text3); text-align:right; padding-right:3px; }
-  .iv-grp { display:grid; grid-template-columns:1fr 40px 44px 56px;
-            grid-template-areas:"name ed mo amt" "cash cash cash camt";
-            align-items:center; margin-bottom:2px; }
-  .iv-grp:not(:has(.iv-cash)) { grid-template-areas:"name ed mo amt"; }
-  .iv-name { grid-area:name; font-size:11px; color:var(--text2); border-left:2px solid rgba(255,255,255,0.08); padding-left:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  .iv-ed   { grid-area:ed;   font-size:10px; font-weight:600; text-align:right; padding-right:3px; white-space:nowrap; }
-  .iv-mo   { grid-area:mo;   font-size:10px; font-weight:600; text-align:right; padding-right:3px; white-space:nowrap; }
-  .iv-amt  { grid-area:amt;  font-family:var(--mono); font-size:11px; text-align:right; white-space:nowrap; color:var(--text); }
-  .iv-cash { grid-area:cash; font-size:9px; color:var(--text3); padding-left:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  .iv-camt { grid-area:camt; font-family:var(--mono); font-size:10px; text-align:right; white-space:nowrap; color:var(--text); }
-  .iv-pctsm { display:none; }
+  .inv-bars     { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .inv-bar-hdr  { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+  .inv-bar-name { color: var(--text2); }
+  .inv-bar-pct  { font-family: var(--mono); color: var(--text3); font-size: 10px; }
 }
 </style>
 
