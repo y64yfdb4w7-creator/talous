@@ -808,71 +808,38 @@ async function renderDashboard() {
           {key:'tapiola',    label:'S-Pankki'},
         ])}
 <div class="card-left">        <div class="card-value" style="margin-top:0;">${fmt(inv)}</div></div>
-        ${!_pref('inv','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
-          +(latest.nordnet?'Nordnet':'')+(latest.op_osakkeet?' · OP':'')+(latest.tapiola?' · S-Pankki':'')+'</div>' : ''}
-<div class="card-right">        <div class="sub-rows" style="display:${_pref('inv','expanded',true)?'block':'none'}">
-          ${(()=>{
-            const invRows = [
-              { f:'nordnet',     l:'Nordnet',  abbr:'NN'  },
-              { f:'op_osakkeet', l:'OP',       abbr:'OP'  },
-              { f:'tapiola',     l:'S-Pankki', abbr:'SP'  },
-              { f:'s_sijoitus',  l:'S-Pankki', abbr:'SP'  },
-              { f:'rahastot',    l:'Rahastot', abbr:'RAH' },
-            ];
-            const snap1d  = prev;
-            const snap1mo = snapBefore(snaps, daysAgoISO(30));
-            // Deduploi: näytä vain ensimmäinen löytyvä
-            const shown = new Set();
-            const _rows = invRows.filter(r => {
-              if (!latest[r.f] || shown.has(r.l)) return false;
-              shown.add(r.l); return true;
-            }).filter(r => {
-              // Per-rivi näkyvyys
-              var rowKey = r.f === 'nordnet' ? 'nordnet' : r.f === 'op_osakkeet' ? 'op' : 'spankki';
-              return _pref('inv', 'row_'+rowKey, true);
-            }).map(r => {
-              const cur  = latest[r.f];
-              const v1d  = snap1d  ? snap1d[r.f]  : null;
-              const v1mo = snap1mo ? snap1mo[r.f] : null;
-              const p1d  = (v1d && v1d !== 0) ? ((cur-v1d)/Math.abs(v1d))*100 : null;
-              const p1mo = (v1mo && v1mo !== 0) ? ((cur-v1mo)/Math.abs(v1mo))*100 : null;
-              // Porrastettu värilogiikka: 4 tasoa
-              const pclr = p => {
-                if (p===null||Math.abs(p)<0.01) return 'var(--text3)';
-                const a=Math.abs(p), pos=p>=0;
-                if(a<0.5)  return pos?'rgba(106,184,122,0.40)':'rgba(192,90,90,0.40)';
-                if(a<1.0)  return pos?'rgba(106,184,122,0.65)':'rgba(192,90,90,0.65)';
-                if(a<2.0)  return pos?'#6ab87a':'#c05a5a';
-                return pos?'#8ed49e':'#e07070';
-              };
-              const pfmt = p => p===null?'':((p>=0?'+':'')+p.toFixed(1)+'%');
-              const isNordnet = r.f === 'nordnet';
-              const nordnetCash = isNordnet ? (latest.nordnet_cash||0) : 0;
-// Design B: nimi+summa ensin, käteinen alle, prosentit omalla rivillä (mobiili). Desktop = yksi rivi.
-              const edClr  = pclr(p1d);
-              const moClr  = pclr(p1mo);
-              const edTxt  = pfmt(p1d);
-              const moTxt  = pfmt(p1mo);
-              let html = '<div class="iv-grp">';
-              html +=   '<span class="iv-name">'+r.l+'</span>';
-              html +=   '<span class="iv-ed" style="color:'+edClr+'">'+edTxt+'</span>';
-              html +=   '<span class="iv-mo" style="color:'+moClr+'">'+moTxt+'</span>';
-              html +=   '<span class="iv-amt inv-amt">'+fmt(cur)+'</span>';
-              if(nordnetCash>0){
-                html += '<span class="iv-cash">käteinen</span>';
-                html += '<span class="iv-camt cash-amt">'+fmt(nordnetCash)+'</span>';
-              }
-              html +=   '<span class="iv-pctsm">ed. <b style="color:'+edClr+'">'+edTxt+'</b> · 1kk <b style="color:'+moClr+'">'+moTxt+'</b></span>';
-              html += '</div>';
-              return html;
-            }).join('');
-            return '<div class="iv-hdr"><span></span>'
-              +'<span class="iv-h-ed">ed.</span>'
-              +'<span class="iv-h-mo">1kk</span>'
-              +'<span></span>'
-              +'</div>'+_rows;
-          })()}
-</div>        </div>
+        ${(() => {
+          const invDelta    = calcPrev ? calc.investments - calcPrev.investments : null;
+          const invDeltaPct = (calcPrev && calcPrev.investments)
+            ? ((invDelta / calcPrev.investments) * 100).toFixed(1)
+            : null;
+          const invBars = [
+            { label: 'Nordnet',  val: calc.brokers.nordnet.investments },
+            { label: 'OP',       val: calc.brokers.op.investments },
+            { label: 'S-Pankki', val: calc.brokers.spankki.investments }
+          ].filter(b => b.val > 0)
+           .map(b => ({ ...b, pct: Math.round((b.val / calc.investments) * 100) }));
+
+          const sign = invDelta !== null ? (invDelta >= 0 ? '+' : '') : '';
+          const deltaStr = invDelta !== null
+            ? sign + fmt(invDelta) + ' · ' + sign + invDeltaPct + '% vs edellinen'
+            : '';
+          const deltaClass = invDelta !== null ? (invDelta >= 0 ? 'pos' : 'neg') : '';
+
+          const barsHtml = invBars.map(b => `
+            <div class="inv-bar-item">
+              <div class="inv-bar-hdr">
+                <span class="inv-bar-name">${b.label}</span>
+                <span class="inv-bar-pct">${b.pct}%</span>
+              </div>
+              <div class="loan-bar-track">
+                <div class="loan-bar-fill" style="width:${b.pct}%"></div>
+              </div>
+            </div>`).join('');
+
+          return (deltaStr ? `<div class="card-delta ${deltaClass}">${deltaStr}</div>` : '')
+               + '<div class="inv-bars">' + barsHtml + '</div>';
+        })()}
       </div>
 
       <!-- 2. SITOUMUKSET -->
