@@ -369,15 +369,17 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
       +'<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">● Tulotili − käyttöluotto</span>'
       +cycLabel+'</div>'
-      // Tulotili
+      // Tulotili (inline edit)
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
       +'<span style="font-size:11px;color:var(--text3);">Tulotili</span>'
-      +'<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili)+'</span>'
+      +'<span id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text2);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+ fmt(tulotili) +'</span>'
+      +'<input id="kassa-tulotili-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
       +'</div>'
-      // OP Gold
+      // OP Gold (inline edit)
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
       +'<span style="font-size:11px;color:var(--text3);">OP Gold</span>'
-      +'<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold)+'</span>'
+      +'<span id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--gold);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+ fmt(-opGold) +'</span>'
+      +'<input id="kassa-op_gold-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--gold);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
       +'</div>'
       // Viiva
       +'<div style="height:1px;background:rgba(255,255,255,0.08);margin:5px 0;"></div>'
@@ -1927,6 +1929,74 @@ function saveSSijoitusValueBtn() {
       if (btn2) { btn2.textContent = 'Tallenna'; btn2.disabled = false; }
     }, 1500);
   }, 50);
+}
+
+// Kassa inline edit — Tulotili
+async function saveTulotiliValue(val) {
+  const v = parseFloat(val);
+  if (!Number.isFinite(v)) return;
+  const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date.localeCompare(b.date));
+  const latest = snaps[snaps.length - 1];
+  if (!latest) return;
+  const snap = { ...latest, tulotili: v, _updatedAt: new Date().toISOString() };
+  await DB.putSnapshot(snap);
+  try { setTimeout(() => syncToSupabase(snap), 300); } catch(e) {}
+  requestAnimationFrame(() => {
+    renderSalkku();
+    renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
+  });
+}
+
+// Kassa inline edit — OP Gold (always saved as negative)
+async function saveOpGoldValue(val) {
+  const v = parseFloat(val);
+  if (!Number.isFinite(v)) return;
+  const saved = -Math.abs(v); // always negative
+  const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date.localeCompare(b.date));
+  const latest = snaps[snaps.length - 1];
+  if (!latest) return;
+  const snap = { ...latest, op_gold: saved, _updatedAt: new Date().toISOString() };
+  await DB.putSnapshot(snap);
+  try { setTimeout(() => syncToSupabase(snap), 300); } catch(e) {}
+  requestAnimationFrame(() => {
+    renderSalkku();
+    renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
+  });
+}
+
+// Kassa inline edit controller — shared for Tulotili and OP Gold
+function kassaInlineEdit(field, spanEl) {
+  const inp = document.getElementById('kassa-' + field + '-inp');
+  if (!inp) return;
+  const isMobile = navigator.maxTouchPoints > 0;
+  // Read current numeric value from snapshot (latest)
+  DB.getAll('snapshots').then(function(snaps) {
+    snaps.sort((a,b) => a.date.localeCompare(b.date));
+    const latest = snaps[snaps.length - 1];
+    if (!latest) return;
+    const raw = latest[field];
+    // For OP Gold show absolute value for editing
+    inp.value = field === 'op_gold' ? Math.abs(parseFloat(raw) || 0) : (parseFloat(raw) || 0);
+    spanEl.style.display = 'none';
+    inp.style.display = 'inline-block';
+    inp.focus();
+    if (isMobile) inp.select();
+  });
+}
+
+function kassaInlineSave(field, inp) {
+  inp.style.display = 'none';
+  const span = document.getElementById('kassa-' + field + '-val');
+  if (span) span.style.display = ''
+  if (field === 'tulotili') saveTulotiliValue(inp.value);
+  else if (field === 'op_gold') saveOpGoldValue(inp.value);
+}
+
+function kassaInlineCancel(field) {
+  const inp = document.getElementById('kassa-' + field + '-inp');
+  const span = document.getElementById('kassa-' + field + '-val');
+  if (inp) inp.style.display = 'none';
+  if (span) span.style.display = '';
 }
 
 
