@@ -833,7 +833,16 @@ async function renderDashboard() {
             const _isOpen = _invExpandedBroker === b.key;
             const _arrow = _isOpen ? '▼' : '▶';
             const _hdgs = _isOpen ? dbHoldings.filter(h => (b.accts||[]).includes(h.account)) : [];
-            const _holdHtml = _hdgs.map(h => `<div class="inv-holding-name">${getHoldingShortName(h)}</div>`).join('');
+            const _holdHtml = (() => {
+              if (b.key === 'nordnet') {
+                const _aot = _hdgs.filter(h => !(h.display_name && h.display_name.includes('osakesäästö')));
+                const _ost = _hdgs.filter(h => h.display_name && h.display_name.includes('osakesäästö'));
+                const _mkRows = arr => arr.map(h => `<div class="inv-holding-name">${getHoldingShortName(h)}</div>`).join('');
+                return (_aot.length ? `<div class="inv-subhdr">AOT</div>${_mkRows(_aot)}` : '')
+                     + (_ost.length ? `<div class="inv-subhdr">OST</div>${_mkRows(_ost)}` : '');
+              }
+              return _hdgs.map(h => `<div class="inv-holding-name">${getHoldingShortName(h)}</div>`).join('');
+            })();
             return `
             <div class="inv-bar">
               <div class="inv-bar-hdr" onclick="toggleInvBroker('${b.key}')" style="cursor:pointer">
