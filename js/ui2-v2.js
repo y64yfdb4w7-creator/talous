@@ -833,7 +833,7 @@ async function renderDashboard() {
             const _isOpen = _invExpandedBroker === b.key;
             const _arrow = _isOpen ? '▼' : '▶';
             const _hdgs = _isOpen ? dbHoldings.filter(h => (b.accts||[]).includes(h.account)) : [];
-            const _holdHtml = _hdgs.map(h => `<div class="inv-holding-name">${h.display_name||h.ticker||'—'}</div>`).join('');
+            const _holdHtml = _hdgs.map(h => `<div class="inv-holding-name">${getHoldingShortName(h)}</div>`).join('');
             return `
             <div class="inv-bar">
               <div class="inv-bar-hdr" onclick="toggleInvBroker('${b.key}')" style="cursor:pointer">
@@ -4882,6 +4882,25 @@ window.entryDeleteMeno = async function(id) {
 };
 
 // ── END ADD RECURRING ───────────────────────────────────────────────────────────
+
+// ---- INV CARD SHORT NAMES ----
+function getHoldingShortName(h) {
+  const dn = h.display_name || '';
+  const shortNames = {
+    'Amazon': 'Amazon',
+    'Apple': 'Apple',
+    'Eli Lilly': 'Lilly',
+    'Fortum': 'Fortum',
+    'Mandatum': 'Manda',
+    'Novo Nordisk': 'Novo',
+    'Outokumpu': 'Outok',
+    'iShares Core S&P 500 ETF': 'SP500',
+    'S-Pankki Passiivinen USA ESG': 'USAESG',
+  };
+  if (shortNames[dn]) return shortNames[dn];
+  if (dn.includes('Nordea')) return 'Nordea';
+  return dn || h.ticker || '—';
+}
 
 // ---- INV CARD BROKER TOGGLE ----
 function toggleInvBroker(key) {
