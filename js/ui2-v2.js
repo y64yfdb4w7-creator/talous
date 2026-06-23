@@ -633,6 +633,7 @@ async function renderDashboard() {
   }
 
   const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date.localeCompare(b.date));
+  let dbHoldings = []; try { dbHoldings = (await DB.getAll('holdings')).filter(h => h.active !== false); } catch(e) {}
   const latest = snaps[snaps.length - 1];
   const prev   = snaps.length > 1 ? snaps[snaps.length - 2] : null;
 
@@ -816,9 +817,9 @@ async function renderDashboard() {
             ? ((invDelta / calcPrev.investments) * 100).toFixed(1)
             : null;
           const invBars = [
-            { label: 'Nordnet',  val: calc.brokers.nordnet.investments },
-            { label: 'OP',       val: calc.brokers.op.investments },
-            { label: 'S-Pankki', val: calc.brokers.spankki.investments }
+            { label: 'Nordnet',  val: calc.brokers.nordnet.investments , key: 'nordnet', accts: ['nordnet']},
+            { label: 'OP',       val: calc.brokers.op.investments , key: 'op', accts: ['op_osakkeet']},
+            { label: 'S-Pankki', val: calc.brokers.spankki.investments , key: 's_pankki', accts: ['s_sijoitus']}
           ].filter(b => b.val > 0)
            .map(b => ({ ...b, pct: Math.round((b.val / calc.investments) * 100) }));
 
@@ -828,16 +829,23 @@ async function renderDashboard() {
             : '';
           const deltaClass = invDelta !== null ? (invDelta >= 0 ? 'pos' : 'neg') : '';
 
-          const barsHtml = invBars.map(b => `
-            <div class="inv-bar-item">
-              <div class="inv-bar-hdr">
-                <span class="inv-bar-name">${b.label}</span>
+          const barsHtml = invBars.map(b => {
+            const _isOpen = _invExpandedBroker === b.key;
+            const _arrow = _isOpen ? '▼' : '▶';
+            const _hdgs = _isOpen ? dbHoldings.filter(h => (b.accts||[]).includes(h.account)) : [];
+            const _holdHtml = _hdgs.map(h => `<div class="inv-holding-name">${h.display_name||h.ticker||'—'}</div>`).join('');
+            return `
+            <div class="inv-bar">
+              <div class="inv-bar-hdr" onclick="toggleInvBroker('${b.key}')" style="cursor:pointer">
+                <span class="inv-bar-name">${_arrow} ${b.label}</span>
                 <span class="inv-bar-pct">${b.pct}%</span>
               </div>
               <div class="loan-bar-track">
                 <div class="loan-bar-fill" style="width:${b.pct}%"></div>
               </div>
-            </div>`).join('');
+              ${_isOpen ? `<div class="inv-holdings-list">${_holdHtml}</div>` : ''}
+            </div>`;
+          }).join('');
 
           return (deltaStr ? `<div class="card-delta ${deltaClass}">${deltaStr}</div>` : '')
                + '<div class="inv-bars">' + barsHtml + '</div>';
@@ -1712,6 +1720,7 @@ const ACCOUNTS = [
 ];
 
 let _editingId = null;
+let _invExpandedBroker = null;
 
 async function renderSalkku() {
   const c = document.getElementById('salkku-content');
@@ -4873,3 +4882,10 @@ window.entryDeleteMeno = async function(id) {
 };
 
 // ── END ADD RECURRING ───────────────────────────────────────────────────────────
+
+// ---- INV CARD BROKER TOGGLE ----
+function toggleInvBroker(key) {
+  _invExpandedBroker = (_invExpandedBroker === key) ? null : key;
+  renderDashboard();
+}
+window.toggleInvBroker = toggleInvBroker;
