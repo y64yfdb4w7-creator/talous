@@ -897,14 +897,16 @@ async function renderDashboard() {
             +(_pref('cash','row_tulotili',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">'
               + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">Tulotili</span>'
-              + '<span style="font-family:var(--mono);font-size:13px;color:var(--text2);">'+fmt(tulotili2)+'</span>'
+        + '<span id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text2);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
+        + '<input id="kassa-tulotili-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
             // OP Gold -rivi
             +(_pref('cash','row_op_gold',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
               + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
-              + '<span style="font-family:var(--mono);font-size:13px;color:var(--gold);">'+fmt(-opGold2)+'</span>'
+        + '<span id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--gold);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
+        + '<input id="kassa-op_gold-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--gold);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
             // Viiva — piilotetaan jos molemmat rivit piilossa
