@@ -1979,6 +1979,32 @@ function kassaInlineEdit(field, spanEl) {
     inp.value = field === 'op_gold' ? Math.abs(parseFloat(raw) || 0) : (parseFloat(raw) || 0);
     spanEl.style.display = 'none';
     inp.style.display = 'inline-block';
+    inp._origVal = inp.value;
+    var _kassaSaved = false;
+    function kassaKeyHandler(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        _kassaSaved = true;
+        inp.removeEventListener('keydown', kassaKeyHandler);
+        inp.removeEventListener('blur', kassaBlurHandler);
+        kassaInlineSave(field, inp);
+      }
+      if (e.key === 'Escape') {
+        _kassaSaved = true;
+        inp.removeEventListener('keydown', kassaKeyHandler);
+        inp.removeEventListener('blur', kassaBlurHandler);
+        kassaInlineCancel(field);
+      }
+    }
+    function kassaBlurHandler() {
+      if (_kassaSaved) return;
+      inp.removeEventListener('keydown', kassaKeyHandler);
+      inp.removeEventListener('blur', kassaBlurHandler);
+      if (isMobile && inp.value !== inp._origVal) kassaInlineSave(field, inp);
+      else kassaInlineCancel(field);
+    }
+    inp.addEventListener('keydown', kassaKeyHandler);
+    inp.addEventListener('blur', kassaBlurHandler);
     inp.focus();
     if (isMobile) inp.select();
   });
