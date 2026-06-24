@@ -609,7 +609,7 @@ function _cardHeader(label, cardKey, settingsRows) {
   var rows = settingsRows || [];
   var rowsJSON = JSON.stringify(rows).replace(/"/g, '&quot;');
   return '<div class="card-header-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
-    + '<div class="card-label" style="margin-bottom:0;">' + label + '</div>'
+    + '<div class="card-label" style="margin-bottom:0;cursor:pointer" onclick="toggleCardDetail(\'' + cardKey + '\')">' + label + '</div>'
     + '<div style="display:flex;gap:3px;align-items:center;">'
     + '<button onclick="event.stopPropagation();openCardSettings(\'' + cardKey + '\',\'' + label + '\',' + rowsJSON + ')" '
         + 'title="Asetukset" style="font-size:11px;padding:2px 7px;border-radius:4px;'
