@@ -4383,15 +4383,13 @@ function renderRightPanel(snaps, latest, calc) {
         + '<span class="panel-row-val pos">+' + fmtP(tulot_yht) + '</span></div>';
     }
     // Rakenteet eriteltynä
-if (tulot_items_p.length > 0) {
-  tulot_items_p.forEach(function(t) {
-    var amt = parseFloat(t.amt_kk);
-    if (!amt) return;
-    html += '<div class="panel-row">'
-    +(t.label||'Tulorivi')+'</span>'
-    +'<span class="panel-row-val pos">+'+amt.toFixed(0)+' €</span></div>';
-  });
-}
+    if (tulot_items_p.length > 0) {
+      tulot_items_p.forEach(function(t) {
+        var amt = parseFloat(t.amt_kk) || 0;
+        if (!amt) return;
+        html += '<div class="panel-row">' + '<span>' + (t.label || 'Tulorivi') + '</span>' + '<span class="panel-row-val pos">+' + amt.toFixed(0) + ' €</span></div>';
+      });
+    }
     if (rytmi_items_p.length > 0) {
       html += '<div style="height:1px;background:var(--border);margin:5px 0;"></div>';
       rytmi_items_p.forEach(function(r) {
