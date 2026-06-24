@@ -435,6 +435,7 @@ async function syncFromSupabase(showStatus) {
           if (remote.finos.holdings_snapshot != null)    merged.holdings_snapshot = remote.finos.holdings_snapshot;
           if (remote.finos.nordnet_cash      != null)    merged.nordnet_cash      = remote.finos.nordnet_cash;
           if (remote.finos._updatedAt)                   merged._updatedAt        = remote.finos._updatedAt;
+          merged.tulevat_items = remote.tulevat_items || local.tulevat_items || [];
         }
         toMerge.push(merged);
       }
@@ -551,6 +552,7 @@ async function syncToSupabase(newSnap) {
         tulot_pvm:         s.tulot_pvm         ?? null,
         holdings_snapshot: s.holdings_snapshot || null,
         nordnet_cash:      s.nordnet_cash      ?? null,
+        tulevat_items: s.tulevat_items || [],
         _updatedAt:        s._updatedAt        || null,
       },
     }));
