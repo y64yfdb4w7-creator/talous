@@ -989,6 +989,7 @@ async function renderDashboard() {
             _moRow += '<div class="kassa-section-hdr">TULOSSA</div>';
             _moRow += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
             _moRow += '<button class="kassa-add-btn" onclick="kassaTulossaAdd()">+ Lisää</button>';
+            html2 += _moRow;
           }
 
           return html2;
