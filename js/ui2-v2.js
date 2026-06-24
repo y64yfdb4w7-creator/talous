@@ -936,11 +936,6 @@ async function renderDashboard() {
             { label: "Touko", delta: 519, icons: ["\uD83D\uDD27", "\u26FA"] },
             { label: "Kes\u00e4",  delta: 16,  icons: [], partial: true }
           ];
-          var _mockTulossa = [
-            { month: "Hein\u00e4", label: "Autohuolto", icon: "\uD83D\uDD27", amount: -450 },
-            { month: "Hein\u00e4", label: "Vaellus",    icon: "\u26FA",        amount: -300 },
-            { month: "Elo",   label: "Bonus",      icon: "\uD83D\uDCB0",  amount: 800 }
-          ];
 
           // Segmenttipalkki (koko kortin leveys)
                     var _barHtml = '<div style="margin:12px 0 8px 0;height:8px;border-radius:4px;overflow:hidden;display:flex;">';
@@ -991,20 +986,9 @@ async function renderDashboard() {
             });
             _moRow += '</div>';
 
-            var _tulosRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:10px;">';
-            _tulosRow += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-            _tulosRow += '<span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Tulossa</span>';
-            _tulosRow += '</div>';
-            _mockTulossa.forEach(function(t) {
-              var col = t.amount >= 0 ? 'var(--green)' : 'var(--red)';
-              var sign = (t.amount >= 0 ? "+" : "") + t.amount.toLocaleString("fi-FI");
-              _tulosRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
-              _tulosRow += '<span style="font-size:11px;color:var(--text2);font-family:var(--mono);">' + t.month + ' ' + t.label + '</span>';
-              _tulosRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + '">' + t.icon + ' ' + sign + '\u00a0\u20ac</span>';
-              _tulosRow += '</div>';
-            });
-            _tulosRow += '</div>';
-            html2 += _moRow + _tulosRow;
+            <div class="kassa-section-hdr">TULOSSA</div>
+            <div class="kassa-tulossa-list" id="kassaTulossaList"></div>
+            <button class="kassa-add-btn" onclick="kassaTulossaAdd()">+ Lisää</button>
           }
 
           return html2;
@@ -4917,3 +4901,94 @@ function toggleInvBroker(key) {
   renderDashboard();
 }
 window.toggleInvBroker = toggleInvBroker;
+
+// ── Kassa: Tulossa CRUD ──────────────────────────────────────────────
+function renderTulossaList() {
+  var el = document.getElementById('kassaTulossaList');
+  if (!el) return;
+  var snap = window._lastSnap;
+  var items = (snap && snap.tulevat_items) ? snap.tulevat_items : [];
+  var editing = window._tulossaEditing || null;
+  var html = '';
+  items.forEach(function(item) {
+    if (editing && editing === item.id) {
+      html += '<div class="kassa-row kassa-row-edit">' +
+        '<input class="kassa-edit-input kassa-edit-month" id="te_month" value="' + (item.month||'') + '" placeholder="kk">' +
+        '<input class="kassa-edit-input kassa-edit-label" id="te_label" value="' + (item.label||'') + '" placeholder="kuvaus">' +
+        '<input class="kassa-edit-input kassa-edit-amount" id="te_amount" type="number" value="' + (item.amount||0) + '" placeholder="summa">' +
+        '<button class="kassa-save-btn" onclick="kassaTulossaSave('' + item.id + '')">✓</button>' +
+        '<button class="kassa-cancel-btn" onclick="kassaTulossaCancel()">✕</button>' +
+        '<button class="kassa-del-btn" onclick="kassaTulossaDelete('' + item.id + '')">🗑</button>' +
+        '</div>';
+    } else {
+      var sign = item.amount >= 0 ? '+' : '';
+      html += '<div class="kassa-row kassa-row-view" onclick="kassaTulossaEdit('' + item.id + '')">' +
+        '<span class="kassa-col-month">' + (item.month||'') + '</span>' +
+        '<span class="kassa-col-label">' + (item.label||'') + '</span>' +
+        '<span class="kassa-col-amount">' + sign + item.amount + ' €</span>' +
+        '</div>';
+    }
+  });
+  el.innerHTML = html;
+}
+function kassaTulossaAdd() {
+  var snap = window._lastSnap;
+  if (!snap) return;
+  if (!snap.tulevat_items) snap.tulevat_items = [];
+  var newId = 'tulossa_' + Date.now();
+  window._tulossaEditing = newId;
+  snap.tulevat_items.push({ id: newId, month: '', label: '', amount: 0 });
+  renderTulossaList();
+  var el = document.getElementById('kassaTulossaList');
+  if (el) { var inp = el.querySelector('#te_label'); if (inp) inp.focus(); }
+}
+function kassaTulossaEdit(id) {
+  window._tulossaEditing = id;
+  renderTulossaList();
+  var el = document.getElementById('kassaTulossaList');
+  if (el) { var inp = el.querySelector('#te_label'); if (inp) inp.focus(); }
+}
+async function kassaTulossaSave(id) {
+  var month = (document.getElementById('te_month')||{}).value || '';
+  var label = (document.getElementById('te_label')||{}).value || '';
+  var amount = parseFloat((document.getElementById('te_amount')||{}).value) || 0;
+  var latest = await DB.getLatestSnapshot();
+  if (!latest) return;
+  if (!latest.tulevat_items) latest.tulevat_items = [];
+  var idx = latest.tulevat_items.findIndex(function(i){ return i.id === id; });
+  if (month === '' && label === '') {
+    if (idx >= 0) latest.tulevat_items.splice(idx, 1);
+  } else {
+    if (idx >= 0) {
+      latest.tulevat_items[idx] = { id: id, month: month, label: label, amount: amount };
+    } else {
+      latest.tulevat_items.push({ id: id, month: month, label: label, amount: amount });
+    }
+  }
+  await DB.putSnapshot(latest);
+  window._lastSnap = latest;
+  window._tulossaEditing = null;
+  syncToSupabase([latest]);
+  renderDashboard();
+}
+function kassaTulossaCancel() {
+  var snap = window._lastSnap;
+  if (snap && snap.tulevat_items && window._tulossaEditing) {
+    var idx = snap.tulevat_items.findIndex(function(i){ return i.id === window._tulossaEditing; });
+    if (idx >= 0 && snap.tulevat_items[idx].label === '' && snap.tulevat_items[idx].month === '') {
+      snap.tulevat_items.splice(idx, 1);
+    }
+  }
+  window._tulossaEditing = null;
+  renderTulossaList();
+}
+async function kassaTulossaDelete(id) {
+  var latest = await DB.getLatestSnapshot();
+  if (!latest || !latest.tulevat_items) return;
+  latest.tulevat_items = latest.tulevat_items.filter(function(i){ return i.id !== id; });
+  await DB.putSnapshot(latest);
+  window._lastSnap = latest;
+  window._tulossaEditing = null;
+  syncToSupabase([latest]);
+  renderDashboard();
+}
