@@ -4923,13 +4923,13 @@ function renderTulossaList() {
         '<input class="kassa-edit-input kassa-edit-month" id="te_month" value="' + (item.month||'') + '" placeholder="kk">' +
         '<input class="kassa-edit-input kassa-edit-label" id="te_label" value="' + (item.label||'') + '" placeholder="kuvaus">' +
         '<input class="kassa-edit-input kassa-edit-amount" id="te_amount" type="number" value="' + (item.amount||0) + '" placeholder="summa">' +
-        '<button class="kassa-save-btn" onclick="kassaTulossaSave('' + item.id + '')">✓</button>' +
+        '<button class="kassa-save-btn" onclick="kassaTulossaSave(\' + item.id + \')">✓</button>' +
         '<button class="kassa-cancel-btn" onclick="kassaTulossaCancel()">✕</button>' +
-        '<button class="kassa-del-btn" onclick="kassaTulossaDelete('' + item.id + '')">🗑</button>' +
+        '<button class="kassa-del-btn" onclick="kassaTulossaDelete(\' + item.id + \')">🗑</button>' +
         '</div>';
     } else {
       var sign = item.amount >= 0 ? '+' : '';
-      html += '<div class="kassa-row kassa-row-view" onclick="kassaTulossaEdit('' + item.id + '')">' +
+      html += '<div class="kassa-row kassa-row-view" onclick="kassaTulossaEdit(\' + item.id + \')">' +
         '<span class="kassa-col-month">' + (item.month||'') + '</span>' +
         '<span class="kassa-col-label">' + (item.label||'') + '</span>' +
         '<span class="kassa-col-amount">' + sign + item.amount + ' €</span>' +
