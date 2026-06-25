@@ -2012,7 +2012,7 @@ function kassaInlineEdit(field, spanEl) {
     inp.addEventListener('keydown', kassaKeyHandler);
     inp.addEventListener('blur', kassaBlurHandler);
     inp.focus();
-    if (isMobile) inp.select();
+    if (inp.value) inp.select();
   });
 }
 
