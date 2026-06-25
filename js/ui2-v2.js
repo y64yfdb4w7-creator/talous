@@ -4914,7 +4914,7 @@ window.toggleInvBroker = toggleInvBroker;
 function renderTulossaList() {
   var el = document.getElementById('kassaTulossaList');
   if (!el) return;
-  var snap = window._lastSnap;
+  var snap = window._allSnaps?.[window._allSnaps.length - 1];
   var items = (snap && snap.tulevat_items) ? snap.tulevat_items : [];
   var editing = window._tulossaEditing || null;
   var html = '';
