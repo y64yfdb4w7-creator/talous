@@ -4940,12 +4940,13 @@ function renderTulossaList() {
   el.innerHTML = html;
 }
 function kassaTulossaAdd() {
-  var snap = window._lastSnap;
+  const snap = window._allSnaps?.[window._allSnaps.length - 1];
   if (!snap) return;
   if (!snap.tulevat_items) snap.tulevat_items = [];
   var newId = 'tulossa_' + Date.now();
   window._tulossaEditing = newId;
   snap.tulevat_items.push({ id: newId, month: '', label: '', amount: 0 });
+  console.log('[TULOSSA]', { action: 'add', itemCount: (snap.tulevat_items||[]).length, hasSnapshot: !!snap });
   renderTulossaList();
   var el = document.getElementById('kassaTulossaList');
   if (el) { var inp = el.querySelector('#te_label'); if (inp) inp.focus(); }
@@ -4960,7 +4961,8 @@ async function kassaTulossaSave(id) {
   var month = (document.getElementById('te_month')||{}).value || '';
   var label = (document.getElementById('te_label')||{}).value || '';
   var amount = parseFloat((document.getElementById('te_amount')||{}).value) || 0;
-  var latest = await DB.getLatestSnapshot();
+  const snaps = await DB.getAll('snapshots');
+  const latest = snaps[snaps.length - 1];
   if (!latest) return;
   if (!latest.tulevat_items) latest.tulevat_items = [];
   var idx = latest.tulevat_items.findIndex(function(i){ return i.id === id; });
@@ -4976,6 +4978,7 @@ async function kassaTulossaSave(id) {
   await DB.putSnapshot(latest);
   window._lastSnap = latest;
   window._tulossaEditing = null;
+  console.log('[TULOSSA]', { action: 'save', itemCount: (latest.tulevat_items||[]).length, hasSnapshot: !!latest });
   syncToSupabase([latest]);
   renderDashboard();
 }
@@ -4991,12 +4994,14 @@ function kassaTulossaCancel() {
   renderTulossaList();
 }
 async function kassaTulossaDelete(id) {
-  var latest = await DB.getLatestSnapshot();
+  const snaps = await DB.getAll('snapshots');
+  const latest = snaps[snaps.length - 1];
   if (!latest || !latest.tulevat_items) return;
   latest.tulevat_items = latest.tulevat_items.filter(function(i){ return i.id !== id; });
   await DB.putSnapshot(latest);
   window._lastSnap = latest;
   window._tulossaEditing = null;
+  console.log('[TULOSSA]', { action: 'delete', itemCount: (latest.tulevat_items||[]).length, hasSnapshot: !!latest });
   syncToSupabase([latest]);
   renderDashboard();
 }
