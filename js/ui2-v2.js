@@ -1087,6 +1087,7 @@ async function renderDashboard() {
   setTimeout(() => { if (typeof updateRightPanel === 'function') updateRightPanel(); }, 200);
   setTimeout(() => { if (window.onDashboardRendered) window.onDashboardRendered(); }, 120);
   if (window.applyDashboardLayout) window.applyDashboardLayout();
+  if (typeof renderTulossaList === 'function') renderTulossaList();
 }
 
 // ═══════════════════════════════════════════════
@@ -4929,7 +4930,7 @@ function renderTulossaList() {
         '<div class="kassa-field-group"><label class="kassa-field-label">Kuvaus</label>' +
         '<input class="kassa-edit-input" id="te_label" value="' + (item.label||'') + '" placeholder="esim. Bonus"></div>' +
         '<div class="kassa-field-group"><label class="kassa-field-label">Summa (€)</label>' +
-        '<input class="kassa-edit-input" id="te_amount" type="number" value="' + (item.amount||0) + '"></div>' +
+        '<input class="kassa-edit-input" id="te_amount" type="number" value="' + (item.amount == null || item.amount === '' ? '' : item.amount) + '" placeholder="esim. -450"></div>' +
         '<div class="kassa-action-row">' +
         '<button class="kassa-save-btn" onclick="kassaTulossaSave(\'' + item.id + '\')">✓ Tallenna</button>' +
         '<button class="kassa-cancel-btn" onclick="kassaTulossaCancel()">✕ Peru</button>' +
@@ -4952,7 +4953,7 @@ function kassaTulossaAdd() {
   if (!snap.tulevat_items) snap.tulevat_items = [];
   var newId = 'tulossa_' + Date.now();
   window._tulossaEditing = newId;
-  snap.tulevat_items.push({ id: newId, month: String(new Date().getMonth()+1), label: '', amount: 0 });
+  snap.tulevat_items.push({ id: newId, month: String(new Date().getMonth()+1), label: '', amount: '' });
   console.log('[TULOSSA]', { action: 'add', itemCount: (snap.tulevat_items||[]).length, hasSnapshot: !!snap });
   renderTulossaList();
   var el = document.getElementById('kassaTulossaList');
