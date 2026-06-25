@@ -355,7 +355,7 @@
     }
     .card-value {
       font-family: var(--mono);
-      font-size: clamp(20px, 5vw, 28px);
+      font-size: clamp(18px, 4.6vw, 26px);
       font-weight: 600;
       letter-spacing: -.02em;
       overflow: hidden;
@@ -1200,7 +1200,7 @@ if ('serviceWorker' in navigator) {
   .db-item.card .drag-handle { display:none; }
   .db-item.card .card-header-row { grid-area:hdr; }
   .db-item.card .card-left { grid-area:lft; align-self:start; padding-top:4px; }
-  .db-item.card .card-left .card-value { white-space:nowrap; font-size:clamp(14px,5vw,20px); }
+  .db-item.card .card-left .card-value { white-space:nowrap; font-size:clamp(13px,4.6vw,18px); }
   .db-item.card .card-right { grid-area:rgt; align-self:start; min-width:0; overflow:hidden; }
 
   .db-date { margin-bottom:4px; }
@@ -1246,6 +1246,9 @@ if ('serviceWorker' in navigator) {
   /* INV card: broker typography mobile */
   .inv-bar-name { font-size: 12px; color: var(--text2); }
   .inv-bar-pct  { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  /* INV dashboard: holding list typography */
+  .inv-subhdr      { font-family: var(--sans); font-size: 10px; font-weight: 400; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; }
+  .inv-holding-name { font-family: var(--sans); font-size: 12px; font-weight: 400; color: var(--text2); }
 @media (min-width: 900px) {
   #btn-freeze-float  { display: none !important; }
   .inv-bars     { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
@@ -1292,7 +1295,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=144"></script>
+    <script src="js/ui2-v2.js?v=145"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=5"></script>
