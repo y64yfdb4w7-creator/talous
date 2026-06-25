@@ -4918,32 +4918,46 @@ function renderTulossaList() {
   var snap = window._allSnaps?.[window._allSnaps.length - 1];
   var items = (snap && snap.tulevat_items) ? snap.tulevat_items : [];
   var editing = window._tulossaEditing || null;
-  var html = '';
+  var monthNames = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu','Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'];
+  var groups = {};
+  var order = [];
   items.forEach(function(item) {
-    if (editing && editing === item.id) {
-      html += '<div class="kassa-row kassa-row-edit"><div class="kassa-tulossa-form">' +
-        '<div class="kassa-field-group"><label class="kassa-field-label">Kuukausi</label>' +
-        '<select class="kassa-edit-select" id="te_month">' +
-        '<option value="">—</option>' +
-        [1,2,3,4,5,6,7,8,9,10,11,12].map(function(n){var nm=['Tammi','Helmi','Maalis','Huhti','Touko','Kesä','Heinä','Elo','Syys','Loka','Marras','Joulu'][n-1];return '<option value="'+n+'"'+(String(item.month)===String(n)?' selected':'')+'>'+nm+'</option>';}).join('') +
-        '</select></div>' +
-        '<div class="kassa-field-group"><label class="kassa-field-label">Kuvaus</label>' +
-        '<input class="kassa-edit-input" id="te_label" value="' + (item.label||'') + '" placeholder="esim. Bonus"></div>' +
-        '<div class="kassa-field-group"><label class="kassa-field-label">Summa (€)</label>' +
-        '<input class="kassa-edit-input" id="te_amount" type="number" value="' + (item.amount == null || item.amount === '' ? '' : item.amount) + '" placeholder="esim. -450"></div>' +
-        '<div class="kassa-action-row">' +
-        '<button class="kassa-save-btn" onclick="kassaTulossaSave(\'' + item.id + '\')">✓ Tallenna</button>' +
-        '<button class="kassa-cancel-btn" onclick="kassaTulossaCancel()">✕ Peru</button>' +
-        '<button class="kassa-delete-btn" onclick="kassaTulossaDelete(\'' + item.id + '\')">🗑 Poista</button>' +
-        '</div></div></div>';
-    } else {
-      var sign = item.amount >= 0 ? '+' : '';
-      html += '<div class="kassa-row kassa-row-view" onclick="kassaTulossaEdit(\' + item.id + \')">' +
-        '<span class="kassa-col-month">' + (item.month||'') + '</span>' +
-        '<span class="kassa-col-label">' + (item.label||'') + '</span>' +
-        '<span class="kassa-col-amount">' + sign + item.amount + ' €</span>' +
-        '</div>';
-    }
+    var m = String(item.month || '0');
+    if (!groups[m]) { groups[m] = []; order.push(m); }
+    groups[m].push(item);
+  });
+  order.sort(function(a, b) { return Number(a) - Number(b); });
+  var html = '';
+  order.forEach(function(m) {
+    var mNum = parseInt(m, 10);
+    var mName = (mNum >= 1 && mNum <= 12) ? monthNames[mNum - 1] : (m || '—');
+    html += '<div class="kassa-month-hdr">' + mName + '</div>';
+    groups[m].forEach(function(item) {
+      if (editing && editing === item.id) {
+        html += '<div class="kassa-row kassa-row-edit"><div class="kassa-tulossa-form">' +
+          '<div class="kassa-field-group"><label class="kassa-field-label">Kuukausi</label>' +
+          '<select class="kassa-edit-select" id="te_month">' +
+          '<option value="">—</option>' +
+          [1,2,3,4,5,6,7,8,9,10,11,12].map(function(n){var nm=['Tammi','Helmi','Maalis','Huhti','Touko','Kesä','Heinä','Elo','Syys','Loka','Marras','Joulu'][n-1];return '<option value="'+n+'"'+(String(item.month)===String(n)?' selected':'')+'>'+nm+'</option>';}).join('') +
+          '</select></div>' +
+          '<div class="kassa-field-group"><label class="kassa-field-label">Kuvaus</label>' +
+          '<input class="kassa-edit-input" id="te_label" value="' + (item.label||'') + '" placeholder="esim. Bonus"></div>' +
+          '<div class="kassa-field-group"><label class="kassa-field-label">Summa (€)</label>' +
+          '<input class="kassa-edit-input" id="te_amount" type="number" value="' + (item.amount == null || item.amount === '' ? '' : item.amount) + '" placeholder="esim. -450"></div>' +
+          '<div class="kassa-action-row">' +
+          '<button class="kassa-save-btn" onclick="kassaTulossaSave(\'' + item.id + '\')">✓ Tallenna</button>' +
+          '<button class="kassa-cancel-btn" onclick="kassaTulossaCancel()">✕ Peru</button>' +
+          '<button class="kassa-delete-btn" onclick="kassaTulossaDelete(\'' + item.id + '\')">🗑 Poista</button>' +
+          '</div></div></div>';
+      } else {
+        var sign = (item.amount > 0) ? '+' : '';
+        var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--red)' : 'var(--text3)');
+        html += '<div class="kassa-view-row" onclick="kassaTulossaEdit(\'' + item.id + '\')">' +
+          '<span class="kassa-vr-label">' + (item.label||'—') + '</span>' +
+          '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
+          '</div>';
+      }
+    });
   });
   el.innerHTML = html;
 }
