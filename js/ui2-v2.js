@@ -208,7 +208,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     loanRows += '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="toggleLoanDetail(this)" data-did="' + detailId + '">'
       +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
         +'<span style="font-size:13px;flex-shrink:0;">'+ ld.icon +'</span>'
-        +'<span style="font-size:12px;color:var(--text1);font-weight:600;flex:1;">'+ ld.label +'</span>'
+        +'<span style="font-size:12px;color:var(--text2);font-weight:600;flex:1;">'+ ld.label +'</span>'
         +'<span id="ld-date-'+ld.key+'" style="font-family:var(--mono);font-size:11px;color:'+dateClr+';flex-shrink:0;">'+ mmYY +'</span>'
       +'</div>'
       +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:4px;">'+ bar +'</div>'
