@@ -371,7 +371,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
       +cycLabel+'</div>'
       // Tulotili (inline edit)
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
-      +'<span style="font-size:11px;color:var(--text3);">Tulotili</span>'
+      +'<span style="font-size:11px;color:var(--text);">Tulotili</span>'
       +'<span id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text2);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+ fmt(tulotili) +'</span>'
       +'<input id="kassa-tulotili-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
       +'</div>'
@@ -949,6 +949,7 @@ async function renderDashboard() {
           // ── päivä / ylensä / nyt ──
           if (baseline2 !== null) {
             var _dn2 = latest.date ? new Date(latest.date).getDate() : null;
+            html2 += '<div class="kassa-section-hdr">RYTMI</div>';
             html2 += '<div style="margin:8px 0 0;padding:0 2px;">'
               + (_dn2 ? '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">' + _dn2 + '. päivä</div>' : '')
               + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
