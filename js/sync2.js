@@ -222,6 +222,7 @@ try {
       tulot_pvm:            latest?.tulot_pvm,
       menot_kk:             latest?.menot_kk,
       nordnet_cash:         latest?.nordnet_cash,
+      tulevat_items:        latest?.tulevat_items,
       _updatedAt:           new Date().toISOString(),
     };
 
