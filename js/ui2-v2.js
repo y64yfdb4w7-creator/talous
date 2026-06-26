@@ -921,7 +921,7 @@ async function renderDashboard() {
             // OP Gold -rivi
             +(_pref('cash','row_op_gold',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-              + '<span style="font-size:12px;color:var(--text3);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
+              + '<span style="font-size:12px;color:var(--gold3);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
         + '<span id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--gold);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
         + '<input id="kassa-op_gold-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--gold);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
@@ -952,10 +952,10 @@ async function renderDashboard() {
             html2 += '<div style="margin:8px 0 0;padding:0 2px;">'
               + (_dn2 ? '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">' + _dn2 + '. päivä</div>' : '')
               + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
-              + '<span style="font-size:11px;color:var(--text3);">ylensä</span>'
+              + '<span style="font-size:11px;color:var(--text2);">ylensä</span>'
               + '<span style="font-family:var(--mono);font-size:12px;">' + fmt(baseline2) + '</span></div>'
               + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-              + '<span style="font-size:11px;color:var(--text3);">nyt</span>'
+              + '<span style="font-size:11px;color:var(--text2);">nyt</span>'
               + '<span style="font-family:var(--mono);font-size:12px;color:' + (nettorytmi2 >= baseline2 ? 'var(--green)' : 'var(--red)') + ';">' + fmt(nettorytmi2) + '</span></div>'
               + '</div>';
           }
@@ -967,7 +967,7 @@ async function renderDashboard() {
               var _lCol = _lastMonth.delta >= 0 ? 'var(--green)' : 'var(--red)';
               var _lSign = (_lastMonth.delta >= 0 ? "+" : "") + _lastMonth.delta.toLocaleString("fi-FI");
               var _lIcons = _lastMonth.icons.length ? '<span style="font-size:11px;margin-left:4px;">' + _lastMonth.icons.join('') + '</span>' : '';
-              html2 += '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);">' + _lastMonth.label + _lIcons + ' <span style="color:' + _lCol + '">' + _lSign + '\u00a0\u20ac</span></div>';
+              html2 += '<div style="font-size:11px;color:var(--text2);font-family:var(--mono);">' + _lastMonth.label + _lIcons + ' <span style="color:' + _lCol + '">' + _lSign + '\u00a0\u20ac</span></div>';
             }
           } else {
 
@@ -980,7 +980,7 @@ async function renderDashboard() {
               var lbl = m.label + (m.partial ? "\u2026" : "");
               var iconsHtml = m.icons.length ? '<span style="font-size:11px;margin-left:4px;">' + m.icons.join('') + '</span>' : '';
               _moRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
-              _moRow += '<span style="font-size:11px;color:var(--text3);font-family:var(--mono);">' + lbl + iconsHtml + '</span>';
+              _moRow += '<span style="font-size:11px;color:var(--text2);font-family:var(--mono);">' + lbl + iconsHtml + '</span>';
               _moRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + '">' + sign + '\u00a0\u20ac</span>';
               _moRow += '</div>';
             });
