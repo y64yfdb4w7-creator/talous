@@ -953,10 +953,10 @@ async function renderDashboard() {
               + (_dn2 ? '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">' + _dn2 + '. päivä</div>' : '')
               + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
               + '<span style="font-size:11px;color:var(--text2);">ylensä</span>'
-              + '<span style="font-family:var(--mono);font-size:12px;">' + fmt(baseline2) + '</span></div>'
+              + '<span style="font-family:var(--mono);font-size:12px;color:var(--green);">' + fmt(baseline2) + '</span></div>'
               + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
               + '<span style="font-size:11px;color:var(--text2);">nyt</span>'
-              + '<span style="font-family:var(--mono);font-size:12px;color:' + (nettorytmi2 >= baseline2 ? 'var(--green)' : 'var(--red)') + ';">' + fmt(nettorytmi2) + '</span></div>'
+              + '<span style="font-family:var(--mono);font-size:12px;color:var(--text);">' + fmt(nettorytmi2) + '</span></div>'
               + '</div>';
           }
 
