@@ -398,7 +398,7 @@
       border-radius: 7px;
     }
     .change-row:hover { background: var(--surface); }
-    .change-name { font-size: 13px; }
+    .change-name { font-size: 13px; color: var(--text2);}
     .change-right { display: flex; align-items: center; gap: 14px; }
     .change-cur { font-family: var(--mono); font-size: 12px; color: var(--text2); }
     .change-delta { font-family: var(--mono); font-size: 12px; }
@@ -1248,13 +1248,13 @@ if ('serviceWorker' in navigator) {
     box-shadow: 0 0 0 2px rgba(0,200,255,0.12) !important;
   }
   /* INV card: broker typography mobile */
-  .inv-bar-name { font-size: 10px; color: var(--text3); }
+  .inv-bar-name { font-size: 10px; color: var(--text2); }
   .inv-bar-pct  { font-family: var(--mono); font-size: 10px; color: var(--text); }
 @media (min-width: 900px) {
   #btn-freeze-float  { display: none !important; }
   .inv-bars     { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
   .inv-bar-hdr  { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
-  .inv-bar-name { color: var(--text3); }
+  .inv-bar-name { color: var(--text2); }
   .inv-bar-pct  { font-family: var(--mono); color: var(--text); font-size: 10px; }
 }
 </style>
@@ -1296,7 +1296,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=150"></script>
+    <script src="js/ui2-v2.js?v=151"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=5"></script>
