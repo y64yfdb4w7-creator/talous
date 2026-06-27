@@ -14,7 +14,7 @@ async function fetchFinnhubQuote(ticker, apiKey) {
       { signal: abortSignalWithTimeout(8000) }
     );
     if (!r.ok) return null;
-    const d = await r.json();
+    return (d && d.c && d.c !== 0) ? { price: d.c, day_change_pct: (d.dp ?? null) } : null;
     return (d && d.c && d.c !== 0) ? d.c : null;
   } catch { return null; }
 }
@@ -37,23 +37,23 @@ async function fetchUsdEur(apiKey) {
 
 async function fetchAndUpdatePrices() {
   // Ohjataan Se Suuri Nappi -toimintoon dashboardilla
-  // Varmista ensin että avaimet on asetettu
+  // Varmista ensin ettÃ¤ avaimet on asetettu
   const apiKey = getFinnhubKey();
   const supaKey = getSupaKey();
   if (!apiKey && !supaKey) {
-    const ok = confirm('Avaimia ei ole asetettu.\n\nPaina OK avataksesi Asetukset (⚙) ja syötä Supabase- tai Finnhub-avain.');
+    const ok = confirm('Avaimia ei ole asetettu.\n\nPaina OK avataksesi Asetukset (â) ja syÃ¶tÃ¤ Supabase- tai Finnhub-avain.');
     if (ok) toggleSettings();
     return;
   }
-  // Siirry dashboardille ja käynnistä
+  // Siirry dashboardille ja kÃ¤ynnistÃ¤
   showView('dashboard');
   setTimeout(() => refreshAndFreeze(), 100);
 }
 
 
-// ═══════════════════════════════════════════════
-// PÄIVITÄ & JÄÄDYTÄ — Päivärituaali
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
+// PÃIVITÃ & JÃÃDYTÃ â PÃ¤ivÃ¤rituaali
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 
 async function refreshAllMarketData() {
   const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false && h.ticker && h.last_price_src !== 'Manuaalinen');
@@ -67,7 +67,7 @@ async function refreshAllMarketData() {
 
   let usdEur = null, results = {}, source = 'Finnhub';
 
-  // Yritä Supabase Edge Function ensin
+  // YritÃ¤ Supabase Edge Function ensin
   if (supaUrl && supaKey) {
     try {
       const r = await fetch(supaUrl + '/functions/v1/fetch-quotes', {
@@ -92,18 +92,18 @@ async function refreshAllMarketData() {
   if (Object.keys(results).length < tickers.length && apiKey) {
     if (!usdEur) usdEur = await fetchUsdEur(apiKey);
     for (const ticker of tickers) {
-      if (results[ticker]) continue;
-      const rawPrice = await fetchFinnhubQuote(ticker, apiKey);
+      const raw = await fetchFinnhubQuote(ticker, apiKey);
+      if (raw) {
       if (rawPrice) {
-        const cur = TICKER_CURRENCY[ticker] || 'EUR';
-        const priceEur = (cur === 'USD' && usdEur) ? rawPrice * usdEur : rawPrice;
+        const priceEur = (cur === 'USD' && usdEur) ? raw.price * usdEur : raw.price;
+        results[ticker] = {price: priceEur, src: 'Finnhub', stale: false, day_change_pct: raw.day_change_pct};
         results[ticker] = {price: priceEur, src: 'Finnhub', stale: false};
       }
     }
     source = 'Finnhub';
   }
 
-  // Päivitä holdings IndexedDB:hen — lisää lähde ja aika
+  // PÃ¤ivitÃ¤ holdings IndexedDB:hen â lisÃ¤Ã¤ lÃ¤hde ja aika
   let ok = 0, fallback = 0;
   for (const h of holdings) {
     const res = results[h.ticker];
@@ -112,12 +112,12 @@ async function refreshAllMarketData() {
         ...h,
         last_price:      parseFloat(res.price.toFixed(4)),
         last_price_date: today,
-        last_price_time: timeNow,
         last_price_src:  res.stale ? 'Fallback' : res.src,
+        day_change_pct:  res.day_change_pct ?? null,
       });
       ok++;
     } else {
-      // Ei saatu kurssia — merkitään Fallback (säilytetään vanha hinta)
+      // Ei saatu kurssia â merkitÃ¤Ã¤n Fallback (sÃ¤ilytetÃ¤Ã¤n vanha hinta)
       if (h.last_price) {
         await DB.putHolding({...h, last_price_src: 'Fallback'});
         fallback++;
@@ -132,7 +132,7 @@ async function refreshAndFreeze() {
   const apiKey  = getFinnhubKey();
   const supaKey = getSupaKey();
   if (!apiKey && !supaKey) {
-    if (confirm('Avaimia ei ole asetettu.\n\nPaina OK → Asetukset avautuu → syötä Supabase anon key + URL → Tallenna → paina nappia uudelleen.')) {
+    if (confirm('Avaimia ei ole asetettu.\n\nPaina OK â Asetukset avautuu â syÃ¶tÃ¤ Supabase anon key + URL â Tallenna â paina nappia uudelleen.')) {
       toggleSettings();
     }
     return;
@@ -155,20 +155,20 @@ try {
 } catch(e) {}
   if (btn)       { btn.disabled = true; btn.style.opacity = '0.5'; }
   if (btnFloat)  { btnFloat.disabled = true; btnFloat.style.opacity = '0.7'; }
-  if (icon)       icon.textContent = '⟳';
-  if (iconFloat)  iconFloat.textContent = '⟳';
+  if (icon)       icon.textContent = 'â³';
+  if (iconFloat)  iconFloat.textContent = 'â³';
 
   try {
     // Vaihe 1: Hae kurssit
     const {ok, fallback, usdEur, source} = await refreshAllMarketData();
 
-    if (label) label.textContent = 'Jäädytetään snapshot...';
+    if (label) label.textContent = 'JÃ¤Ã¤dytetÃ¤Ã¤n snapshot...';
 
-    // Vaihe 2: Laske ja jäädytä snapshot
+    // Vaihe 2: Laske ja jÃ¤Ã¤dytÃ¤ snapshot
     const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false && h.last_price);
     if (holdings.length === 0) {
-      if (icon)       icon.textContent = '↻';
-      if (iconFloat)  iconFloat.textContent = '↻';
+      if (icon)       icon.textContent = 'â»';
+      if (iconFloat)  iconFloat.textContent = 'â»';
       if (btn)       { btn.disabled = false; btn.style.opacity = ''; }
       if (btnFloat)  { btnFloat.disabled = false; btnFloat.style.opacity = ''; }
       if (status) {
@@ -176,7 +176,7 @@ try {
         status.style.background = 'rgba(192,90,90,.08)';
         status.style.borderColor = 'rgba(192,90,90,.25)';
         status.style.color = '#c05a5a';
-        status.innerHTML = '⚠ Kursseja ei saatu. Tarkista avaimet: paina ⚙ → syötä Supabase URL + anon key → Tallenna';
+        status.innerHTML = 'â  Kursseja ei saatu. Tarkista avaimet: paina â â syÃ¶tÃ¤ Supabase URL + anon key â Tallenna';
       }
       return;
     }
@@ -188,15 +188,15 @@ try {
       acctTotals[h.account] = (acctTotals[h.account] || 0) + val;
     }
 
-    // Hae ensin Supabasesta — varmistaa että carry-forward käyttää
-    // uusinta dataa (esim. iPhonella päivitetty tulotili tulee mukaan)
+    // Hae ensin Supabasesta â varmistaa ettÃ¤ carry-forward kÃ¤yttÃ¤Ã¤
+    // uusinta dataa (esim. iPhonella pÃ¤ivitetty tulotili tulee mukaan)
     await syncFromSupabase().catch(() => {});
 
     // Hae viimeisin snapshot baseline-arvoksi (tilit, lainat)
     // Hae viimeisin snapshot baseline-arvoksi.
-    // Käytetään UUSINTA snapshotia (myös tänään tallennettu),
-    // jotta käyttäjän samana päivänä syöttämät tulot/lainat säilyvät Päivitä-toiminnossa.
-    // Vanha filter(s.date < today) esti tämän ja aiheutti datan katoamisen.
+    // KÃ¤ytetÃ¤Ã¤n UUSINTA snapshotia (myÃ¶s tÃ¤nÃ¤Ã¤n tallennettu),
+    // jotta kÃ¤yttÃ¤jÃ¤n samana pÃ¤ivÃ¤nÃ¤ syÃ¶ttÃ¤mÃ¤t tulot/lainat sÃ¤ilyvÃ¤t PÃ¤ivitÃ¤-toiminnossa.
+    // Vanha filter(s.date < today) esti tÃ¤mÃ¤n ja aiheutti datan katoamisen.
     const allSnaps = (await DB.getAll('snapshots')).sort((a,b)=>a.date.localeCompare(b.date));
     const today    = new Date().toISOString().slice(0,10);
     const latest   = allSnaps[allSnaps.length - 1];
@@ -204,7 +204,7 @@ try {
     const snap = {
       date: today,
       ...acctTotals,
-      // Carry forward tilit + lainat viimeisimmästä
+      // Carry forward tilit + lainat viimeisimmÃ¤stÃ¤
       tulotili:             latest?.tulotili,
       elatustili:           latest?.elatustili,
       tavoitetili:          latest?.tavoitetili,
@@ -215,7 +215,7 @@ try {
       asuntolaina:          latest?.asuntolaina,
       asuntolaina_remontti: latest?.asuntolaina_remontti,
       autolaina:            latest?.autolaina,
-      // Kassavirta — säilytetään käyttäjän syöttämät tulot
+      // Kassavirta â sÃ¤ilytetÃ¤Ã¤n kÃ¤yttÃ¤jÃ¤n syÃ¶ttÃ¤mÃ¤t tulot
       tulot_kk:             latest?.tulot_kk,
       tulot_items:          latest?.tulot_items,
       rytmi_items:          latest?.rytmi_items,
@@ -239,24 +239,24 @@ try {
     const prevCalc = latest ? calculateNetWorth(latest) : null;
     const delta = prevCalc ? calc.netWorth - prevCalc.netWorth : null;
 
-    if (icon)  icon.textContent = '✓';
+    if (icon)  icon.textContent = 'â';
     if (btn) {
       btn.style.color = 'var(--gold)';
       btn.style.borderColor = 'var(--gold-dim)';
     }
 
     const deltaStr = delta !== null
-      ? ` &nbsp;·&nbsp; <span style="color:${delta>=0?'#5a9e6a':'#c05a5a'}">${delta>=0?'+':''}${new Intl.NumberFormat('fi-FI',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(delta)}</span>`
+      ? ` &nbsp;Â·&nbsp; <span style="color:${delta>=0?'#5a9e6a':'#c05a5a'}">${delta>=0?'+':''}${new Intl.NumberFormat('fi-FI',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(delta)}</span>`
       : '';
 
     if (status) {
       status.style.display = 'block';
-      status.innerHTML = `✓ ${ok} kurssia haettu (${source})${fallback>0?' · '+fallback+' fallback':''}${usdEur?' · USD/EUR '+usdEur.toFixed(4):''}${deltaStr}`;
+      status.innerHTML = `â ${ok} kurssia haettu (${source})${fallback>0?' Â· '+fallback+' fallback':''}${usdEur?' Â· USD/EUR '+usdEur.toFixed(4):''}${deltaStr}`;
     }
 
     setTimeout(() => {
-      if (icon)       icon.textContent = '↻';
-      if (iconFloat)  iconFloat.textContent = '↻';
+      if (icon)       icon.textContent = 'â»';
+      if (iconFloat)  iconFloat.textContent = 'â»';
       if (btn)       { btn.disabled = false; btn.style.opacity = ''; btn.style.color = ''; btn.style.borderColor = ''; }
       if (btnFloat)  { btnFloat.disabled = false; btnFloat.style.opacity = ''; }
       renderDashboard();
@@ -271,8 +271,8 @@ try {
     }, 2500);
 
   } catch(e) {
-    if (icon)       icon.textContent = '↻';
-    if (iconFloat)  iconFloat.textContent = '↻';
+    if (icon)       icon.textContent = 'â»';
+    if (iconFloat)  iconFloat.textContent = 'â»';
     if (btn)       { btn.disabled = false; btn.style.opacity = ''; }
     if (btnFloat)  { btnFloat.disabled = false; btnFloat.style.opacity = ''; }
     alert('Virhe: ' + e.message);
@@ -281,7 +281,7 @@ try {
 
 async function seedHoldingsIfEmpty() {
   const existing = await DB.count('holdings');
-  if (existing > 0) return; // jo lisätty, ei tehdä mitään
+  if (existing > 0) return; // jo lisÃ¤tty, ei tehdÃ¤ mitÃ¤Ã¤n
   const today = new Date().toISOString().slice(0, 10);
   for (const h of SEED_HOLDINGS) {
     await DB.putHolding({
@@ -290,13 +290,13 @@ async function seedHoldingsIfEmpty() {
       active: true,
     });
   }
-  console.log('Omistukset lisätty automaattisesti (' + SEED_HOLDINGS.length + ' kpl)');
+  console.log('Omistukset lisÃ¤tty automaattisesti (' + SEED_HOLDINGS.length + ' kpl)');
 }
 
 
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 // SUPABASE KAKSISUUNTAINEN SYNKRONOINTI
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 
 // Muuntaa vanhan talous-appin snapshot-formaatin Finance OS -formaattiin
 function convertOldSnap(s) {
@@ -325,18 +325,18 @@ function convertOldSnap(s) {
   };
 }
 
-// ── Sync-tila localStorage:ssa ─────────────────────────────────────────
+// ââ Sync-tila localStorage:ssa âââââââââââââââââââââââââââââââââââââââââ
 function getSyncMeta()      { try { return JSON.parse(localStorage.getItem('finos_sync_meta') || '{}'); } catch(e) { return {}; } }
 function saveSyncMeta(meta) { localStorage.setItem('finos_sync_meta', JSON.stringify(meta)); }
 
-// Lataa data Supabasesta — timestamp-tarkistus ensin (ei lataa turhaan)
+// Lataa data Supabasesta â timestamp-tarkistus ensin (ei lataa turhaan)
 async function syncFromSupabase(showStatus) {
   const supaUrl = getSupaUrl();
   const supaKey = getSupaKey();
   if (!supaUrl || !supaKey) return { ok: false, reason: 'no_keys' };
 
   try {
-    // 1. Hae vain updated_at ensin — kevyt kutsu
+    // 1. Hae vain updated_at ensin â kevyt kutsu
     const metaR = await fetch(
       supaUrl + '/rest/v1/talous_state?id=eq.main&select=updated_at',
       { headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey },
@@ -346,14 +346,14 @@ async function syncFromSupabase(showStatus) {
     const metaRows = await metaR.json();
     const remoteUpdatedAt = metaRows && metaRows[0] && metaRows[0].updated_at;
 
-    // 2. Vertaa paikalliseen — jos sama, ei tarvitse ladata mitään
+    // 2. Vertaa paikalliseen â jos sama, ei tarvitse ladata mitÃ¤Ã¤n
     const syncMeta = getSyncMeta();
     if (remoteUpdatedAt && syncMeta.lastSyncedAt === remoteUpdatedAt) {
       console.log('Sync: ei muutoksia Supabasessa (' + remoteUpdatedAt + ')');
       return { ok: true, imported: 0, skipped: true };
     }
 
-    // 3. Muutoksia — lataa koko data
+    // 3. Muutoksia â lataa koko data
     const r = await fetch(
       supaUrl + '/rest/v1/talous_state?id=eq.main&select=data',
       { headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey },
@@ -368,9 +368,9 @@ async function syncFromSupabase(showStatus) {
     const remoteSnaps = (data.snaps || []).filter(s => s.date && s.totals);
     if (remoteSnaps.length === 0) return { ok: false, reason: 'empty' };
 
-    // 4. Tuo puuttuvat päivät JA päivitä tilitiedot olemassa oleviin
-    //    KORJAUS: aiemmin sama päivämäärä ohitettiin kokonaan → iPhonen
-    //    tilitiedot eivät päivittyneet Macille. Nyt sama päivä mergataan.
+    // 4. Tuo puuttuvat pÃ¤ivÃ¤t JA pÃ¤ivitÃ¤ tilitiedot olemassa oleviin
+    //    KORJAUS: aiemmin sama pÃ¤ivÃ¤mÃ¤Ã¤rÃ¤ ohitettiin kokonaan â iPhonen
+    //    tilitiedot eivÃ¤t pÃ¤ivittyneet Macille. Nyt sama pÃ¤ivÃ¤ mergataan.
     const localSnaps = await DB.getAll('snapshots');
     const localByDate = {};
     localSnaps.forEach(s => { localByDate[s.date] = s; });
@@ -381,7 +381,7 @@ async function syncFromSupabase(showStatus) {
     for (const remote of remoteSnaps) {
       const local = localByDate[remote.date];
       if (!local) {
-        // Uusi päivä — tuo suoraan
+        // Uusi pÃ¤ivÃ¤ â tuo suoraan
         const imported = convertOldSnap(remote);
         if (remote.finos) {
           if (Array.isArray(remote.finos.tulot_items))   imported.tulot_items       = remote.finos.tulot_items;
@@ -397,24 +397,24 @@ async function syncFromSupabase(showStatus) {
         toImport.push(imported);
         continue;
       }
-      // Sama päivä — vertaa tilitietoja
+      // Sama pÃ¤ivÃ¤ â vertaa tilitietoja
       // remote.totals on vanha formaatti: { tulotili, opvisa, asunto, remontti, auto, ... }
       const rt = remote.totals || {};
       const remTulotili = typeof rt.tulotili === 'number' ? rt.tulotili : null;
       const remOpGold   = typeof rt.opvisa   === 'number' ? rt.opvisa   : null;
 
-      // Päivitä jos remote:lla on käyttäjän syöttämiä arvoja jotka poikkeavat paikallisesta
+      // PÃ¤ivitÃ¤ jos remote:lla on kÃ¤yttÃ¤jÃ¤n syÃ¶ttÃ¤miÃ¤ arvoja jotka poikkeavat paikallisesta
       const tuloChanged = remTulotili !== null && remTulotili !== (local.tulotili ?? null);
       const goldChanged = remOpGold   !== null &&
         Math.abs(remOpGold) !== Math.abs(local.op_gold ?? 0);
       // snapChanged: remote has a newer _updatedAt than local
       const snapChanged = !!(remote.finos?._updatedAt &&
         (!local._updatedAt || remote.finos._updatedAt > local._updatedAt));
-      // finosMissing: bootstrap — local has never had finos fields, take remote's
+      // finosMissing: bootstrap â local has never had finos fields, take remote's
       const finosMissing = !!(remote.finos && !('tulot_items' in local));
 
       if (tuloChanged || goldChanged || snapChanged || finosMissing) {
-        // Merge: säilytä paikalliset kurssitiedot, päivitä tilitiedot remotesta
+        // Merge: sÃ¤ilytÃ¤ paikalliset kurssitiedot, pÃ¤ivitÃ¤ tilitiedot remotesta
         const merged = {
           ...local,
           tulotili:             remTulotili    ?? local.tulotili,
@@ -443,17 +443,17 @@ async function syncFromSupabase(showStatus) {
     }
 
     if (toImport.length > 0) {
-      await DB.bulkPutSnapshots(toImport);  // jo konvertoitu ylempänä
+      await DB.bulkPutSnapshots(toImport);  // jo konvertoitu ylempÃ¤nÃ¤
     }
     if (toMerge.length > 0) {
       await DB.bulkPutSnapshots(toMerge);
     }
     const totalChanged = toImport.length + toMerge.length;
     if (totalChanged > 0) {
-      console.log('Sync: tuotu ' + toImport.length + ' uutta, päivitetty ' + toMerge.length + ' olemassa olevaa');
+      console.log('Sync: tuotu ' + toImport.length + ' uutta, pÃ¤ivitetty ' + toMerge.length + ' olemassa olevaa');
     }
 
-    // 5. Synkronoi holdings (kentät _key-matchauksella)
+    // 5. Synkronoi holdings (kentÃ¤t _key-matchauksella)
     if (data.holdingsFull && data.holdingsFull.length > 0) {
       const localHoldings = await DB.getAll('holdings');
       const byKey = {};
@@ -494,7 +494,7 @@ async function syncFromSupabase(showStatus) {
       }
     }
 
-    // 6. Tallenna sync-aikaleima — seuraava käynnistys on nopea
+    // 6. Tallenna sync-aikaleima â seuraava kÃ¤ynnistys on nopea
     saveSyncMeta({
       lastSyncedAt: remoteUpdatedAt || new Date().toISOString(),
       lastDevice:   data._financeOS ? 'Finance OS' : 'Talous-appi',
@@ -594,23 +594,23 @@ async function syncToSupabase(newSnap) {
       body: JSON.stringify({ data: state, updated_at: nowISO }),
       signal: abortSignalWithTimeout(15000),
     });
-    // Päivitä paikallinen sync-meta — tämä laite on ajan tasalla
+    // PÃ¤ivitÃ¤ paikallinen sync-meta â tÃ¤mÃ¤ laite on ajan tasalla
     saveSyncMeta({
       lastSyncedAt: nowISO,
       lastDevice:   navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Mac',
       snapCount:    convertedSnaps.length,
       syncFailed:   false,
     });
-    console.log('Supabase upload OK — ' + convertedSnaps.length + ' snapshottia');
+    console.log('Supabase upload OK â ' + convertedSnaps.length + ' snapshottia');
   } catch(e) {
     console.warn('Supabase upload error:', e.message);
     saveSyncMeta({...getSyncMeta(), syncFailed: true, lastSyncedAt: getSyncMeta().lastSyncedAt});
   }
 }
 
-// ═══════════════════════════════════════════════
-// AUTOMAATTINEN VARMUUSKOPIO — Rolling backups
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
+// AUTOMAATTINEN VARMUUSKOPIO â Rolling backups
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 
 async function autoBackup() {
   try {
@@ -662,9 +662,9 @@ async function autoBackup() {
 async function restoreFromBackup(backupId) {
   const backups = await DB.getAll('backups');
   const backup  = backups.find(b => b.id === backupId);
-  if (!backup) { alert('Varmuuskopiota ei löydy.'); return; }
+  if (!backup) { alert('Varmuuskopiota ei lÃ¶ydy.'); return; }
   
-  if (!confirm('Palautetaanko varmuuskopio ' + backup.id.replace('backup_','') + '?\n\nTämä KORVAA nykyisen datan varmuuskopiolla.')) return;
+  if (!confirm('Palautetaanko varmuuskopio ' + backup.id.replace('backup_','') + '?\n\nTÃ¤mÃ¤ KORVAA nykyisen datan varmuuskopiolla.')) return;
   
   await DB.bulkPutSnapshots(backup.data.snaps || []);
   for (const h of (backup.data.holdings || [])) await DB.putHolding(h);
@@ -678,5 +678,5 @@ function backupStatusText() {
   const count = localStorage.getItem('finos_backup_count') || '?';
   if (!last) return 'Ei varmuuskopioita';
   const d = new Date(last);
-  return count + ' varmuuskopiota · viimeisin ' + d.toLocaleDateString('fi-FI');
+  return count + ' varmuuskopiota Â· viimeisin ' + d.toLocaleDateString('fi-FI');
 }
