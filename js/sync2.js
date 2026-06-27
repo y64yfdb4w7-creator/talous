@@ -94,11 +94,9 @@ async function refreshAllMarketData() {
     for (const ticker of tickers) {
       const raw = await fetchFinnhubQuote(ticker, apiKey);
       if (raw) {
-      if (rawPrice) {
+        const cur = TICKER_CURRENCY[ticker] || 'EUR';
         const priceEur = (cur === 'USD' && usdEur) ? raw.price * usdEur : raw.price;
         results[ticker] = {price: priceEur, src: 'Finnhub', stale: false, day_change_pct: raw.day_change_pct};
-        results[ticker] = {price: priceEur, src: 'Finnhub', stale: false};
-      }
     }
     source = 'Finnhub';
   }
