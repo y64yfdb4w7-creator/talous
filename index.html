@@ -736,7 +736,7 @@
 
 
     /* ══ DESKTOP 3-KOLUMNI LAYOUT ══════════════════════════════════════════ */
-    #os-layout { display: block; }
+    #os-layout { display: block; overflow-x: clip; }
     #db-content { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; padding: 0 14px; box-sizing: border-box; } #db-content > [data-item-id] { min-width: 0; }
     .db-date, #freeze-status, #layout-toolbar { grid-column: 1 / -1; }
     #os-sidebar { display: none; }
