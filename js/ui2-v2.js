@@ -609,7 +609,7 @@ function _cardHeader(label, cardKey, settingsRows) {
   var rows = settingsRows || [];
   var rowsJSON = JSON.stringify(rows).replace(/"/g, '&quot;');
   return '<div class="card-header-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
-    + '<div class="card-label" style="margin-bottom:0;cursor:pointer' + (cardKey==='cash'?';font-size:12px':'') + '" onclick="toggleCardDetail(\'' + cardKey + '\')">' + label + '</div>'
+    + '<div class="card-label" style="margin-bottom:0;cursor:pointer' + (cardKey==='cash'?';font-size:12px;color:var(--text2)':'') + '" onclick="toggleCardDetail(\'' + cardKey + '\')">' + label + '</div>'
     + '<div style="display:flex;gap:3px;align-items:center;">'
     + '<button onclick="event.stopPropagation();openCardSettings(\'' + cardKey + '\',\'' + label + '\',' + rowsJSON + ')" '
         + 'title="Asetukset" style="font-size:11px;padding:2px 7px;border-radius:4px;'
@@ -914,7 +914,7 @@ async function renderDashboard() {
             +(_pref('cash','row_tulotili',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">'
               + '<span style="font-size:12px;color:var(--text);font-weight:600;border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">Tulotili</span>'
-        + '<span id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text2);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
+        + '<span id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
         + '<input id="kassa-tulotili-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
@@ -950,7 +950,7 @@ async function renderDashboard() {
           if (baseline2 !== null) {
             var _dn2 = latest.date ? new Date(latest.date).getDate() : null;
             html2 += '<div class="kassa-section-hdr">KULUTUSRYTMI</div>';
-            html2 += '<div style="margin:8px 0 0;padding:0 2px;">'
+            html2 += '<div style="margin:14px 0 0;padding:0 2px;">'
               + (_dn2 ? '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">' + _dn2 + '. päivä</div>' : '')
               + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
               + '<span style="font-size:11px;color:var(--text2);">ylensä</span>'
@@ -974,10 +974,10 @@ async function renderDashboard() {
 
             // Expanded: KUUKAUSITULOS + TULOSSA
             var _moRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
-            _moRow += '<div class="kassa-section-hdr">TULOSSA</div>';
+            _moRow += '<div class="kassa-section-hdr" style="margin-top:6px">TULOSSA</div>';
             _moRow += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
             _moRow += '<button class="kassa-add-btn" onclick="kassaTulossaAdd()">+ Lisää</button>';
-            _moRow += '<div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Kuukausitulos</div>';
+            _moRow += '<div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-top:6px;margin-bottom:4px;">Kuukausitulos</div>';
             _mockHistory.forEach(function(m) {
               var sign = (m.delta >= 0 ? "+" : "") + m.delta.toLocaleString("fi-FI");
               var col = m.delta >= 0 ? 'var(--green)' : 'var(--red)';
