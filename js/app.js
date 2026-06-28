@@ -2,7 +2,7 @@
 // Lisätty automaattisesti kuvakaappauksista — ei tarvitse näpytellä
 const SEED_HOLDINGS = [
   { ticker: 'AMZN',      display_name: 'Amazon',                        quantity: 15,    last_price: null, purchase_price: null, account: 'nordnet'    },
-  { ticker: 'AAPL',      display_name: 'Apple',                         quantity: 2,     last_price: null, purchase_price: null, account: 'nordnet'    },
+  { ticker: 'AAPL',      dsplay_name: 'Apple',                         quantity: 2,     last_price: null, purchase_price: null, account: 'nordnet'    },
   { ticker: 'LLY',       display_name: 'Eli Lilly',                     quantity: 2,     last_price: null, purchase_price: null, account: 'nordnet'    },
   { ticker: 'FORTUM.HE', display_name: 'Fortum',                        quantity: 0,     last_price: null, purchase_price: null, account: 'nordnet'    },
   { ticker: 'SXR8.DE',   display_name: 'iShares Core S&P 500 ETF',      quantity: 5,     last_price: null, purchase_price: null, account: 'nordnet'    },
@@ -81,6 +81,8 @@ async function init() {
     }
   } else {
     showView('dashboard');
+    // Sprint 12 — auto-migrate: päivitä day_change_pct jos puuttuu
+    try { const _h = await DB.getAll('holdings'); if (_h.some(h => h.active !== false && !('day_change_pct' in h))) { await refreshAllMarketData(); } } catch(e) {}
     try { requestAnimationFrame(() => renderDashboard()); } catch(e) {
       console.error('Dashboard render error:', e);
       const c = document.getElementById('db-content');
