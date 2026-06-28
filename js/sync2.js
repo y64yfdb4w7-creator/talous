@@ -81,7 +81,7 @@ async function refreshAllMarketData() {
         usdEur = payload.usdEur || null;
         for (const t of tickers) {
           const q = payload.quotes?.[t];
-          if (q?.price) results[t] = {price: q.price, src: 'Supabase', stale: q.stale || false};
+          if (q?.price) results[t] = {price: q.price, src: 'Supabase', stale: q.stale || false, day_change_pct: (q.changePct != null ? q.changePct * 100 : null)};
         }
         source = 'Supabase';
       }
