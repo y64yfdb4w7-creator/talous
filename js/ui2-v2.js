@@ -837,11 +837,19 @@ async function renderDashboard() {
               if (b.key === 'nordnet') {
                 const _aot = _hdgs.filter(h => !(h.display_name && h.display_name.includes('osakesäästö')));
                 const _ost = _hdgs.filter(h => h.display_name && h.display_name.includes('osakesäästö'));
-                const _mkRows = arr => arr.map(h => `<div class="inv-holding-name">${getHoldingShortName(h)}</div>`).join('');
+                const _mkRows = arr => arr.map(h => {
+                  const pct = h.day_change_pct;
+                  const pctHtml = pct == null ? '' : `<span class="inv-holding-pct ${pct > 0 ? 'pos' : pct < 0 ? 'neg' : 'neu'}">${pct > 0 ? '+' : ''}${pct.toFixed(2)} %</span>`;
+                  return `<div class="inv-holding-name">${getHoldingShortName(h)}${pctHtml}</div>`;
+                }).join('');
                 return (_aot.length ? `<div class="inv-subhdr">AOT</div>${_mkRows(_aot)}` : '')
                      + (_ost.length ? `<div class="inv-subhdr">OST</div>${_mkRows(_ost)}` : '');
               }
-              return _hdgs.map(h => `<div class="inv-holding-name">${getHoldingShortName(h)}</div>`).join('');
+              return _hdgs.map(h => {
+                const pct = h.day_change_pct;
+                const pctHtml = pct == null ? '' : `<span class="inv-holding-pct ${pct > 0 ? 'pos' : pct < 0 ? 'neg' : 'neu'}">${pct > 0 ? '+' : ''}${pct.toFixed(2)} %</span>`;
+                return `<div class="inv-holding-name">${getHoldingShortName(h)}${pctHtml}</div>`;
+              }).join('');
             })();
             return `
             <div class="inv-bar">
