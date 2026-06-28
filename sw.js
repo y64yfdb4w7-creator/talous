@@ -1,5 +1,5 @@
-// Finance OS — Service Worker v31
-const CACHE_NAME = 'finance-os-v31';
+// Finance OS — Service Worker v32
+const CACHE_NAME = 'finance-os-v32';
 
 self.addEventListener('install', event => { self.skipWaiting(); });
 
