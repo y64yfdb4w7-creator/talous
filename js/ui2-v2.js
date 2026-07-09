@@ -372,14 +372,14 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
       // Tulotili (inline edit)
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
       +'<span style="font-size:11px;color:var(--text);">Tulotili</span>'
-      +'<span id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text2);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+ fmt(tulotili) +'</span>'
-      +'<input id="kassa-tulotili-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
+      +'<span data-raw="'+tulotili+'" id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text2);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+ fmt(tulotili) +'</span>'
+      +'<input id="kassa-tulotili-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
       +'</div>'
       // OP Gold (inline edit)
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
       +'<span style="font-size:11px;color:var(--text3);">OP Gold</span>'
-      +'<span id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--gold);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+ fmt(-opGold) +'</span>'
-      +'<input id="kassa-op_gold-inp" type="number" style="display:none;width:90px;font-family:var(--mono);font-size:13px;color:var(--gold);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
+      +'<span data-raw="'+opGold+'" id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--gold);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+ fmt(-opGold) +'</span>'
+      +'<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--gold);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
       +'</div>'
       // Viiva
       +'<div style="height:1px;background:rgba(255,255,255,0.08);margin:5px 0;"></div>'
@@ -1983,44 +1983,62 @@ function kassaInlineEdit(field, spanEl) {
   const inp = document.getElementById('kassa-' + field + '-inp');
   if (!inp) return;
   const isMobile = navigator.maxTouchPoints > 0;
-  // Read current numeric value from snapshot (latest)
+  // Pre-fill synchronously from the value already shown on screen (data-raw),
+  // then show the input and focus it within this same tap's call stack so
+  // iOS Safari opens the keyboard on the first tap instead of the second.
+  const preRaw = spanEl.dataset.raw;
+  if (preRaw !== undefined && preRaw !== '') {
+    inp.value = field === 'op_gold' ? Math.abs(parseFloat(preRaw) || 0) : (parseFloat(preRaw) || 0);
+  }
+  spanEl.style.display = 'none';
+  inp.style.display = 'inline-block';
+  inp._origVal = inp.value;
+  var _kassaSaved = false;
+  var _kassaTouched = false;
+  function kassaKeyHandler(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      _kassaSaved = true;
+      inp.removeEventListener('keydown', kassaKeyHandler);
+      inp.removeEventListener('blur', kassaBlurHandler);
+      kassaInlineSave(field, inp);
+    }
+    if (e.key === 'Escape') {
+      _kassaSaved = true;
+      inp.removeEventListener('keydown', kassaKeyHandler);
+      inp.removeEventListener('blur', kassaBlurHandler);
+      kassaInlineCancel(field);
+    }
+  }
+  function kassaBlurHandler() {
+    if (_kassaSaved) return;
+    inp.removeEventListener('keydown', kassaKeyHandler);
+    inp.removeEventListener('blur', kassaBlurHandler);
+    if (isMobile && inp.value !== inp._origVal) kassaInlineSave(field, inp);
+    else kassaInlineCancel(field);
+  }
+  inp.addEventListener('keydown', kassaKeyHandler);
+  inp.addEventListener('blur', kassaBlurHandler);
+  inp.addEventListener('input', function onFirstInput() {
+    _kassaTouched = true;
+    inp.removeEventListener('input', onFirstInput);
+  });
+  inp.focus();
+  if (inp.value) inp.select();
+  // Confirm against the latest snapshot in the background; correct the
+  // value only if the user hasn't started typing yet, so nothing the user
+  // types gets overwritten.
   DB.getAll('snapshots').then(function(snaps) {
+    if (_kassaTouched) return;
     snaps.sort((a,b) => a.date.localeCompare(b.date));
     const latest = snaps[snaps.length - 1];
     if (!latest) return;
     const raw = latest[field];
-    // For OP Gold show absolute value for editing
-    inp.value = field === 'op_gold' ? Math.abs(parseFloat(raw) || 0) : (parseFloat(raw) || 0);
-    spanEl.style.display = 'none';
-    inp.style.display = 'inline-block';
-    inp._origVal = inp.value;
-    var _kassaSaved = false;
-    function kassaKeyHandler(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        _kassaSaved = true;
-        inp.removeEventListener('keydown', kassaKeyHandler);
-        inp.removeEventListener('blur', kassaBlurHandler);
-        kassaInlineSave(field, inp);
-      }
-      if (e.key === 'Escape') {
-        _kassaSaved = true;
-        inp.removeEventListener('keydown', kassaKeyHandler);
-        inp.removeEventListener('blur', kassaBlurHandler);
-        kassaInlineCancel(field);
-      }
+    const val = field === 'op_gold' ? Math.abs(parseFloat(raw) || 0) : (parseFloat(raw) || 0);
+    if (String(val) !== inp.value) {
+      inp.value = val;
+      inp._origVal = inp.value;
     }
-    function kassaBlurHandler() {
-      if (_kassaSaved) return;
-      inp.removeEventListener('keydown', kassaKeyHandler);
-      inp.removeEventListener('blur', kassaBlurHandler);
-      if (isMobile && inp.value !== inp._origVal) kassaInlineSave(field, inp);
-      else kassaInlineCancel(field);
-    }
-    inp.addEventListener('keydown', kassaKeyHandler);
-    inp.addEventListener('blur', kassaBlurHandler);
-    inp.focus();
-    if (inp.value) inp.select();
   });
 }
 
