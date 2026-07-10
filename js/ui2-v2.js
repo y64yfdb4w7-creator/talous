@@ -153,7 +153,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
   // % muutos vs ed. kk
   var lainatPct = (typeof _lainatPrevPct !== 'undefined') ? _lainatPrevPct : null;
   var lainatBadge = lainatPct !== null
-    ? ' <span style="font-size:10px;color:'+(lainatPct<=0?'var(--green)':'var(--text3)')+';">'
+    ? ' <span style="font-family:var(--mono);font-size:12px;color:'+(lainatPct<=0?'var(--green)':'var(--text3)')+';">'
       +(lainatPct>=0?'+':'')+lainatPct.toFixed(1)+'% vs ed. kk</span>'
     : '';
 
