@@ -603,13 +603,13 @@ window.openCardSettings = function(card, title, rows, evt) {
 };
 
 // Card-otsikkorivi
-function _cardHeader(label, cardKey, settingsRows) {
+var CARD_ACCENT = { cash:'var(--accent-kassa)', inv:'var(--accent-sijoitukset)', debt:'var(--accent-velat)' }; function _cardHeader(label, cardKey, settingsRows) { var accent = CARD_ACCENT[cardKey] || 'var(--accent-default)';
   var exp = _pref(cardKey, 'expanded', true);
   var pct = _pref(cardKey, 'showPct', true);
   var rows = settingsRows || [];
   var rowsJSON = JSON.stringify(rows).replace(/"/g, '&quot;');
   return '<div class="card-header-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
-    + '<div class="card-label" style="margin-bottom:0;cursor:pointer' + '" onclick="toggleCardDetail(\'' + cardKey + '\')">' + label + '</div>'
+        + '<div class="card-label" style="margin-bottom:0;cursor:pointer;color:' + accent + ';' + '" onclick="toggleCardDetail(\'' + cardKey + '\')">' + '<span class="card-dot"></span>' + label + '</div>'
     + '<div style="display:flex;gap:3px;align-items:center;">'
     + '<button onclick="event.stopPropagation();openCardSettings(\'' + cardKey + '\',\'' + label + '\',' + rowsJSON + ')" '
         + 'title="Asetukset" style="font-size:11px;padding:2px 7px;border-radius:4px;'

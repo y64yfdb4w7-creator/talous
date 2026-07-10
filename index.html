@@ -58,6 +58,7 @@
       --pk-neg:      #c05a6a;
       --mono:        'IBM Plex Mono', 'SF Mono', monospace;
       --sans:        'Syne', sans-serif;
+      --accent-kassa: var(--green); --accent-sijoitukset: var(--blue); --accent-velat: var(--gold); --accent-default: var(--text2);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -356,6 +357,7 @@
       color: var(--text2);
       margin-bottom: 7px;
     }
+    .card-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; margin-right:6px; vertical-align:middle; }
     .card-value {
       font-family: var(--mono);
       font-size: clamp(16px, 4.1vw, 23px);
