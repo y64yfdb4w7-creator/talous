@@ -58,7 +58,7 @@
       --pk-neg:      #c05a6a;
       --mono:        'IBM Plex Mono', 'SF Mono', monospace;
       --sans:        'Syne', sans-serif;
-            --accent-kassa: #33D17A; --accent-sijoitukset: #4DA3FF; --accent-velat: #FFB347; --accent-luottokortit: #FF4D5A; --accent-default: var(--text2);
+            --accent-kassa: #33D17A; --accent-sijoitukset: #4DA3FF; --accent-velat: #FFB347; --accent-luottokortit: #FF4D5A; --accent-default: var(--text2); --accent-kassa-bright: #5CF0A0; --accent-sijoitukset-bright: #7CC4FF; --accent-velat-bright: #FFD08A;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -358,9 +358,9 @@
       margin-bottom: 7px;
     }
     .card-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; margin-right:6px; vertical-align:middle; }
-    .db-item.card[data-item-id="inv"]  { --card-accent: var(--accent-sijoitukset); }
-    .db-item.card[data-item-id="cash"] { --card-accent: var(--accent-kassa); }    
-    .db-item.card[data-item-id="debt"] { --card-accent: var(--accent-velat); }    
+    .db-item.card[data-item-id="inv"]  { --card-accent: var(--accent-sijoitukset-bright); }
+    .db-item.card[data-item-id="cash"] { --card-accent: var(--accent-kassa-bright); }
+    .db-item.card[data-item-id="debt"] { --card-accent: var(--accent-velat-bright); }
     .card-value {
       font-family: var(--mono);
       font-size: clamp(18px, 1.6vw, 22px);
