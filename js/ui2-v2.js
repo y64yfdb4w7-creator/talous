@@ -251,7 +251,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
       {key:'asremontti',  label:'As.remontti'},
     ])
     + '<div class="card-left">'
-    + '<div class="card-value" style="color:var(--text);margin-bottom:12px;">'+fmt(-ltDebt)+'</div>'+lainatBadge
+    + '<div class="card-value" style="margin-bottom:12px;">'+fmt(-ltDebt)+'</div>'+lainatBadge
     + '</div>'
     + '<div class="card-right">'
     + (_pref('debt','expanded',true)
@@ -897,7 +897,7 @@ async function renderDashboard() {
           {key:'elatustili', label:'Elatustili'},
           {key:'op_gold',    label:'OP Gold'},
         ])}
-<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value" style="color:var(--text);">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value" style="color:var(--text);">'+fmt(_kv)+'</div>'; })()}</div>
+<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value">'+fmt(_kv)+'</div>'; })()}</div>
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="card-right">
