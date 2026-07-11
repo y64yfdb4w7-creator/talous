@@ -24,7 +24,7 @@ function renderHeartbeatCard(sig) {
   const tempoBar = tempo ? (function() {
     var pct = Math.min(tempo.tempo, 200);
     var barPct = Math.round(pct / 2);
-    var barColor = pct > 130 ? '#c05a5a' : pct > 105 ? '#b8956a' : '#5a9e6a';
+    var barColor = pct > 130 ? 'var(--red)' : pct > 105 ? 'var(--amber)' : 'var(--green)';
     return '<div style="margin-top:14px;">'
       + '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;">'
       + '<span>Kulutustempo · pv ' + tempo.dayNum + '</span>'
@@ -42,10 +42,10 @@ function renderHeartbeatCard(sig) {
   if (cycle) {
     var cash = cycle.cashBalance, card = cycle.cardBalance, net = cycle.net, days = cycle.daysUntilDue;
     var netClr = net >= 0 ? 'var(--green)' : 'var(--text2)';
-    var daysClr = days <= 3 ? '#c05a5a' : days <= 7 ? '#b8956a' : 'var(--text3)';
+    var daysClr = days <= 3 ? 'var(--red)' : days <= 7 ? 'var(--amber)' : 'var(--text3)';
     var badge = cycle.cycleOk
-      ? '<span style="color:#5a9e6a;font-size:10px;">● Koroton sykli</span>'
-      : '<span style="color:#b8956a;font-size:10px;">○ Seuraa eräpäivää</span>';
+      ? '<span style="color:var(--green);font-size:10px;">● Koroton sykli</span>'
+      : '<span style="color:var(--amber);font-size:10px;">○ Seuraa eräpäivää</span>';
     cycleBlock = '<div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--border);">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">'
       + '<span style="font-size:10px;letter-spacing:.06em;color:var(--text3);text-transform:uppercase;">Kassasykli</span>' + badge + '</div>'
@@ -61,7 +61,7 @@ function renderHeartbeatCard(sig) {
   var reserviBlock = '';
   if (runway) {
     var months = runway.months;
-    var rColor = months < 3 ? '#c05a5a' : months < 8 ? '#b8956a' : '#5a9e6a';
+    var rColor = months < 3 ? 'var(--red)' : months < 8 ? 'var(--amber)' : 'var(--green)';
     var rBar = Math.min(Math.round((months / 36) * 100), 100);
     reserviBlock = '<div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--border);">'
       + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
@@ -166,12 +166,12 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
 
   var timelineParts = sortedForTimeline.map(function(ld, i) {
     var tlMo = (ld.endsYear - nowYear) * 12 + (ld.endsMonth - nowMonth);
-    var clr  = tlMo < 12 ? '#5a9e6a' : tlMo < 30 ? '#b8956a' : 'var(--text3)';
+    var clr  = tlMo < 12 ? 'var(--card-primary-bright)' : tlMo < 30 ? 'var(--card-primary)' : 'var(--text3)';
     return '<span style="font-size:11px;color:'+clr+';">'+ld.icon+' '+fmtMY(ld.endsMonth, ld.endsYear)+'</span>';
   });
   var separator = '<span style="font-size:10px;color:rgba(255,255,255,0.2);margin:0 6px;">─●─</span>';
   var timelineBlock = '<div style="margin-bottom:10px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
-    + '<span style="font-size:11px;color:#5a9e6a;font-weight:600;">● NOW</span>'
+    + '<span style="font-size:11px;color:var(--card-primary);font-weight:600;">● NOW</span>'
     + separator + timelineParts.join(separator)
     + '<span style="font-size:11px;color:rgba(255,255,255,0.25);margin-left:4px;">🏁</span>'
     + '</div>';
@@ -197,7 +197,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     var bar    = '█'.repeat(filled) + '░'.repeat(empty);
     var mmYY   = fmtMY(ld.endsMonth, ld.endsYear);
     var yLeft  = ld.endsYear - nowYear;
-    var dateClr = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
+    var dateClr = 'var(--text3)';
     var monthsLeft = (ld.endsYear - nowYear) * 12 + (ld.endsMonth - nowMonth);
 
     var paidThisYear = _yearPaid(snaps, ld.key, nowYear);
@@ -211,7 +211,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
         +'<span style="font-size:12px;color:var(--text2);font-weight:600;flex:1;">'+ ld.label +'</span>'
         +'<span id="ld-date-'+ld.key+'" style="font-family:var(--mono);font-size:11px;color:'+dateClr+';flex-shrink:0;">'+ mmYY +'</span>'
       +'</div>'
-      +'<div style="font-family:var(--mono);font-size:11px;color:#5a9e6a;letter-spacing:.04em;margin-bottom:4px;">'+ bar +'</div>'
+      +'<div style="font-family:var(--mono);font-size:11px;color:var(--card-primary);letter-spacing:.04em;margin-bottom:4px;">'+ bar +'</div>'
       +'<div style="display:flex;gap:14px;font-family:var(--mono);font-size:11px;">'
         +'<span style="color:var(--text2);">'+ fmt(absbal) +'\u00a0j\u00e4ljell\u00e4</span>'
         +'<span style="color:var(--text3);">'+ fmt(paidTotal) +'\u00a0maksettu</span>'
@@ -225,7 +225,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
           +(paidLastYear > 0
             ? '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">'+(nowYear-1)+'</span><span style="color:var(--text2);">−'+fmt(paidLastYear)+'</span></div>'
             : '')
-          +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">Σ</span><span style="color:#5a9e6a;">−'+fmt(paidTotal)+'</span></div>'
+          +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">Σ</span><span style="color:var(--card-primary);">−'+fmt(paidTotal)+'</span></div>'
           +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">'+ ld.monthly +' €/kk</span><span></span></div>'
           +'<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:7px;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3);">'
           +'P\u00e4\u00e4ttyy\u00a0'
@@ -354,15 +354,15 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     const devPct   = (baseline !== null && baseline !== 0)
                      ? Math.round(((curNetto - baseline) / Math.abs(baseline)) * 100) : null;
 
-    var devColor = '#5a9e6a', devLabel = 'Normaali sykli';
+    var devColor = 'var(--text2)', devLabel = 'Normaali sykli';
     if (devPct !== null) {
-      if (devPct > 10)       { devColor = '#5a9e6a'; devLabel = '+'+devPct+' % parempi kuin normaali'; }
-      else if (devPct < -10) { devColor = '#b8956a'; devLabel = Math.abs(devPct)+' % yli normaalin'; }
+      if (devPct > 10)       { devColor = 'var(--green)'; devLabel = '+'+devPct+' % parempi kuin normaali'; }
+      else if (devPct < -10) { devColor = 'var(--red)'; devLabel = Math.abs(devPct)+' % yli normaalin'; }
     }
 
     const cycLabel = cycle ? (cycle.cycleOk
-      ? '<span style="color:#5a9e6a;font-size:10px;">● Koroton · eräp. '+cycle.daysUntilDue+' pv</span>'
-      : '<span style="color:#b8956a;font-size:10px;">○ Eräp. '+cycle.daysUntilDue+' pv</span>') : '';
+      ? '<span style="color:var(--green);font-size:10px;">● Koroton · eräp. '+cycle.daysUntilDue+' pv</span>'
+      : '<span style="color:var(--amber);font-size:10px;">○ Eräp. '+cycle.daysUntilDue+' pv</span>') : '';
 
     rytmiBlock = '<div style="background:var(--surface);border:1px solid var(--border);'
       +'border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
@@ -378,8 +378,8 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
       // OP Gold (inline edit)
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
       +'<span style="font-size:11px;color:var(--text3);">OP Gold</span>'
-      +'<span data-raw="'+opGold+'" id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--gold);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+ fmt(-opGold) +'</span>'
-      +'<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--gold);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
+      +'<span data-raw="'+opGold+'" id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--card-primary);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+ fmt(-opGold) +'</span>'
+      +'<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--card-primary);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
       +'</div>'
       // Viiva
       +'<div style="height:1px;background:rgba(255,255,255,0.08);margin:5px 0;"></div>'
@@ -413,7 +413,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     const bal = latest[ld.key];
     if (!bal || Math.abs(bal) < 10) return;
     const yLeft = ld.endsYear - nowYear;
-    const yClr  = yLeft <= 1 ? '#5a9e6a' : yLeft <= 3 ? '#b8956a' : 'var(--text3)';
+    const yClr  = yLeft <= 1 ? 'var(--card-primary-bright)' : yLeft <= 3 ? 'var(--card-primary)' : 'var(--text3)';
     if (ld.endsYear > nowYear) totalFree += ld.monthly;
     // Saldo näkyvästi, päättymisvuosi kontekstina
     loanRows += '<div style="display:flex;justify-content:space-between;align-items:flex-start;'
@@ -424,7 +424,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
       +'<div style="font-size:11px;color:'+yClr+';margin-top:2px;">→ päättyy '+ld.endsYear+'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;padding-top:14px;">'
-      +'<div style="font-size:12px;color:#5a9e6a;font-weight:600;">+'+fmt(ld.monthly)+'/kk</div>'
+      +'<div style="font-size:12px;color:var(--text2);font-weight:600;">+'+fmt(ld.monthly)+'/kk</div>'
       +'<div style="font-size:10px;color:var(--text3);">vapautuu</div>'
       +'</div></div>';
   });
@@ -438,13 +438,13 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
       +(totalFree > 0
         ? '<div style="margin-top:8px;padding:7px 10px;border-radius:7px;'
           +'background:rgba(90,158,106,0.07);border:1px solid rgba(90,158,106,0.18);">'
-          +'<div style="font-size:11px;color:#5a9e6a;font-weight:600;">⬆ Yhteensä +'+fmt(totalFree)+'/kk vapautuu</div>'
+          +'<div style="font-size:11px;color:var(--green);font-weight:600;">⬆ Yhteensä +'+fmt(totalFree)+'/kk vapautuu</div>'
           +'</div>' : '')
       +'</div>';
   }
 
   // ── 5. RESERVI ───────────────────────────────
-  const rClr = runway ? (runway.months < 3 ? '#c05a5a' : runway.months < 8 ? '#b8956a' : '#5a9e6a') : 'var(--text3)';
+  const rClr = runway ? (runway.months < 3 ? 'var(--red)' : runway.months < 8 ? 'var(--amber)' : 'var(--green)') : 'var(--text3)';
   var reserviRow = runway ? (
     '<div style="display:flex;justify-content:space-between;align-items:center;'
     +'padding:9px 13px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">'
@@ -897,7 +897,7 @@ async function renderDashboard() {
           {key:'elatustili', label:'Elatustili'},
           {key:'op_gold',    label:'OP Gold'},
         ])}
-<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'#b8956a'; return '<div class="card-value">'+fmt(_kv)+'</div>'; })()}</div>
+<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'var(--red)'; return '<div class="card-value">'+fmt(_kv)+'</div>'; })()}</div>
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="card-right">
@@ -915,23 +915,23 @@ async function renderDashboard() {
           var baseline2  = tempo2 ? tempo2.paceAvg : null;
           var devEur2    = (baseline2 !== null) ? nettorytmi2 - baseline2 : null;
           var kayttovara = nettorytmi2;
-          var kv2Color   = kayttovara >= 0 ? 'var(--green)' : '#b8956a';
+          var kv2Color   = kayttovara >= 0 ? 'var(--green)' : 'var(--red)';
 
           var html2 = '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">'
             // Tulotili-rivi
             +(_pref('cash','row_tulotili',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">'
-              + '<span style="font-size:12px;color:var(--text);font-weight:600;border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">Tulotili</span>'
-        + '<span data-raw="'+tulotili2+'" id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
+              + '<span style="font-size:12px;color:var(--card-primary);font-weight:600;border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">Tulotili</span>'
+        + '<span data-raw="'+tulotili2+'" id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--card-primary);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
         + '<input id="kassa-tulotili-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
             // OP Gold -rivi
             +(_pref('cash','row_op_gold',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-              + '<span style="font-size:12px;color:var(--gold);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
-        + '<span data-raw="'+opGold2+'" id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--gold);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
-        + '<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--gold);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
+              + '<span style="font-size:12px;color:var(--card-primary);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
+        + '<span data-raw="'+opGold2+'" id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--card-primary);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
+        + '<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--card-primary);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
             // Viiva — piilotetaan jos molemmat rivit piilossa
@@ -947,9 +947,9 @@ async function renderDashboard() {
 
           // Segmenttipalkki (koko kortin leveys)
                     var _barHtml = '<div style="margin:12px 0 8px 0;height:8px;border-radius:4px;overflow:hidden;display:flex;">';
-          _barHtml += '<div style="flex:6;height:8px;background:#5a9e6a;"></div>';
+          _barHtml += '<div style="flex:6;height:8px;background:var(--card-primary);"></div>';
           _barHtml += '<div style="width:2px;height:8px;background:rgba(0,0,0,0.5);"></div>';
-          _barHtml += '<div style="flex:2;height:8px;background:#b8956a;"></div>';
+          _barHtml += '<div style="flex:2;height:8px;background:var(--card-primary-dark);"></div>';
           _barHtml += '<div style="width:2px;height:8px;background:rgba(0,0,0,0.5);"></div>';
           _barHtml += '<div style="flex:2;height:8px;background:rgba(255,255,255,0.15);"></div>';
           _barHtml += '</div>';
