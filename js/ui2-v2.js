@@ -332,11 +332,11 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
     + '<div style="font-size:8px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">Velat</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
     + '<span style="font-size:10px;color:var(--text3);">OP Gold</span>'
-    + '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--gold);">'
+    + '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--card-green);">'
     + _fK(-stDebtMobile) + '</span></div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
     + '<span style="font-size:10px;color:var(--text3);">Lainat</span>'
-    + '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:#6b7280;">'
+    + '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text3);">'
     + _fK(-ltDebtMobile) + '</span></div>'
     + '</div>'
     + tile('Käyttötilit', _fK(cash), 'netto '+_fK(liquid), 'var(--text2)')
