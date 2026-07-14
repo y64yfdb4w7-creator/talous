@@ -197,7 +197,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     var bar    = '█'.repeat(filled) + '░'.repeat(empty);
     var mmYY   = fmtMY(ld.endsMonth, ld.endsYear);
     var yLeft  = ld.endsYear - nowYear;
-    var dateClr = 'var(--text3)';
+    var dateClr = 'var(--card-primary-dark)';
     var monthsLeft = (ld.endsYear - nowYear) * 12 + (ld.endsMonth - nowMonth);
 
     var paidThisYear = _yearPaid(snaps, ld.key, nowYear);
@@ -208,25 +208,25 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     loanRows += '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="toggleLoanDetail(this)" data-did="' + detailId + '">'
       +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
         +'<span style="font-size:13px;flex-shrink:0;">'+ ld.icon +'</span>'
-        +'<span style="font-size:12px;color:var(--text2);font-weight:600;flex:1;">'+ ld.label +'</span>'
+        +'<span style="font-size:12px;color:var(--card-primary);font-weight:600;flex:1;">'+ ld.label +'</span>'
         +'<span id="ld-date-'+ld.key+'" style="font-family:var(--mono);font-size:11px;color:'+dateClr+';flex-shrink:0;">'+ mmYY +'</span>'
       +'</div>'
       +'<div style="font-family:var(--mono);font-size:11px;color:var(--card-primary);letter-spacing:.04em;margin-bottom:4px;">'+ bar +'</div>'
       +'<div style="display:flex;gap:14px;font-family:var(--mono);font-size:11px;">'
-        +'<span style="color:var(--text2);">'+ fmt(absbal) +'\u00a0j\u00e4ljell\u00e4</span>'
-        +'<span style="color:var(--text3);">'+ fmt(paidTotal) +'\u00a0maksettu</span>'
+        +'<span style="color:var(--card-primary);">'+ fmt(absbal) +'\u00a0j\u00e4ljell\u00e4</span>'
+        +'<span style="color:var(--card-primary-dark);">'+ fmt(paidTotal) +'\u00a0maksettu</span>'
       +'</div>'
       +'<div id="' + detailId + '" style="display:none;margin-top:7px;padding:7px 10px;'
         +'background:rgba(255,255,255,0.03);border-radius:6px;font-family:var(--mono);font-size:11px;">'
         +'<div style="display:flex;flex-direction:column;gap:3px;">'
           +(paidThisYear > 0
-            ? '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">'+nowYear+'</span><span style="color:var(--text2);">−'+fmt(paidThisYear)+'</span></div>'
+            ? '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--card-primary-dark);">'+nowYear+'</span><span style="color:var(--card-primary);">−'+fmt(paidThisYear)+'</span></div>'
             : '')
           +(paidLastYear > 0
-            ? '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">'+(nowYear-1)+'</span><span style="color:var(--text2);">−'+fmt(paidLastYear)+'</span></div>'
+            ? '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--card-primary-dark);">'+(nowYear-1)+'</span><span style="color:var(--card-primary);">−'+fmt(paidLastYear)+'</span></div>'
             : '')
-          +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">Σ</span><span style="color:var(--card-primary);">−'+fmt(paidTotal)+'</span></div>'
-          +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--text3);">'+ ld.monthly +' €/kk</span><span></span></div>'
+          +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--card-primary-dark);">Σ</span><span style="color:var(--card-primary);">−'+fmt(paidTotal)+'</span></div>'
+          +'<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:var(--card-primary-dark);">'+ ld.monthly +' €/kk</span><span></span></div>'
           +'<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:7px;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3);">'
           +'P\u00e4\u00e4ttyy\u00a0'
           +'<input id="ld-mo-'+ld.key+'" type="number" min="1" max="12" value="'+ld.endsMonth+'" style="width:36px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;padding:2px 3px;text-align:center;" onclick="event.stopPropagation()">'
@@ -256,7 +256,7 @@ function renderSitoumusCard(sig, latest, creditDebt, ltDebt, snaps) {
     + '<div class="card-right">'
     + (_pref('debt','expanded',true)
        ? loanRows
-       : '<div style="font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.02em;">'
+       : '<div style="font-size:11px;color:var(--card-primary-dark);margin-top:2px;letter-spacing:.02em;">'
          + collapsedSummary
          + '</div>')
     + '</div>'
@@ -898,7 +898,7 @@ async function renderDashboard() {
           {key:'op_gold',    label:'OP Gold'},
         ])}
 <div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'var(--red)'; return '<div class="card-value">'+fmt(_kv)+'</div>'; })()}</div>
-        ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
+        ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--card-primary-dark);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="card-right">
                 <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
@@ -959,13 +959,13 @@ async function renderDashboard() {
             var _dn2 = latest.date ? new Date(latest.date).getDate() : null;
             html2 += '<div class="kassa-section-hdr">KULUTUSRYTMI</div>';
             html2 += '<div style="margin:14px 0 0;padding:0 2px;">'
-              + (_dn2 ? '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">' + _dn2 + '. päivä</div>' : '')
+              + (_dn2 ? '<div style="font-size:10px;color:var(--card-primary-dark);margin-bottom:4px;">' + _dn2 + '. päivä</div>' : '')
               + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
-              + '<span style="font-size:11px;color:var(--text2);">ylensä</span>'
+              + '<span style="font-size:11px;color:var(--card-primary);">ylensä</span>'
               + '<span style="font-family:var(--mono);font-size:12px;color:var(--green);">' + fmt(baseline2) + '</span></div>'
               + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-              + '<span style="font-size:11px;color:var(--text2);">nyt</span>'
-              + '<span style="font-family:var(--mono);font-size:12px;color:var(--text);">' + fmt(nettorytmi2) + '</span></div>'
+              + '<span style="font-size:11px;color:var(--card-primary);">nyt</span>'
+              + '<span style="font-family:var(--mono);font-size:12px;color:var(--card-primary);">' + fmt(nettorytmi2) + '</span></div>'
               + '</div>';
           }
 
@@ -976,7 +976,7 @@ async function renderDashboard() {
               var _lCol = _lastMonth.delta >= 0 ? 'var(--green)' : 'var(--red)';
               var _lSign = (_lastMonth.delta >= 0 ? "+" : "") + _lastMonth.delta.toLocaleString("fi-FI");
               var _lIcons = _lastMonth.icons.length ? '<span style="font-size:11px;margin-left:4px;">' + _lastMonth.icons.join('') + '</span>' : '';
-              html2 += '<div style="font-size:11px;color:var(--text2);font-family:var(--mono);">' + _lastMonth.label + _lIcons + ' <span style="color:' + _lCol + '">' + _lSign + '\u00a0\u20ac</span></div>';
+              html2 += '<div style="font-size:11px;color:var(--card-primary);font-family:var(--mono);">' + _lastMonth.label + _lIcons + ' <span style="color:' + _lCol + '">' + _lSign + '\u00a0\u20ac</span></div>';
             }
           } else {
 
@@ -985,14 +985,14 @@ async function renderDashboard() {
             _moRow += '<div class="kassa-section-hdr" style="margin-top:6px">TULOSSA</div>';
             _moRow += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
             _moRow += '<button class="kassa-add-btn" onclick="kassaTulossaAdd()">+ Lisää</button>';
-            _moRow += '<div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-top:6px;margin-bottom:4px;">Kuukausitulos</div>';
+            _moRow += '<div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--card-primary-dark);margin-top:6px;margin-bottom:4px;">Kuukausitulos</div>';
             _mockHistory.forEach(function(m) {
               var sign = (m.delta >= 0 ? "+" : "") + m.delta.toLocaleString("fi-FI");
               var col = m.delta >= 0 ? 'var(--green)' : 'var(--red)';
               var lbl = m.label + (m.partial ? "\u2026" : "");
               var iconsHtml = m.icons.length ? '<span style="font-size:11px;margin-left:4px;">' + m.icons.join('') + '</span>' : '';
               _moRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
-              _moRow += '<span style="font-size:11px;color:var(--text2);font-family:var(--mono);">' + lbl + iconsHtml + '</span>';
+              _moRow += '<span style="font-size:11px;color:var(--card-primary);font-family:var(--mono);">' + lbl + iconsHtml + '</span>';
               _moRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + '">' + sign + '\u00a0\u20ac</span>';
               _moRow += '</div>';
             });
