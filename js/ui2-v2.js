@@ -4312,50 +4312,69 @@ function updateLoanScheduleFromStorage() {
 // OIKEA PANEELI — kuukausikatsaus + aikarakenne
 // ══════════════════════════════════════════════════════════════
 function renderRightPanel(snaps, latest, calc) {
-  var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
-  var total = items.reduce(function(s, x) { return s + (parseFloat(x.amt_kk) || 0); }, 0);
-  var rows = items.length ? items.map(function(item) {
-    var amt = parseFloat(item.amt_kk) || 0;
-    var label = String(item.label || 'Meno').replace(/</g, '&lt;');
-    return '<div class="panel-row"><span class="panel-row-lbl">' + label + '</span>'
-      + '<span style="display:flex;align-items:center;gap:8px;">'
-      + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-      + '<button onclick="panelMenoDelete(\'' + item.id + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
-      + '</span></div>';
-  }).join('') : '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä menoja.</span></div>';
+var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
+var total = items.reduce(function(s, x) { return s + (parseFloat(x.amt_kk) || 0); }, 0);
+var sortedItems = items.slice().sort(function(a, b) {
+var da = (a.paiva === undefined || a.paiva === null || a.paiva === '') ? Infinity : Number(a.paiva);
+var db = (b.paiva === undefined || b.paiva === null || b.paiva === '') ? Infinity : Number(b.paiva);
+if (da !== db) return da - db;
+return String(a.label || '').localeCompare(String(b.label || ''), 'fi');
+});
+var rows = sortedItems.length ? sortedItems.map(function(item) {
+var amt = parseFloat(item.amt_kk) || 0;
+var label = String(item.label || 'Meno').replace(/</g, '&lt;');
+var dayVal = (item.paiva === undefined || item.paiva === null || item.paiva === '') ? '' : String(item.paiva);
+var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);">' + (dayVal ? dayVal + '.' : '') + '</span>';
+return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
++ '<span style="display:flex;align-items:center;gap:8px;">'
++ '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
++ '<button onclick="panelMenoDelete(\'' + item.id + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
++ '</span></div>';
+}).join('') : '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä menoja.</span></div>';
 
-  return '<div class="panel-section">'
-    + '<div class="panel-label">Säännölliset menot</div>'
-    + rows
-    + '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
-    + '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
-    + '<span class="panel-row-val">' + total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-    + '</div>'
-    + '<div style="display:flex;gap:6px;margin-top:12px;">'
-    + '<input id="panel-meno-name" type="text" placeholder="Nimi" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="flex:1;min-width:0;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
-    + '<input id="panel-meno-amt" type="number" inputmode="decimal" placeholder="€/kk" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="width:72px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
-    + '</div>'
-    + '<button onclick="panelMenoAdd()" style="margin-top:8px;width:100%;padding:7px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text2);font-size:12px;cursor:pointer;">+ Lisää meno</button>'
-    + '</div>';
+return '<div class="panel-section">'
++ '<div class="panel-label">Säännölliset menot</div>'
++ rows
++ '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
++ '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
++ '<span class="panel-row-val">' + total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
++ '</div>'
++ '<div style="display:flex;gap:6px;margin-top:12px;">'
++ '<input id="panel-meno-name" type="text" placeholder="Nimi" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="flex:1;min-width:0;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
++ '<input id="panel-meno-amt" type="number" inputmode="decimal" placeholder="€/kk" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="width:72px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
++ '<input id="panel-meno-day" type="number" inputmode="numeric" min="1" max="31" step="1" placeholder="pv" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="width:48px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
++ '</div>'
++ '<button onclick="panelMenoAdd()" style="margin-top:8px;width:100%;padding:7px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text2);font-size:12px;cursor:pointer;">+ Lisää meno</button>'
++ '</div>';
 }
 
 window.panelMenoAdd = async function() {
-  var nameEl = document.getElementById('panel-meno-name');
-  var amtEl = document.getElementById('panel-meno-amt');
-  var name = ((nameEl && nameEl.value) || '').trim();
-  var amt = parseFloat(((amtEl && amtEl.value) || '').replace(',', '.'));
-  if (!name) { if (nameEl) nameEl.focus(); return; }
-  if (isNaN(amt) || amt <= 0) { if (amtEl) amtEl.focus(); return; }
-  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
-  if (!snaps.length) return;
-  var latest = Object.assign({}, snaps[snaps.length - 1]);
-  var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
-  items.push({ id: 'meno_' + Date.now(), label: name, amt_kk: amt });
-  latest.rytmi_items = items;
-  latest._updatedAt = new Date().toISOString();
-  await DB.putSnapshot(latest);
-  try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
-  await updateRightPanel();
+var nameEl = document.getElementById('panel-meno-name');
+var amtEl = document.getElementById('panel-meno-amt');
+var dayEl = document.getElementById('panel-meno-day');
+var name = ((nameEl && nameEl.value) || '').trim();
+var amt = parseFloat(((amtEl && amtEl.value) || '').replace(',', '.'));
+var dayRaw = ((dayEl && dayEl.value) || '').trim();
+if (!name) { if (nameEl) nameEl.focus(); return; }
+if (isNaN(amt) || amt <= 0) { if (amtEl) amtEl.focus(); return; }
+var paiva;
+if (dayRaw !== '') {
+var dayNum = parseFloat(dayRaw);
+if (isNaN(dayNum) || !Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31) { if (dayEl) dayEl.focus(); return; }
+paiva = dayNum;
+}
+var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
+if (!snaps.length) return;
+var latest = Object.assign({}, snaps[snaps.length - 1]);
+var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
+var newItem = { id: 'meno_' + Date.now(), label: name, amt_kk: amt };
+if (paiva !== undefined) newItem.paiva = paiva;
+items.push(newItem);
+latest.rytmi_items = items;
+latest._updatedAt = new Date().toISOString();
+await DB.putSnapshot(latest);
+try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
+await updateRightPanel();
 };
 
 window.panelMenoDelete = async function(id) {
