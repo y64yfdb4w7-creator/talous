@@ -4,7 +4,9 @@
 **Päivitetty:** 2026-06-02
 **Viimeisin commit:** `5067dcc`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv.), index.html (1252 riv.)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv.**)
+
+**Dokumentaatiosprintti 15.7.2026:** BUG-A…D tarkistettu koodista (HEAD `41ade7c`) — kaikki edelleen avoinna, ks. merkinnät alla.
 
 ---
 
@@ -54,6 +56,7 @@ mutta `renderDashboard` (rivit 505–924) ei lue sitä missään.
 Kaikki `data-item-id`-kortit renderöityvät aina.
 **Pienin korjaus:** Jokaisen korttidiv:n ympärille `_pref(card,'visible',true)`-ehto.
 **Status:** Odottaa tuotantopäätöstä — mitkä kortit ovat piilotettavissa?
+**Tarkistettu 15.7.2026 (HEAD `41ade7c`):** edelleen avoin. `visible`-pref löytyy nyt riveiltä 500 (kirjoitus) ja 570/572 (checkbox-UI), mutta sitä ei yhä lueta kortin renderöinnin gatettamiseksi missään.
 
 ### BUG-B: "Muutosprosentit" — no-op Kassa-kortissa ja muissa
 **Tiedosto:** ui2-v2.js, funktio `toggleCardPct` rivi 381
@@ -63,6 +66,7 @@ Kaikki `data-item-id`-kortit renderöityvät aina.
 mutta muuttujaa `pct` ei käytetä missään funktion palautusarvossa.
 **Status:** Odottaa tuotantopäätöstä — lisätäänkö prosentit Kassaan,
 vai poistetaanko vaihtoehto Kassa-kortin valikosta?
+**Tarkistettu 15.7.2026 (HEAD `41ade7c`):** edelleen avoin. `var pct = _pref(cardKey,'showPct',true)` on nyt rivillä 608 — muuttuja on yhä käyttämätön `_cardHeader`:n palautusarvossa.
 
 ### BUG-C: .sub-rows legacy-blokki Kassa-kortissa
 **Tiedosto:** ui2-v2.js rivit 767–773
@@ -70,6 +74,7 @@ vai poistetaanko vaihtoehto Kassa-kortin valikosta?
 Tavoitetili, Elatustili) joka on nyt redundantti html2-blokin rinnalla.
 TODO-kommentti lisätty commitissa 2b98485.
 **Status:** Siivottavissa omassa commitissaan, ei aktiivinen bugi.
+**Tarkistettu 15.7.2026 (HEAD `41ade7c`):** edelleen läsnä, TODO-kommentti yhä paikallaan (nyt rivillä 902).
 
 ### BUG-D: pk-month / pk-week / pk-year — CSS puuttuu
 **Tiedosto:** index.html
@@ -78,6 +83,7 @@ TODO-kommentti lisätty commitissa 2b98485.
 Kuukausi/viikko-otsikot näkyvät tyylittöminä tai eivät erotu riveistä.
 **Pienin korjaus:** 3 CSS-sääntöä index.html:n `</style>`-tagin eteen.
 **Status:** Hyväksytty konsepti (runtime-patch tehty sessiossa), ei vielä commitoitu.
+**Tarkistettu 15.7.2026 (HEAD `41ade7c`):** edelleen avoin. Luokat generoidaan nyt riveillä 3059–3061 (`renderPaivakirja`), index.html:ssä ei yhä yhtään `pk-month`/`pk-week`/`pk-year`-CSS-sääntöä.
 
 ---
 

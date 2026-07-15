@@ -71,6 +71,20 @@ Tähän menee n. 2-3 minuuttia.
 | Privacy mode | Toimii | hide-amounts CSS-luokka |
 | Desktop sidebar | Vakaa | 3-kolumni layout, drag-and-drop |
 | Mobiili swipe-navigaatio | Toimii | swipe-nav.js |
+| Säännölliset menot -paneeli | Toimii (lisätty 15.7.2026 mennessä) | Desktop oikea paneeli, `renderRightPanel()` — lisää/poista toistuvia menoja, valinnainen eräpäivä (`paiva`, 1–31). Ks. `docs/FINANCE_OS_DATA_MODEL.md` |
+
+### Dashboard Design System (dokumentoitu 15.7.2026)
+
+Dashboardin kolme pääkorttia (Kassa, Sijoitukset, Velat) käyttävät korttikohtaista CSS-muuttujajärjestelmää identiteettivärille, joka on korvannut aiemmat kovakoodatut värit ja vanhan `--gold`-tunnuksen identiteettikorteissa:
+
+- `--card-primary` / `--card-primary-bright` / `--card-primary-dark` — kortin identiteettiväri kolmella sävyllä, asetetaan per kortti `[data-item-id]`-selektorilla (index.html rivit 361–363):
+  - `data-item-id="inv"` → sininen (`--card-blue*`)
+  - `data-item-id="cash"` → vihreä (`--card-green*`)
+  - `data-item-id="debt"` → oranssi (`--card-orange*`)
+- `--green` / `--red` / `--amber` — semanttiset tilavärit (positiivinen/negatiivinen/huomio), erillään korttien identiteettiväreistä
+- Otsikot, pääsummat ja inv-bar-elementit (`.inv-bar-name`, `.inv-bar-pct`, `.kassa-section-hdr`) lukevat näitä muuttujia sekä mobiilissa että desktopissa (aiemmin osa säännöistä oli jumissa avautumattomassa `@media(max-width:899px)`-lohkossa — korjattu, ks. commitit `bf094c3`, `638de5f`, `cc51f5d`)
+
+**Ei koske filosofiaa tai UX-periaatteita** — tämä on toteutustason värijärjestelmän kuvaus, ei muutos DESIGN_PRINCIPLES.md:n tai UX_VISION.md:n sisältöön.
 
 ### Viimeisimmät korjaukset (tämä sessio)
 
@@ -155,7 +169,7 @@ Nämä EIVÄT ole vielä toteutuksessa. Dokumentoitu tulevia sessioita varten.
 
 ```
 index.html          ← Monoliittinen CSS, toimii. Harkitse jakamista myöhemmin.
-ui2-v2.js           ← ~214k merkkiä, kasvaa. Harkitse modulaarisuutta v2:ssa.
+ui2-v2.js           ← ~214k merkkiä 9.6.2026 → ~265k merkkiä 15.7.2026, kasvaa. Harkitse modulaarisuutta v2:ssa.
 sync2.js            ← Hyvä. Selkeä vastuunjako.
 calculations.js     ← Hyvä. Puhdas, testattava.
 app.js              ← Hyvä. Pieni, selkeä käynnistyslogiikka.

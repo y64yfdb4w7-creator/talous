@@ -124,17 +124,30 @@ Kaikki arvot NEGATIIVISIA (velka).
       | Kenttä | Tyyppi | Esimerkki | Kuvaus |
       |---|---|---|---|
       | `menot_kk` | number | `1200` | Kuukausittaiset toistuvat menot yhteensä |
-      | `rytmi_items` | array | `[{label:'Puhelin',amount:25}]` | Toistuvien menojen luettelo |
+      | `rytmi_items` | array | `[{id:'meno_...',label:'Puhelin',amt_kk:25,paiva:15}]` | Toistuvien menojen luettelo (ks. "Säännölliset menot" alla) |
 
-      **rytmi_items rakenne (yksittäinen erä):**
+      **rytmi_items rakenne (yksittäinen erä, päivitetty 15.7.2026):**
       ```json
       {
-        "label": "Pankkimaksut",
-          "amount": 120
-          }
-          ```
+        "id": "meno_1720000000000",
+          "label": "Pankkimaksut",
+            "amt_kk": 120,
+              "paiva": 15
+              }
+              ```
 
-          **Huomio:** `rytmi_items` korvaa `menot_kk`:n lasketun arvon. Jos `rytmi_items` on olemassa, `menot_kk` lasketaan siitä summaamalla.
+              | Kenttä | Tyyppi | Pakollinen | Kuvaus |
+              |---|---|---|---|
+              | `id` | string | Kyllä (uudet erät) | `'meno_' + Date.now()` — käytetään poistossa |
+              | `label` | string | Kyllä | Menon nimi |
+              | `amt_kk` | number | Kyllä | Euromäärä / kk |
+              | `paiva` | number? | Ei | Eräpäivä (1–31). Lisätty 15.7.2026 mennessä (commit `f076b18`, "Add optional due day to recurring expenses"). Puuttuu vanhoista erista — käsitellään `undefined`:na (ei eräpäivää, lajitellaan listan loppuun) |
+
+              **Legacy-yhteensopivuus:** Vanhat `rytmi_items`-erät saattavat käyttää kenttänimeä `amount` `amt_kk`:n sijaan. Lukukoodi (`renderRightPanel`, `js/ui2-v2.js`) tukee molempia: `x.amt_kk != null ? x.amt_kk : x.amount`. Uudet erät kirjoitetaan aina `amt_kk`-nimellä.
+
+              **Säännölliset menot -paneeli:** Erät renderöidään ja niitä hallitaan desktopin oikeassa paneelissa (`renderRightPanel()`, `js/ui2-v2.js`, funktiot `panelMenoAdd`/`panelMenoDelete`). Lista lajitellaan `paiva`-kentän mukaan (eräpäivättömät viimeisenä), ja rivi näyttää päivän, nimen ja summan. Ks. myös `docs/FINANCE_OS_STATUS.md`.
+
+              **Huomio:** `rytmi_items` korvaa `menot_kk`:n lasketun arvon. Jos `rytmi_items` on olemassa, `menot_kk` lasketaan siitä summaamalla.
 
           ---
 

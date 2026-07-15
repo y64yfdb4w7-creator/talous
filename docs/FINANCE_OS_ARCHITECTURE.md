@@ -49,6 +49,22 @@ talous/
 
                 ---
 
+                ## Legacy-tiedostot (tarkistettu 15.7.2026, HEAD `41ade7c`)
+
+                Repossa on `js/`-kansiossa kolme git-trackattua tiedostoa, joita **index.html ei lataa** (ei `<script>`-viittausta):
+
+                | Tiedosto | Koko | Tila |
+                |---|---|---|
+                | `js/ui.js` | ~187 KB | Ei ladattu, edeltäjä nykyiselle ui2-v2.js:lle |
+                | `js/ui2.js` | ~202 KB | Ei ladattu, edeltäjä nykyiselle ui2-v2.js:lle |
+                | `js/sync.js` | ~23 KB | Ei ladattu, edeltäjä nykyiselle sync2.js:lle |
+
+                Index.html:n aktiivinen script-lista (rivit 1301–1310) on: `db.js`, `calculations.js`, `signals.js`, `import.js`, `demo-data.js`, `ui2-v2.js`, `dashboard-layout.js`, `swipe-nav.js`, `sync2.js`, `app.js`.
+
+                **Ei vielä päätetty:** ovatko `ui.js`/`ui2.js`/`sync.js` turvallisesti poistettavissa vai säilytetäänkö ne tarkoituksella historiallisena viitteenä. Vaatii erillisen suunnittelupäätöksen ennen poistoa.
+
+                ---
+
                 ## Tiedostojen vastuut
 
                 ### index.html
@@ -158,7 +174,7 @@ talous/
                           ### js/ui2-v2.js
                           **Tekee: KAIKEN UI:N**
 
-                          Tämä on järjestelmän suurin tiedosto (~214k merkkiä). Se sisältää kaikki näkymät ja niiden logiikan.
+                          Tämä on järjestelmän suurin tiedosto (~214k merkkiä / 4329 riv. 2.6.2026 → **~265k merkkiä / 5002 riv. 15.7.2026**). Se sisältää kaikki näkymät ja niiden logiikan.
 
                           **Näkymäfunktiot:**
                           - `renderDashboard()` — Etusivu (kassa, sijoitukset, velat, historia, nettovarallisuus)
