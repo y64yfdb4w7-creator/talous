@@ -938,13 +938,7 @@ async function renderDashboard() {
             +(_pref('cash','row_tulotili',true)||_pref('cash','row_op_gold',true)
               ? '<div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:8px;"></div>'
               : '')
-          // ── Kassakortti: Palkki + Historia + Tulossa (prototyyppi) ──
-          var _mockHistory = [
-            { label: "Huhti", delta: 172, icons: [] },
-            { label: "Touko", delta: 519, icons: ["\uD83D\uDD27", "\u26FA"] },
-            { label: "Kes\u00e4",  delta: 16,  icons: [], partial: true }
-          ];
-
+          // ── Kassakortti: Palkki + Kuukausirytmi + Tulossa ──
           // Segmenttipalkki (koko kortin leveys)
                     var _barHtml = '<div style="margin:12px 0 8px 0;height:8px;border-radius:4px;overflow:hidden;display:flex;">';
           _barHtml += '<div style="flex:6;height:8px;background:var(--card-primary);"></div>';
@@ -969,33 +963,15 @@ async function renderDashboard() {
               + '</div>';
           }
 
-          // Collapsed: vain viimeisin valmis kuukausi
-          var _lastMonth = _mockHistory.filter(function(m){ return !m.partial; }).slice(-1)[0];
-          if (!_pref('cash', 'expanded', true)) {
-            if (_lastMonth) {
-              var _lCol = _lastMonth.delta >= 0 ? 'var(--green)' : 'var(--red)';
-              var _lSign = (_lastMonth.delta >= 0 ? "+" : "") + _lastMonth.delta.toLocaleString("fi-FI");
-              var _lIcons = _lastMonth.icons.length ? '<span style="font-size:11px;margin-left:4px;">' + _lastMonth.icons.join('') + '</span>' : '';
-              html2 += '<div style="font-size:11px;color:var(--card-primary);font-family:var(--mono);">' + _lastMonth.label + _lIcons + ' <span style="color:' + _lCol + '">' + _lSign + '\u00a0\u20ac</span></div>';
-            }
-          } else {
+          // Kuukausirytmi: tulot_items/rytmi_items yhteenveto (korvaa entisen mock-kuukausihistorian)
+          html2 += renderKassaKuukausirytmi(latest);
 
-            // Expanded: KUUKAUSITULOS + TULOSSA
+          // TULOSSA — vain kortin ollessa laajennettu (ennallaan)
+          if (_pref('cash', 'expanded', true)) {
             var _moRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
             _moRow += '<div class="kassa-section-hdr" style="margin-top:6px">TULOSSA</div>';
             _moRow += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
             _moRow += '<button class="kassa-add-btn" onclick="kassaTulossaAdd()">+ Lisää</button>';
-            _moRow += '<div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--card-primary-dark);margin-top:6px;margin-bottom:4px;">Kuukausitulos</div>';
-            _mockHistory.forEach(function(m) {
-              var sign = (m.delta >= 0 ? "+" : "") + m.delta.toLocaleString("fi-FI");
-              var col = m.delta >= 0 ? 'var(--green)' : 'var(--red)';
-              var lbl = m.label + (m.partial ? "\u2026" : "");
-              var iconsHtml = m.icons.length ? '<span style="font-size:11px;margin-left:4px;">' + m.icons.join('') + '</span>' : '';
-              _moRow += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;">';
-              _moRow += '<span style="font-size:11px;color:var(--card-primary);font-family:var(--mono);">' + lbl + iconsHtml + '</span>';
-              _moRow += '<span style="font-family:var(--mono);font-size:12px;color:' + col + '">' + sign + '\u00a0\u20ac</span>';
-              _moRow += '</div>';
-            });
             _moRow += '</div>';
             html2 += _moRow;
           }
@@ -1976,6 +1952,60 @@ async function saveOpGoldValue(val) {
     renderSalkku();
     renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
   });
+}
+
+// Kassa: Kuukausirytmi — tulot_items/rytmi_items yhteenveto (näyttö, ei muokkausta)
+function renderKassaKuukausirytmi(latest) {
+  var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
+  var menotItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
+  var tulotSum = tulotItems.reduce(function(s, x) { return s + (Number(x.amt_kk) || 0); }, 0);
+  var menotSum = menotItems.reduce(function(s, x) { return s + (Number(x.amt_kk) || 0); }, 0);
+  var netto = tulotSum - menotSum;
+  var nettoColor = netto >= 0 ? 'var(--green)' : 'var(--red)';
+
+  var sortedMenot = menotItems.slice().sort(function(a, b) {
+    var da = (a.paiva === undefined || a.paiva === null || a.paiva === '') ? Infinity : Number(a.paiva);
+    var db = (b.paiva === undefined || b.paiva === null || b.paiva === '') ? Infinity : Number(b.paiva);
+    return da - db;
+  });
+
+  function summaryRow(label, val, color) {
+    return '<div class="sub-row"><span>' + label + '</span><span style="color:' + color + ';">' + fmt(val) + '</span></div>';
+  }
+
+  var tulotRows = tulotItems.length
+    ? tulotItems.map(function(x) {
+        return '<div class="sub-row"><span>' + String(x.label || 'Tulo').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
+      }).join('')
+    : '<div class="sub-row"><span style="color:var(--text3);">Ei säännöllisiä tuloja</span></div>';
+
+  var menotRows = sortedMenot.length
+    ? sortedMenot.map(function(x) {
+        var dayVal = (x.paiva === undefined || x.paiva === null || x.paiva === '') ? '' : (x.paiva + '. ');
+        return '<div class="sub-row"><span>' + dayVal + String(x.label || 'Meno').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
+      }).join('')
+    : '<div class="sub-row"><span style="color:var(--text3);">Ei säännöllisiä menoja</span></div>';
+
+  return '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
+    + '<div class="kassa-section-hdr">KUUKAUSIRYTMI</div>'
+    + summaryRow('Tulot / kk', tulotSum, 'var(--green)')
+    + summaryRow('Menot / kk', -menotSum, 'var(--red)')
+    + summaryRow('Netto / kk', netto, nettoColor)
+    + '<div class="kassa-rytmi-toggle" onclick="toggleKassaRytmiDetails(this)" style="cursor:pointer;color:var(--text2);font-size:12px;padding:6px 0 4px;">▼ Näytä tulot ja menot</div>'
+    + '<div class="kassa-rytmi-details" style="display:none;">'
+    + '<div class="kassa-section-hdr" style="margin-top:4px;">SÄÄNNÖLLISET TULOT</div>'
+    + tulotRows
+    + '<div class="kassa-section-hdr" style="margin-top:8px;">SÄÄNNÖLLISET MENOT</div>'
+    + menotRows
+    + '</div>'
+    + '</div>';
+}
+
+function toggleKassaRytmiDetails(btn) {
+  var details = btn.nextElementSibling;
+  var isOpen = details.style.display === 'block';
+  details.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? '▼ Näytä tulot ja menot' : '▲ Piilota';
 }
 
 // Kassa inline edit controller — shared for Tulotili and OP Gold
