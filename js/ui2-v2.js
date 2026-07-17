@@ -4974,7 +4974,22 @@ function kassaTulossaAdd() {
   console.log('[TULOSSA]', { action: 'add', itemCount: (snap.tulevat_items||[]).length, hasSnapshot: !!snap });
   renderTulossaList();
   var el = document.getElementById('kassaTulossaList');
-  if (el) { var sel = el.querySelector('#te_month'); if (sel) sel.value = String(new Date().getMonth()+1); var inp = el.querySelector('#te_label'); if (inp) inp.focus(); }
+  if (!el) return;
+  var sel = el.querySelector('#te_month'); if (sel) sel.value = String(new Date().getMonth()+1);
+  var inp = el.querySelector('#te_label');
+  if (window.innerWidth < 900 && el.parentElement) {
+    var section = el.parentElement;
+    requestAnimationFrame(function() {
+      var r = section.getBoundingClientRect();
+      var navEl = document.getElementById('nav');
+      var topLimit = navEl ? navEl.getBoundingClientRect().bottom : 0;
+      var dy = r.top - topLimit;
+      if (dy) window.scrollBy(0, dy);
+      if (inp) inp.focus();
+    });
+  } else if (inp) {
+    inp.focus();
+  }
 }
 function kassaTulossaEdit(id) {
   window._tulossaEditing = id;
