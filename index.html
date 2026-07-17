@@ -748,14 +748,13 @@
     #db-content { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; padding: 0 14px; box-sizing: border-box; } #db-content > [data-item-id] { min-width: 0; }
     .db-date, #freeze-status, #layout-toolbar { grid-column: 1 / -1; }
     #os-sidebar { display: none; }
-    #os-panel   { display: none; }
 
     @media (min-width: 900px) {
       #nav { display: none; }
       #btn-freeze-float { display: none !important; }
       #os-layout {
         display: grid;
-        grid-template-columns: 168px 1fr 252px;
+        grid-template-columns: 168px 1fr;
         height: 100vh;
         overflow: hidden;
       }
@@ -772,13 +771,6 @@
         height: 100vh;
       }
       #db-content { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; }
-      #os-panel {
-        display: block;
-        background: var(--surface);
-        border-left: 1px solid var(--border);
-        overflow-y: auto;
-        height: 100vh;
-      }
       .view { max-width: none; padding: 16px 18px; }
     }
 
@@ -1179,15 +1171,6 @@ if ('serviceWorker' in navigator) {
 </div><!-- /view-import -->
 
 </main>
-
-<aside id="os-panel">
-  <div id="panel-content">
-    <div class="panel-section">
-      <div class="panel-label">Kuukausi</div>
-      <div style="font-size:12px;color:var(--text3);">Ladataan...</div>
-    </div>
-  </div>
-</aside>
 
 </div><!-- /os-layout -->
 

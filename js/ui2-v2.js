@@ -966,15 +966,16 @@ async function renderDashboard() {
           // Kuukausirytmi: tulot_items/rytmi_items yhteenveto (korvaa entisen mock-kuukausihistorian)
           html2 += renderKassaKuukausirytmi(latest);
 
-          // TULOSSA — vain kortin ollessa laajennettu (ennallaan)
-          if (_pref('cash', 'expanded', true)) {
-            var _moRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
-            _moRow += '<div class="kassa-section-hdr" style="margin-top:6px">TULOSSA</div>';
-            _moRow += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
-            _moRow += '<button class="kassa-add-btn" onclick="kassaTulossaAdd()">+ Lisää</button>';
-            _moRow += '</div>';
-            html2 += _moRow;
-          }
+          // Säännölliset menot -editori (siirretty desktopin oikeasta paneelista, sama komponentti mobiilille ja desktopille)
+          html2 += renderSaannollisetMenot(latest);
+
+          // TULOSSA (ei enää sidottu 'expanded'-tilaan — sama näkyvyys kuin Kuukausirytmillä ja Säännöllisillä menoilla)
+          var _moRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
+          _moRow += '<div class="kassa-section-hdr" style="margin-top:6px">TULOSSA</div>';
+          _moRow += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
+          _moRow += '<button class="kassa-add-btn" onclick="kassaTulossaAdd()">+ Lisää</button>';
+          _moRow += '</div>';
+          html2 += _moRow;
 
           return html2;
                 })()}
@@ -1067,8 +1068,8 @@ async function renderDashboard() {
   `;
 
   drawStackedChart(snaps);
-  // Päivitä oikea paneeli datan latauksen jälkeen
-  setTimeout(() => { if (typeof updateRightPanel === 'function') updateRightPanel(); }, 200);
+  const sbMeta = document.getElementById('sb-meta');
+  if (sbMeta) sbMeta.innerHTML = snaps.length + ' snapshotia<br>' + (latest.date ? fmtDate(latest.date) : '');
   setTimeout(() => { if (window.onDashboardRendered) window.onDashboardRendered(); }, 120);
   if (window.applyDashboardLayout) window.applyDashboardLayout();
   if (typeof renderTulossaList === 'function') renderTulossaList();
@@ -3153,7 +3154,6 @@ function showView(name) {
   const osMain = document.getElementById('os-main');
   if (osMain) osMain.scrollTop = 0;
   if (name === 'syota')        requestAnimationFrame(() => renderEntryView());
-  requestAnimationFrame(() => updateRightPanel());
   if (name === 'historia')      requestAnimationFrame(() => renderHistoria());
   if (name === 'salkku')        requestAnimationFrame(() => renderSalkku());
   if (name === 'likviditeetti') requestAnimationFrame(() => renderLikviditeetti());
@@ -4339,9 +4339,9 @@ function updateLoanScheduleFromStorage() {
   });
 }
 
-// OIKEA PANEELI — kuukausikatsaus + aikarakenne
+// SÄÄNNÖLLISET MENOT — yhteinen editori (Kassa-kortti, desktop + mobiili)
 // ══════════════════════════════════════════════════════════════
-function renderRightPanel(snaps, latest, calc) {
+function renderSaannollisetMenot(latest) {
   var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
   function amtOf(x) { return parseFloat(x.amt_kk != null ? x.amt_kk : x.amount) || 0; }
   var total = items.reduce(function(s, x) { return s + amtOf(x); }, 0);
@@ -4365,8 +4365,8 @@ function renderRightPanel(snaps, latest, calc) {
     + '</span></div>';
   }).join('') : '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä menoja.</span></div>';
 
-  return '<div class="panel-section">'
-  + '<div class="panel-label">Säännölliset menot</div>'
+  return '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
+  + '<div class="kassa-section-hdr" style="margin-top:6px">SÄÄNNÖLLISET MENOT</div>'
   + rows
   + '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
   + '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
@@ -4377,7 +4377,7 @@ function renderRightPanel(snaps, latest, calc) {
   + '<input id="panel-meno-amt" type="number" inputmode="decimal" placeholder="€/kk" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="width:72px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
   + '<input id="panel-meno-day" type="number" inputmode="numeric" min="1" max="31" step="1" placeholder="pv" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="width:48px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
   + '</div>'
-  + '<button onclick="panelMenoAdd()" style="margin-top:8px;width:100%;padding:7px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text2);font-size:12px;cursor:pointer;">+ Lisää meno</button>'
+  + '<button class="kassa-add-btn" onclick="panelMenoAdd()">+ Lisää meno</button>'
   + '</div>';
 }
 
@@ -4407,7 +4407,7 @@ window.panelMenoAdd = async function() {
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
-  await updateRightPanel();
+  await renderDashboard();
 };
 
 window.panelMenoDelete = async function(id) {
@@ -4425,25 +4425,8 @@ window.panelMenoDelete = async function(id) {
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
-  await updateRightPanel();
+  await renderDashboard();
 };
-
-async function updateRightPanel() {
-  const el = document.getElementById('panel-content');
-  if (!el) return;
-  try {
-    const snaps  = (await DB.getAll('snapshots')).sort((a,b)=>a.date.localeCompare(b.date));
-    if (!snaps.length) return;
-    const latest = snaps[snaps.length - 1];  // nouseva järjestys → viimeinen = uusin
-    const calc   = calculateNetWorth(latest);
-    // runway from signals if available
-    if (window._lastSig) calc.runway = window._lastSig.runway?.months ?? null;
-    el.innerHTML = renderRightPanel(snaps, latest, calc);
-    // Update sidebar meta
-    const sbMeta = document.getElementById('sb-meta');
-    if (sbMeta) sbMeta.innerHTML = snaps.length + ' snapshotia<br>' + (latest.date ? fmtDate(latest.date) : '');
-  } catch(e) { console.warn('Panel update:', e); }
-}
 // ══════════════════════════════════════════════════════════════
 
 // ── KORTTIEN JA OSIOIDEN DRAG & DROP ────────────────────────────────────
