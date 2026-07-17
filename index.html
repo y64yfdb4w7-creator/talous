@@ -1267,7 +1267,20 @@ if ('serviceWorker' in navigator) {
   /* INV card: broker typography mobile */
   .inv-bar-name { font-size: 10px; color: var(--card-primary, var(--text2)); }
   .inv-bar-pct  { font-family: var(--mono); font-size: 10px; color: var(--card-accent, var(--text));  }
-  
+
+  /* Kassa Tulossa -lomake: Tallenna/Peru/Poista mahtumaan card-right-sarakkeeseen (~40/60-grid) */
+  .kassa-action-row { gap: 2px; flex-wrap: nowrap; }
+  .kassa-save-btn,
+  .kassa-cancel-btn,
+  .kassa-delete-btn {
+    padding: 3px 4px;
+    font-size: 9px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
 }
 </style>
 
