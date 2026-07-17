@@ -1,12 +1,14 @@
 # CURRENT_STATUS.md
 # Finance OS — Current Status
 
-**Päivitetty:** 2026-06-02
-**Viimeisin commit:** `5067dcc`
+**Päivitetty:** 2026-07-17
+**Viimeisin commit:** `2ff48af`
 **Branch:** main
 **Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv.**)
 
 **Dokumentaatiosprintti 15.7.2026:** BUG-A…D tarkistettu koodista (HEAD `41ade7c`) — kaikki edelleen avoinna, ks. merkinnät alla.
+
+**Mobiilisprintti 17.7.2026:** Kolme peräkkäistä korjausta Kassa-kortin "TULOSSA"-osion mobiilikäyttöön (`3b13a4f`, `8653f87`, `2ff48af`) — validoitu oikealla iPhonella GitHub Pages -tuotantoympäristössä, ks. oma osio alla.
 
 ---
 
@@ -14,6 +16,9 @@
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `2ff48af` | fix: prevent Kassa Tulossa Poista button from clipping on mobile | 2026-07-17 |
+| `8653f87` | fix: scroll Kassa Tulossa form under nav on mobile before focus | 2026-07-17 |
+| `3b13a4f` | fix: prevent iOS Safari auto-zoom in Kassa edit inputs on mobile | 2026-07-17 |
 | `5067dcc` | fix: gate html2 block on expanded pref in Kassa card | 2026-06-02 |
 | `3e9c287` | docs: add EMERGING_PHILOSOPHY.md | 2026-06-02 |
 | `2b98485` | Fix Kassa card checkboxes: op_gold to header, _pref gates to html2 rows | 2026-06-02 |
@@ -44,6 +49,46 @@ html2-blokin Tulotili- ja OP Gold -riveille, ehdollinen separator. +18/-10 rivi�
 muutokseen. Checkbox OFF piilutti vain .sub-rows-legacy-blokin, ei pääsisältöä.
 **Korjaus:** ui2-v2.js rivit 774 ja 824. Koko html2-IIFE gated `_pref('cash','expanded',true)`
 taakse. +2/-2 riviä.
+
+---
+
+## Korjatut bugit — mobiilisprintti 17.7.2026 (Kassa "TULOSSA" -lomake, iOS Safari)
+
+Kolme peräkkäistä sprinttiä samaan käyttäjäpolkuun: Kassa-kortin "TULOSSA"-osion
+"+ Lisää" -painike mobiilissa (`kassaTulossaAdd()`, js/ui2-v2.js).
+
+### 5. iOS Safari zoomasi näyttöä lomakkeen avautuessa — `3b13a4f`
+**Ongelma:** `.kassa-edit-input`/`.kassa-edit-select` (index.html) renderöityivät 13px
+fontilla. iOS Safari zoomaa automaattisesti näyttöä, kun fokusoitu kenttä on alle 16px.
+**Korjaus:** index.html, `@media (max-width:899px)` -sääntö nostaa fonttikoon 16px:ään
+vain mobiilissa. Desktop (13px) ennallaan.
+
+### 6. Lomake ei vierittynyt näkyviin fokuksen yhteydessä — `8653f87`
+**Ongelma:** `kassaTulossaAdd()` kutsui `focus()`:ia suoraan renderöinnin jälkeen,
+jolloin natiivi selain-scroll toi näkyviin vain yksittäisen kentän — ei koko lomaketta
+(TULOSSA-otsikko, kentät, Tallenna/Peru/Poista).
+**Korjaus:** `renderTulossaList()` → `requestAnimationFrame` → lomakkeen todellinen
+sijainti mitataan `getBoundingClientRect()`:lla ja vieritetään `scrollBy`:lla juuri
+sticky-navin alapuolelle → vasta sitten `focus()`. Ei heuristiikkaa, ei
+`visualViewport`-kuuntelijaa, ei kiinteitä prosenttiarvoja — puhtaasti mitattuun
+geometriaan perustuva. Vain mobiilissa (`window.innerWidth < 900`); desktop-polku
+muuttumaton.
+
+### 7. Poista-painike leikkautui oikeasta reunasta — `2ff48af`
+**Ongelma:** Mobiilissa `.db-item.card` on 2-sarakkeinen grid (40%/1fr), ja
+Tallenna/Peru/Poista-rivi sijaitsee `.card-right`-sarakkeessa (~50–55 % kortin
+leveydestä, `overflow:hidden`). Painikkeilla ei ollut `min-width:0`, joten selain ei
+kutistanut niitä tilaan — Poista leikkautui pois.
+**Korjaus:** index.html, `@media (max-width:899px)` -sääntö pienentää
+padding/font-sizen ja lisää `min-width:0` + `text-overflow:ellipsis`-turvaverkon vain
+tälle painikeriville. Desktop-arvot (padding 5px 12px, font-size 12px) ennallaan.
+
+**Validointi:** Kaikki kolme korjausta testattu ja hyväksytty käyttäjän toimesta
+oikealla iPhonella, GitHub Pages -tuotantoympäristössä
+(`https://y64yfdb4w7-creator.github.io/talous/`), 17.7.2026. Kaikki kuusi
+hyväksymiskriteeriä täyttyivät: ei zoomausta, lomake vierittyy oikeaan kohtaan ennen
+fokusta, Tallenna/Peru/Poista näkyvät kokonaan, painikkeet pysyvät samalla rivillä,
+ei vaakavieritystä, desktop-käyttäytyminen säilyi ennallaan.
 
 ---
 
@@ -159,4 +204,4 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-06-02.*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-17 (mobiilisprintti: iOS Safari zoom, scroll-into-view, painikerivin leikkautuminen — ks. yllä).*
