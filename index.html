@@ -889,6 +889,11 @@
 .kassa-edit-select { background:var(--surface); border:1px solid var(--border-bright); border-radius:5px; color:var(--text); font-family:var(--mono); font-size:13px; padding:6px 9px; width:100%; outline:none; -webkit-appearance:none; appearance:none; }
 .kassa-edit-input:focus,
 .kassa-edit-select:focus { border-color:var(--card-primary); }
+/* iPhone Safari: estä automaattinen zoom koskettaessa (≥16px estää zoomauksen) */
+@media (max-width: 899px) {
+  .kassa-edit-input,
+  .kassa-edit-select { font-size: 16px; }
+}
 .kassa-action-row { display:flex; gap:8px; margin-top:2px; }
 .kassa-save-btn { background:var(--surface2); border:1px solid var(--border-bright); border-radius:5px; color:var(--green); font-family:var(--mono); font-size:12px; padding:5px 12px; cursor:pointer; }
 .kassa-cancel-btn { background:var(--surface2); border:1px solid var(--border-bright); border-radius:5px; color:var(--text3); font-family:var(--mono); font-size:12px; padding:5px 12px; cursor:pointer; }
