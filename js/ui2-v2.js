@@ -966,16 +966,21 @@ async function renderDashboard() {
           // Kuukausirytmi: tulot_items/rytmi_items yhteenveto (korvaa entisen mock-kuukausihistorian)
           html2 += renderKassaKuukausirytmi(latest);
 
-          // Säännölliset menot -editori (siirretty desktopin oikeasta paneelista, sama komponentti mobiilille ja desktopille)
+          // Säännölliset tulot -lista (vain listat + poisto, lisäys yhteisen editorin kautta)
+          html2 += renderSaannollisetTulot(latest);
+
+          // Säännölliset menot -lista (vain listat + poisto, lisäys yhteisen editorin kautta)
           html2 += renderSaannollisetMenot(latest);
 
           // TULOSSA (ei enää sidottu 'expanded'-tilaan — sama näkyvyys kuin Kuukausirytmillä ja Säännöllisillä menoilla)
           var _moRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
           _moRow += '<div class="kassa-section-hdr" style="margin-top:6px">TULOSSA</div>';
           _moRow += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
-          _moRow += '<button class="kassa-add-btn" onclick="kassaTulossaAdd()">+ Lisää</button>';
           _moRow += '</div>';
           html2 += _moRow;
+
+          // Yhteinen "+ Lisää rahavirta" -editori (Tulossa / Säännöllinen tulo / Säännöllinen meno)
+          html2 += renderRahavirtaEditor(latest);
 
           return html2;
                 })()}
@@ -4372,43 +4377,8 @@ function renderSaannollisetMenot(latest) {
   + '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
   + '<span class="panel-row-val">' + total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
   + '</div>'
-  + '<div style="display:flex;gap:6px;margin-top:12px;">'
-  + '<input id="panel-meno-name" type="text" placeholder="Nimi" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="flex:1;min-width:0;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
-  + '<input id="panel-meno-amt" type="number" inputmode="decimal" placeholder="€/kk" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="width:72px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
-  + '<input id="panel-meno-day" type="number" inputmode="numeric" min="1" max="31" step="1" placeholder="pv" onkeydown="if(event.key===\'Enter\'){panelMenoAdd();}" style="width:48px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;outline:none;">'
-  + '</div>'
-  + '<button class="kassa-add-btn" onclick="panelMenoAdd()">+ Lisää meno</button>'
   + '</div>';
 }
-
-window.panelMenoAdd = async function() {
-  var nameEl = document.getElementById('panel-meno-name');
-  var amtEl = document.getElementById('panel-meno-amt');
-  var dayEl = document.getElementById('panel-meno-day');
-  var name = ((nameEl && nameEl.value) || '').trim();
-  var amt = parseFloat(((amtEl && amtEl.value) || '').replace(',', '.'));
-  var dayRaw = ((dayEl && dayEl.value) || '').trim();
-  if (!name) { if (nameEl) nameEl.focus(); return; }
-  if (isNaN(amt) || amt <= 0) { if (amtEl) amtEl.focus(); return; }
-  var paiva;
-  if (dayRaw !== '') {
-    var dayNum = parseFloat(dayRaw);
-    if (isNaN(dayNum) || !Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31) { if (dayEl) dayEl.focus(); return; }
-    paiva = dayNum;
-  }
-  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
-  if (!snaps.length) return;
-  var latest = Object.assign({}, snaps[snaps.length - 1]);
-  var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
-  var newItem = { id: 'meno_' + Date.now(), label: name, amt_kk: amt };
-  if (paiva !== undefined) newItem.paiva = paiva;
-  items.push(newItem);
-  latest.rytmi_items = items;
-  latest._updatedAt = new Date().toISOString();
-  await DB.putSnapshot(latest);
-  try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
-  await renderDashboard();
-};
 
 window.panelMenoDelete = async function(id) {
   if (!confirm('Poistetaanko meno?')) return;
@@ -4422,6 +4392,59 @@ window.panelMenoDelete = async function(id) {
   } else {
     latest.rytmi_items = items.filter(function(x){ return x.id !== id; });
   }
+  latest._updatedAt = new Date().toISOString();
+  await DB.putSnapshot(latest);
+  try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
+  await renderDashboard();
+};
+
+function renderSaannollisetTulot(latest) {
+  var items = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
+  function amtOf(x) { return parseFloat(x.amt_kk) || 0; }
+  var total = items.reduce(function(s, x) { return s + amtOf(x); }, 0);
+  var withKeys = items.map(function(item, idx) { return { item: item, delKey: (item.id != null ? item.id : ('idx:' + idx)) }; });
+  var sortedItems = withKeys.slice().sort(function(a, b) {
+    var da = (a.item.paiva === undefined || a.item.paiva === null || a.item.paiva === '') ? Infinity : Number(a.item.paiva);
+    var db = (b.item.paiva === undefined || b.item.paiva === null || b.item.paiva === '') ? Infinity : Number(b.item.paiva);
+    if (da !== db) return da - db;
+    return String(a.item.label || '').localeCompare(String(b.item.label || ''), 'fi');
+  });
+  var rows = sortedItems.length ? sortedItems.map(function(entry) {
+    var item = entry.item;
+    var amt = amtOf(item);
+    var label = String(item.label || 'Tulo').replace(/</g, '&lt;');
+    var dayVal = (item.paiva === undefined || item.paiva === null || item.paiva === '') ? '' : String(item.paiva);
+    var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);">' + (dayVal ? dayVal + '.' : '') + '</span>';
+    return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
+    + '<span style="display:flex;align-items:center;gap:8px;">'
+    + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
+    + '<button onclick="panelTuloDelete(\'' + entry.delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
+    + '</span></div>';
+  }).join('') : '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä tuloja.</span></div>';
+
+  return '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
+  + '<div class="kassa-section-hdr" style="margin-top:6px">SÄÄNNÖLLISET TULOT</div>'
+  + rows
+  + '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
+  + '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
+  + '<span class="panel-row-val">' + total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
+  + '</div>'
+  + '</div>';
+}
+
+window.panelTuloDelete = async function(id) {
+  if (!confirm('Poistetaanko tulo?')) return;
+  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if (!snaps.length) return;
+  var latest = Object.assign({}, snaps[snaps.length - 1]);
+  var items = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
+  if (typeof id === 'string' && id.indexOf('idx:') === 0) {
+    var idx = parseInt(id.slice(4), 10);
+    latest.tulot_items = items.filter(function(x, i){ return i !== idx; });
+  } else {
+    latest.tulot_items = items.filter(function(x){ return x.id !== id; });
+  }
+  latest.tulot_kk = latest.tulot_items.reduce(function(s,x){ return s + (Number(x.amt_kk) || 0); }, 0);
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
@@ -4947,33 +4970,6 @@ function renderTulossaList() {
   });
   el.innerHTML = html;
 }
-function kassaTulossaAdd() {
-  const snap = window._allSnaps?.[window._allSnaps.length - 1];
-  if (!snap) return;
-  if (!snap.tulevat_items) snap.tulevat_items = [];
-  var newId = 'tulossa_' + Date.now();
-  window._tulossaEditing = newId;
-  snap.tulevat_items.push({ id: newId, month: String(new Date().getMonth()+1), label: '', amount: '' });
-  console.log('[TULOSSA]', { action: 'add', itemCount: (snap.tulevat_items||[]).length, hasSnapshot: !!snap });
-  renderTulossaList();
-  var el = document.getElementById('kassaTulossaList');
-  if (!el) return;
-  var sel = el.querySelector('#te_month'); if (sel) sel.value = String(new Date().getMonth()+1);
-  var inp = el.querySelector('#te_label');
-  if (window.innerWidth < 900 && el.parentElement) {
-    var section = el.parentElement;
-    requestAnimationFrame(function() {
-      var r = section.getBoundingClientRect();
-      var navEl = document.getElementById('nav');
-      var topLimit = navEl ? navEl.getBoundingClientRect().bottom : 0;
-      var dy = r.top - topLimit;
-      if (dy) window.scrollBy(0, dy);
-      if (inp) inp.focus();
-    });
-  } else if (inp) {
-    inp.focus();
-  }
-}
 function kassaTulossaEdit(id) {
   window._tulossaEditing = id;
   renderTulossaList();
@@ -5030,3 +5026,142 @@ async function kassaTulossaDelete(id) {
   syncToSupabase([latest]);
   renderDashboard();
 }
+
+// ── RAHAVIRTA: yhteinen "+ Lisää rahavirta" -editori (Tulossa / Säännöllinen tulo / Säännöllinen meno) ──
+var _RV_MONTH_NAMES = ['Tammi','Helmi','Maalis','Huhti','Touko','Kesä','Heinä','Elo','Syys','Loka','Marras','Joulu'];
+
+function renderRahavirtaEditor(latest) {
+  if (!window._rahavirtaEditorOpen) {
+    return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
+      + '<button class="kassa-add-btn" onclick="rahavirtaEditorOpen()">+ Lisää rahavirta</button>'
+      + '</div>';
+  }
+  var type = window._rahavirtaType || 'tulossa';
+  function typeRadio(val, label) {
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;">'
+      + '<input type="radio" name="rv_type" value="' + val + '"' + (type === val ? ' checked' : '') + ' onchange="rahavirtaTypeChange(this.value)"> ' + label
+      + '</label>';
+  }
+  var html = '<div class="kassa-tulossa-form" id="kassaRahavirtaSection" style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
+  html += '<div class="kassa-section-hdr">LISÄÄ RAHAVIRTA</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:6px;margin:8px 0;">'
+    + typeRadio('tulossa', 'Tulossa') + typeRadio('tulo', 'Säännöllinen tulo') + typeRadio('meno', 'Säännöllinen meno')
+    + '</div>';
+  html += '<div id="rvFields">' + renderRahavirtaFields(type) + '</div>';
+  html += '<div class="kassa-action-row">'
+    + '<button class="kassa-save-btn" onclick="rahavirtaEditorSave()">✓ Tallenna</button>'
+    + '<button class="kassa-cancel-btn" onclick="rahavirtaEditorCancel()">✕ Peru</button>'
+    + '</div>';
+  html += '</div>';
+  return html;
+}
+
+function renderRahavirtaFields(type) {
+  if (type === 'tulossa') {
+    var monthOpts = '<option value="">—</option>' + [1,2,3,4,5,6,7,8,9,10,11,12].map(function(n) {
+      return '<option value="' + n + '">' + _RV_MONTH_NAMES[n-1] + '</option>';
+    }).join('');
+    return '<div class="kassa-field-group"><label class="kassa-field-label">Nimi</label>'
+      + '<input class="kassa-edit-input" id="rv_label" placeholder="esim. Bonus"></div>'
+      + '<div class="kassa-field-group"><label class="kassa-field-label">Kuukausi</label>'
+      + '<select class="kassa-edit-select" id="rv_month">' + monthOpts + '</select></div>'
+      + '<div class="kassa-field-group"><label class="kassa-field-label">Summa (€)</label>'
+      + '<input class="kassa-edit-input" id="rv_amount" type="number" placeholder="esim. -450"></div>';
+  }
+  return '<div class="kassa-field-group"><label class="kassa-field-label">Nimi</label>'
+    + '<input class="kassa-edit-input" id="rv_label" placeholder="Nimi"></div>'
+    + '<div class="kassa-field-group"><label class="kassa-field-label">€/kk</label>'
+    + '<input class="kassa-edit-input" id="rv_amt_kk" type="number" inputmode="decimal" placeholder="€/kk"></div>'
+    + '<div class="kassa-field-group"><label class="kassa-field-label">Päivä</label>'
+    + '<input class="kassa-edit-input" id="rv_paiva" type="number" inputmode="numeric" min="1" max="31" step="1" placeholder="pv"></div>';
+}
+
+window.rahavirtaTypeChange = function(val) {
+  window._rahavirtaType = val;
+  var fieldsEl = document.getElementById('rvFields');
+  if (fieldsEl) fieldsEl.innerHTML = renderRahavirtaFields(val);
+  var inp = document.getElementById('rv_label');
+  if (inp) inp.focus();
+};
+
+window.rahavirtaEditorOpen = async function() {
+  window._rahavirtaEditorOpen = true;
+  if (!window._rahavirtaType) window._rahavirtaType = 'tulossa';
+  await renderDashboard();
+  _rahavirtaFocusAndScroll();
+};
+
+window.rahavirtaEditorCancel = async function() {
+  window._rahavirtaEditorOpen = false;
+  await renderDashboard();
+};
+
+function _rahavirtaFocusAndScroll() {
+  var section = document.getElementById('kassaRahavirtaSection');
+  var inp = document.getElementById('rv_label');
+  if (!section) { if (inp) inp.focus(); return; }
+  if (window.innerWidth < 900) {
+    requestAnimationFrame(function() {
+      var r = section.getBoundingClientRect();
+      var navEl = document.getElementById('nav');
+      var topLimit = navEl ? navEl.getBoundingClientRect().bottom : 0;
+      var dy = r.top - topLimit;
+      if (dy) window.scrollBy(0, dy);
+      if (inp) inp.focus();
+    });
+  } else if (inp) {
+    inp.focus();
+  }
+}
+
+window.rahavirtaEditorSave = async function() {
+  var type = window._rahavirtaType || 'tulossa';
+  var labelEl = document.getElementById('rv_label');
+  var label = ((labelEl && labelEl.value) || '').trim();
+  if (!label) { if (labelEl) labelEl.focus(); return; }
+
+  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if (!snaps.length) return;
+  var latest = Object.assign({}, snaps[snaps.length - 1]);
+
+  if (type === 'tulossa') {
+    var monthEl = document.getElementById('rv_month');
+    var amountEl = document.getElementById('rv_amount');
+    var month = (monthEl && monthEl.value) || '';
+    var amount = parseFloat(((amountEl && amountEl.value) || '').replace(',', '.'));
+    if (isNaN(amount)) { if (amountEl) amountEl.focus(); return; }
+    var tulossaItems = Array.isArray(latest.tulevat_items) ? latest.tulevat_items.slice() : [];
+    tulossaItems.push({ id: 'tulossa_' + Date.now(), month: month, label: label, amount: amount });
+    latest.tulevat_items = tulossaItems;
+  } else {
+    var amtEl = document.getElementById('rv_amt_kk');
+    var dayEl = document.getElementById('rv_paiva');
+    var amt = parseFloat(((amtEl && amtEl.value) || '').replace(',', '.'));
+    if (isNaN(amt) || amt <= 0) { if (amtEl) amtEl.focus(); return; }
+    var dayRaw = ((dayEl && dayEl.value) || '').trim();
+    var paiva;
+    if (dayRaw !== '') {
+      var dayNum = parseFloat(dayRaw);
+      if (isNaN(dayNum) || !Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31) { if (dayEl) dayEl.focus(); return; }
+      paiva = dayNum;
+    }
+    var newItem = { id: (type === 'tulo' ? 'tulo_' : 'meno_') + Date.now(), label: label, amt_kk: amt };
+    if (paiva !== undefined) newItem.paiva = paiva;
+    if (type === 'tulo') {
+      var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items.slice() : [];
+      tulotItems.push(newItem);
+      latest.tulot_items = tulotItems;
+      latest.tulot_kk = tulotItems.reduce(function(s,x){ return s + (Number(x.amt_kk) || 0); }, 0);
+    } else {
+      var menotItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
+      menotItems.push(newItem);
+      latest.rytmi_items = menotItems;
+    }
+  }
+
+  latest._updatedAt = new Date().toISOString();
+  await DB.putSnapshot(latest);
+  window._rahavirtaEditorOpen = false;
+  try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
+  await renderDashboard();
+};
