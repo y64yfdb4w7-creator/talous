@@ -4998,6 +4998,7 @@ async function kassaTulossaSave(id) {
       latest.tulevat_items.push({ id: id, month: month, label: label, amount: amount });
     }
   }
+  latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   window._lastSnap = latest;
   window._tulossaEditing = null;
@@ -5021,6 +5022,7 @@ async function kassaTulossaDelete(id) {
   const latest = snaps[snaps.length - 1];
   if (!latest || !latest.tulevat_items) return;
   latest.tulevat_items = latest.tulevat_items.filter(function(i){ return i.id !== id; });
+  latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   window._lastSnap = latest;
   window._tulossaEditing = null;

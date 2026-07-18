@@ -385,6 +385,7 @@ async function syncFromSupabase(showStatus) {
         if (remote.finos) {
           if (Array.isArray(remote.finos.tulot_items))   imported.tulot_items       = remote.finos.tulot_items;
           if (Array.isArray(remote.finos.rytmi_items))    imported.rytmi_items       = remote.finos.rytmi_items;
+          if (Array.isArray(remote.finos.tulevat_items))  imported.tulevat_items     = remote.finos.tulevat_items;
           if (remote.finos.tulot_kk          != null)    imported.tulot_kk          = remote.finos.tulot_kk;
           if (remote.finos.menot_kk          != null)    imported.menot_kk          = remote.finos.menot_kk;
           if (remote.finos.muut_tulot        != null)    imported.muut_tulot        = remote.finos.muut_tulot;
@@ -435,7 +436,7 @@ async function syncFromSupabase(showStatus) {
           if (remote.finos.holdings_snapshot != null)    merged.holdings_snapshot = remote.finos.holdings_snapshot;
           if (remote.finos.nordnet_cash      != null)    merged.nordnet_cash      = remote.finos.nordnet_cash;
           if (remote.finos._updatedAt)                   merged._updatedAt        = remote.finos._updatedAt;
-          merged.tulevat_items = remote.tulevat_items || local.tulevat_items || [];
+          if (Array.isArray(remote.finos.tulevat_items))  merged.tulevat_items     = remote.finos.tulevat_items;
         }
         toMerge.push(merged);
       }
