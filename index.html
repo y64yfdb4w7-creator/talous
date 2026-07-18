@@ -1264,6 +1264,27 @@ if ('serviceWorker' in navigator) {
     white-space: nowrap;
   }
 
+  /* Kassa-editori: parempi kontrasti mobiilissa (reunat, fokus, painikkeet) — sama Design System, ei uusia värejä */
+  .kassa-edit-input,
+  .kassa-edit-select {
+    border-color: rgba(232,244,240,0.28);
+    /* iOS Safari: jätä tilaa kiinteän #nav-palkin alle natiivissa fokus-scrollissa, ettei näkymä hyppää */
+    scroll-margin-top: calc(52px + env(safe-area-inset-top) + 10px);
+  }
+  .kassa-edit-input:focus,
+  .kassa-edit-select:focus {
+    border-color: var(--card-primary, var(--green));
+    box-shadow: 0 0 0 2px rgba(51,209,122,0.18);
+  }
+  .kassa-save-btn,
+  .kassa-cancel-btn,
+  .kassa-delete-btn,
+  .kassa-add-btn {
+    border-color: rgba(232,244,240,0.32);
+  }
+  .kassa-save-btn   { border-color: rgba(90,184,138,0.5); }
+  .kassa-delete-btn { border-color: rgba(192,90,106,0.5); }
+
 }
 </style>
 
@@ -1304,7 +1325,7 @@ function renderMobileDashboard(snaps, latest, calc, sig, cnt) {
 <script src="js/signals.js?v=75"></script>
 <script src="js/import.js?v=75"></script>
 <script src="js/demo-data.js"></script>
-    <script src="js/ui2-v2.js?v=205"></script>
+    <script src="js/ui2-v2.js?v=206"></script>
 <script src="js/dashboard-layout.js?v=76"></script>
 <script src="js/swipe-nav.js?v=1"></script>
     <script src="js/sync2.js?v=7"></script>

@@ -5081,7 +5081,7 @@ window.rahavirtaTypeChange = function(val) {
   var fieldsEl = document.getElementById('rvFields');
   if (fieldsEl) fieldsEl.innerHTML = renderRahavirtaFields(val);
   var inp = document.getElementById('rv_label');
-  if (inp) inp.focus();
+  if (inp) inp.focus({ preventScroll: true });
 };
 
 window.rahavirtaEditorOpen = async function() {
@@ -5099,19 +5099,22 @@ window.rahavirtaEditorCancel = async function() {
 function _rahavirtaFocusAndScroll() {
   var section = document.getElementById('kassaRahavirtaSection');
   var inp = document.getElementById('rv_label');
-  if (!section) { if (inp) inp.focus(); return; }
-  if (window.innerWidth < 900) {
-    requestAnimationFrame(function() {
-      var r = section.getBoundingClientRect();
-      var navEl = document.getElementById('nav');
-      var topLimit = navEl ? navEl.getBoundingClientRect().bottom : 0;
-      var dy = r.top - topLimit;
-      if (dy) window.scrollBy(0, dy);
-      if (inp) inp.focus();
-    });
-  } else if (inp) {
+  if (!inp) return;
+  if (!section || window.innerWidth >= 900) {
     inp.focus();
+    return;
   }
+  // iOS Safari: natiivi fokus-scroll kilpailee oman scroll-korjauksemme kanssa ja
+  // aiheuttaa näkymän hyppäämisen. preventScroll poistaa natiivin scrollin, jonka
+  // jälkeen omamme rAF:ssä laskettu korjaus on ainoa scroll joka tapahtuu.
+  inp.focus({ preventScroll: true });
+  requestAnimationFrame(function() {
+    var r = section.getBoundingClientRect();
+    var navEl = document.getElementById('nav');
+    var topLimit = navEl ? navEl.getBoundingClientRect().bottom : 0;
+    var dy = r.top - topLimit;
+    if (dy) window.scrollBy(0, dy);
+  });
 }
 
 window.rahavirtaEditorSave = async function() {
