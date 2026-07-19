@@ -1,8 +1,8 @@
 # CURRENT_STATUS.md
 # Finance OS — Current Status
 
-**Päivitetty:** 2026-07-17
-**Viimeisin commit:** `2ff48af`
+**Päivitetty:** 2026-07-19
+**Viimeisin commit:** `6489000`
 **Branch:** main
 **Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv.**)
 
@@ -10,12 +10,19 @@
 
 **Mobiilisprintti 17.7.2026:** Kolme peräkkäistä korjausta Kassa-kortin "TULOSSA"-osion mobiilikäyttöön (`3b13a4f`, `8653f87`, `2ff48af`) — validoitu oikealla iPhonella GitHub Pages -tuotantoympäristössä, ks. oma osio alla.
 
+**Kassa syöttö UX 2.0 -sprintti 18.–19.7.2026:** Tulossa-, Säännölliset tulot- ja
+Säännölliset menot -lisäys yhtenäistettiin yhdeksi "+ Lisää rahavirta" -editoriksi
+(`fc57184`), minkä jälkeen editorin iOS Safari focus-scroll ja mobiilin kontrasti
+korjattiin omana pienenä sprinttinä (`6489000`) — ks. oma osio alla.
+
 ---
 
 ## Viimeisimmät commitit
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `6489000` | fix: Kassa-editorin iOS Safari focus-scroll ja mobiilin kontrasti | 2026-07-19 |
+| `fc57184` | feat: yhtenäistä Kassa-kortin rahavirtojen lisäys yhteen editoriin | 2026-07-18 |
 | `2ff48af` | fix: prevent Kassa Tulossa Poista button from clipping on mobile | 2026-07-17 |
 | `8653f87` | fix: scroll Kassa Tulossa form under nav on mobile before focus | 2026-07-17 |
 | `3b13a4f` | fix: prevent iOS Safari auto-zoom in Kassa edit inputs on mobile | 2026-07-17 |
@@ -89,6 +96,60 @@ oikealla iPhonella, GitHub Pages -tuotantoympäristössä
 hyväksymiskriteeriä täyttyivät: ei zoomausta, lomake vierittyy oikeaan kohtaan ennen
 fokusta, Tallenna/Peru/Poista näkyvät kokonaan, painikkeet pysyvät samalla rivillä,
 ei vaakavieritystä, desktop-käyttäytyminen säilyi ennallaan.
+
+---
+
+## Kassa syöttö UX 2.0 -sprintti 18.–19.7.2026
+
+### 8. Kolme erillistä syöttölomaketta yhdistettiin yhdeksi editoriksi — `fc57184`
+**Lähtötilanne:** Kassa-kortissa oli kolme rinnakkaista, osin pysyvästi näkyvää
+syöttötapaa: Tulossa omalla `+ Lisää` -napillaan ja inline-lomakkeellaan
+(`kassaTulossaAdd`/`renderTulossaList`), Säännölliset menot omalla aina-näkyvällä
+3-kenttäisellä lomakkeellaan (`renderSaannollisetMenot`/`panelMenoAdd`), ja
+Säännölliset tulot ilman minkäänlaista lisäys-UI:ta Kassa-kortissa (ainoastaan
+luku Kuukausirytmi-yhteenvedossa; oikea lisäys tapahtui erillisessä
+Syötä-näkymässä `entryAddTulo`-funktioilla).
+**Muutos:** Kaikki kolme pysyvästi näkyvää syöttölomaketta/-nappia poistettiin.
+Tilalle yksi `+ Lisää rahavirta` -painike (`renderRahavirtaEditor`, js/ui2-v2.js),
+joka avaa yhden editorin tyyppivalinnalla (Tulossa / Säännöllinen tulo /
+Säännöllinen meno). Editori mukautuu kenttineen valinnan mukaan
+(`renderRahavirtaFields`), käyttää samaa validointi- ja tallennuslogiikkaa
+kaikille kolmelle (`rahavirtaEditorSave`) ja samaa mobiilin fokus/scroll-logiikkaa
+kuin aiempi Tulossa-korjaus (`8653f87`). Säännölliset tulot sai uuden listan
+(rivit + poisto, `renderSaannollisetTulot`/`panelTuloDelete`) Kassa-korttiin, koska
+sitä ei ollut ennestään. Olemassa oleva Tulossa-rivien klikkaus-muokkaus
+(`kassaTulossaEdit`) jätettiin tietoisesti koskematta — rajattu seuraavaan
+sprinttiin. Datamalliin lisättiin vain valinnainen `paiva`-kenttä
+`tulot_items`-riveille; Supabase-sync koskematon.
+**Validointi:** Testattu selaimessa (kaikki 3 lisäystyyppiä, tyypinvaihto, Peruuta,
+olemassa olevan Tulossa-muokkauksen ennallaan pysyminen). Mobiilin viewport-testi
+ei onnistunut tässä istunnossa käytetyllä selainautomaatiolla (`resize_window` ei
+vaikuttanut `window.innerWidth`-arvoon) — hyväksytty koodipohjaisena vahvistuksena
+käyttäjän toimesta, koska mobiililogiikka on suora kopio jo tuotannossa
+validoidusta `8653f87`-korjauksesta.
+
+### 9. iOS Safari focus-scroll -hyppy ja mobiilin kontrasti uudessa editorissa — `6489000`
+**Ongelma:** Uuden rahavirta-editorin Nimi-kenttä (`rv_label`) hyppäytti näkymää
+iOS Safarissa. Syy: `_rahavirtaFocusAndScroll()` teki oman `window.scrollBy`-korjauksen
+ja kutsui heti perään `inp.focus()` ilman `preventScroll`-optiota — Safarin natiivi
+"scrollaa fokusoitu kenttä näkyviin" -käytös laukesi `focus()`-kutsusta ja kilpaili
+juuri tehdyn manuaalisen scrollin kanssa, mikä näkyi hyppynä. Lisäksi syöttökenttien
+ja painikkeiden reunat olivat mobiilissa liian himmeät (`var(--border-bright)`
+tummaa taustaa vasten).
+**Korjaus:** `inp.focus({preventScroll:true})` ensin, oma `requestAnimationFrame`-scroll
+vasta sen jälkeen — natiivi ja oma scroll eivät enää kilpaile (js/ui2-v2.js,
+`_rahavirtaFocusAndScroll`, `rahavirtaTypeChange`). Lisäksi `.kassa-edit-input`/
+`.kassa-edit-select` saivat `scroll-margin-top`-arvon (nav-palkin korkeus + marginaali)
+suoraan käyttäjän kosketuksesta johtuvaa natiivia scrollia varten. Mobiilin
+`@media (max-width:899px)` -kyselyyn lisättiin kontrastikorjaukset syöttökenttien
+reunoille, fokus-tilalle (`box-shadow`-rengas `var(--card-primary)`-värissä) ja
+Tallenna/Peru/Poista/Lisää-painikkeiden reunoille — samoja Design System -tokeneita
+(`--green`, `--red`, `--card-primary`) käyttäen, ei uusia värejä. Ei rakenne- tai
+toiminnallisuusmuutoksia; desktop-käyttäytyminen ennallaan.
+**Validointi:** Desktop-regressio testattu selaimessa (editori avautuu/sulkeutuu
+ennallaan). Mobiilitesti julkaistulla sivulla käyttäjän omalla laitteella jätettiin
+käyttäjän pyynnöstä sprintin ulkopuolelle — mahdolliset lisähavainnot korjataan
+seuraavassa pienessä sprintissä.
 
 ---
 
@@ -204,4 +265,4 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-07-17 (mobiilisprintti: iOS Safari zoom, scroll-into-view, painikerivin leikkautuminen — ks. yllä).*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-19 (Kassa syöttö UX 2.0: kolmen erillisen lomakkeen yhtenäistäminen, iOS Safari focus-scroll ja mobiilikontrasti — ks. yllä).*
