@@ -1968,6 +1968,14 @@ function normalizeRecurringLabel(label, fallback) {
   return (/^[.\s]*$/.test(s)) ? fallback : s;
 }
 
+// Yhteinen päivän validointi Kuukausirytmin/Säännöllisten rivien päiväetuliitteelle.
+// Palauttaa kelvollisen päivän (1–31) kokonaislukuna, tai null jos päivä puuttuu tai on virheellinen.
+// Kutsuja päättää itse, ettei nulliin liitetä pistettä — pelkkää "." ei saa koskaan syntyä.
+function validRecurringDay(paiva) {
+  var n = Number(paiva);
+  return (paiva !== undefined && paiva !== null && paiva !== '' && Number.isInteger(n) && n >= 1 && n <= 31) ? n : null;
+}
+
 // Kassa: Kuukausirytmi — tulot_items/rytmi_items yhteenveto (näyttö, ei muokkausta)
 function renderKassaKuukausirytmi(latest) {
   var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
@@ -1978,8 +1986,8 @@ function renderKassaKuukausirytmi(latest) {
   var nettoColor = netto >= 0 ? 'var(--green)' : 'var(--red)';
 
   var sortedMenot = menotItems.slice().sort(function(a, b) {
-    var da = (a.paiva === undefined || a.paiva === null || a.paiva === '') ? Infinity : Number(a.paiva);
-    var db = (b.paiva === undefined || b.paiva === null || b.paiva === '') ? Infinity : Number(b.paiva);
+    var da = validRecurringDay(a.paiva); da = (da === null) ? Infinity : da;
+    var db = validRecurringDay(b.paiva); db = (db === null) ? Infinity : db;
     return da - db;
   });
 
@@ -1995,7 +2003,8 @@ function renderKassaKuukausirytmi(latest) {
 
   var menotRows = sortedMenot.length
     ? sortedMenot.map(function(x) {
-        var dayVal = (x.paiva === undefined || x.paiva === null || x.paiva === '') ? '' : (x.paiva + '. ');
+        var day = validRecurringDay(x.paiva);
+        var dayVal = (day !== null) ? (day + '. ') : '';
         return '<div class="sub-row"><span>' + dayVal + normalizeRecurringLabel(x.label, 'Meno').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
       }).join('')
     : '<div class="sub-row"><span style="color:var(--text3);">Ei säännöllisiä menoja</span></div>';
@@ -3720,8 +3729,8 @@ function renderSaannollisetMenot(latest) {
   var total = items.reduce(function(s, x) { return s + amtOf(x); }, 0);
   var withKeys = items.map(function(item, idx) { return { item: item, delKey: (item.id != null ? item.id : ('idx:' + idx)) }; });
   var sortedItems = withKeys.slice().sort(function(a, b) {
-    var da = (a.item.paiva === undefined || a.item.paiva === null || a.item.paiva === '') ? Infinity : Number(a.item.paiva);
-    var db = (b.item.paiva === undefined || b.item.paiva === null || b.item.paiva === '') ? Infinity : Number(b.item.paiva);
+    var da = validRecurringDay(a.item.paiva); da = (da === null) ? Infinity : da;
+    var db = validRecurringDay(b.item.paiva); db = (db === null) ? Infinity : db;
     if (da !== db) return da - db;
     return normalizeRecurringLabel(a.item.label, 'Meno').localeCompare(normalizeRecurringLabel(b.item.label, 'Meno'), 'fi');
   });
@@ -3729,8 +3738,8 @@ function renderSaannollisetMenot(latest) {
     var item = entry.item;
     var amt = amtOf(item);
     var label = normalizeRecurringLabel(item.label, 'Meno').replace(/</g, '&lt;');
-    var dayVal = (item.paiva === undefined || item.paiva === null || item.paiva === '') ? '' : String(item.paiva);
-    var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);">' + (dayVal ? dayVal + '.' : '') + '</span>';
+    var day = validRecurringDay(item.paiva);
+    var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (day !== null ? day + '.' : '') + '</span>';
     return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
     + '<span style="display:flex;align-items:center;gap:8px;">'
     + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
@@ -3772,8 +3781,8 @@ function renderSaannollisetTulot(latest) {
   var total = items.reduce(function(s, x) { return s + amtOf(x); }, 0);
   var withKeys = items.map(function(item, idx) { return { item: item, delKey: (item.id != null ? item.id : ('idx:' + idx)) }; });
   var sortedItems = withKeys.slice().sort(function(a, b) {
-    var da = (a.item.paiva === undefined || a.item.paiva === null || a.item.paiva === '') ? Infinity : Number(a.item.paiva);
-    var db = (b.item.paiva === undefined || b.item.paiva === null || b.item.paiva === '') ? Infinity : Number(b.item.paiva);
+    var da = validRecurringDay(a.item.paiva); da = (da === null) ? Infinity : da;
+    var db = validRecurringDay(b.item.paiva); db = (db === null) ? Infinity : db;
     if (da !== db) return da - db;
     return normalizeRecurringLabel(a.item.label, 'Tulo').localeCompare(normalizeRecurringLabel(b.item.label, 'Tulo'), 'fi');
   });
@@ -3781,8 +3790,8 @@ function renderSaannollisetTulot(latest) {
     var item = entry.item;
     var amt = amtOf(item);
     var label = normalizeRecurringLabel(item.label, 'Tulo').replace(/</g, '&lt;');
-    var dayVal = (item.paiva === undefined || item.paiva === null || item.paiva === '') ? '' : String(item.paiva);
-    var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);">' + (dayVal ? dayVal + '.' : '') + '</span>';
+    var day = validRecurringDay(item.paiva);
+    var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (day !== null ? day + '.' : '') + '</span>';
     return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
     + '<span style="display:flex;align-items:center;gap:8px;">'
     + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
