@@ -2,14 +2,23 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-19
-**Viimeisin commit:** `506403c`
+**Viimeisin commit:** `034eae9`
 **Branch:** main
 **Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv.**)
+
+**Hero-tuotemäärittelyn regressiokorjaus — Kassajakso-sprintti (19.7.2026) — valmis:**
+Sprintti 1+2:ssa (alla) kirjattu Hero-määrittely osoittautui auditoinnissa regressioksi:
+Hero näytti vain nykyhetken kassan, vaikka kortin otsikko on tulevaisuuteen katsova.
+Tuotemäärittely lukittu uudelleen (Hero/Kassajakso/Rahavirta-vastuurajat, kassajakson
+rajaamiskriteeri, tunnetun tulon määritelmä) ja kortin logiikka korjattu vastaamaan
+sitä, ks. oma osio alla.
 
 **"Seuraava rahatilanne" -kortti, Sprintti 1+2/2 (19.7.2026) — valmis:** Kassa-kortin
 Kulutusrytmi/Kuukausirytmi/Tulossa/Säännölliset tulot/menot -alue korvattu uudella
 NYT → TULEVAT ERÄT → Välisumma → SÄÄNNÖLLISET ERÄT → Lopputilanne -kortilla. Sprintti 1
 (puhdas refaktorointi) ja Sprintti 2 (uusi kortti) molemmat valmiit, ks. oma osio alla.
+**Huomio (jälkikäteen, 19.7.2026):** tämän sprintin Hero-määrittely osoittautui
+regressioksi ja korvattiin — ks. yllä ja osio "Hero-tuotemäärittelyn regressiokorjaus".
 
 **Dokumentaatiosprintti 15.7.2026:** BUG-A…D tarkistettu koodista (HEAD `41ade7c`) — kaikki edelleen avoinna, ks. merkinnät alla.
 
@@ -26,6 +35,7 @@ korjattiin omana pienenä sprinttinä (`6489000`) — ks. oma osio alla.
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `034eae9` | fix: korjaa Hero/Kassajakso-logiikka Seuraava rahatilanne -korttiin | 2026-07-19 |
 | `506403c` | feat: uusi "Seuraava rahatilanne" -kortti Kassa-korttiin | 2026-07-19 |
 | `f26d592` | refactor: eriytä säännöllisten tulojen/menojen rivien muodostus omaksi funktioksi | 2026-07-19 |
 | `6489000` | fix: Kassa-editorin iOS Safari focus-scroll ja mobiilin kontrasti | 2026-07-19 |
@@ -279,6 +289,79 @@ Commit:
 
 ---
 
+## Hero-tuotemäärittelyn regressiokorjaus — Kassajakso-sprintti (19.7.2026)
+
+**Tausta:** Auditoinnissa havaittiin, että Sprintti 1+2:ssa (yllä) kirjattu
+Hero-määrittely ("Hero-summa = tulotili − |op_gold|, 'NYT'") tehtiin sprintin sisällä
+ilman erillistä suunnittelijan hyväksyntää — prosessipoikkeama CLAUDE.md:n
+vastuunjakoa vasten — ja se oli ristiriidassa kortin oman otsikon ("Seuraava
+rahatilanne") kanssa: Hero näytti vain nykyhetken kassan, ei mitään tulevaisuuteen
+katsovaa.
+
+**Lukitut tuotepäätökset:**
+
+1. **Hero-tuotemäärittely v1.0** — Hero on puhdas laskentakomponentti. Se summaa
+   vain sille annetun rahavirtajoukon (lähtökassa + tulot − menot). Se ei tee
+   ennusteita, ei päättele kassajaksoa eikä sitä mitkä rahavirrat siihen kuuluvat,
+   ei tunne "palkkaa", ei riipu rahavirran sijainnista tietorakenteessa.
+2. **Aikareferenssi** — Finance OS:n aikareferenssi on aina käyttäjän viimeisin
+   snapshot, ei laitteen kellonaika.
+3. **Kassajakson rajaamiskriteeri** — Kassajakso rajataan käyttäjän viimeisimmän
+   snapshotin ja seuraavan tunnetun tulon muodostamien rajapisteiden perusteella.
+   Jäsenyys kassajaksossa määräytyy yksinomaan rahavirran ajallisen sijainnin
+   perusteella suhteessa näihin kahteen rajapisteeseen — ei sillä, että rahavirta
+   "kuuluu kassajaksoon" (korjaa aiemman Kassajakso-luonnoksen kehäpäätelmän).
+4. **Tunnetun tulon määritelmä** — Tulo on "tunnettu", kun se on kirjattu
+   rahavirtana järjestelmään ja sillä on määritelty, viimeisimmän snapshotin
+   jälkeinen ajallinen sijainti. Tunnettuus ei riipu siitä, onko rahavirta toistuva
+   vai kertaluonteinen — kumpikin kelpaa yhtäläisesti. Järjestelmä ei päättele eikä
+   ennusta tulevia tuloja: jos vastaavaa rahavirtaa ei ole kirjattu, tuloa ei ole
+   olemassa "tunnettuna" tulona kassajakson rajaamista varten.
+5. **Lähtökassan lähde** — Lähtökassa lasketaan viimeisimmän snapshotin
+   lähtökassaan kuuluvien tilien (tulotili, op_gold) yhteissummasta — ei käyttäjän
+   erikseen syöttämä arvo eikä Heron itse johtama.
+6. **Kassavaikutteisen rahavirran määritelmä** — Rahavirta on kassavaikutteinen,
+   jos se muuttaa niiden tilien yhteissummaa, jotka sisältyvät lähtökassan
+   laskentaan. Rahavirrat jotka eivät kosketa näitä tilejä (esim. sijoitukset,
+   lainan pääoma), tai jotka vain siirtävät rahaa näiden tilien välillä ilman että
+   yhteissumma muuttuu, eivät ole kassavaikutteisia kassajakson kannalta.
+
+**Arkkitehtuurin vastuurajat (LUKITTU):** kolme komponenttia — Rahavirta /
+Kassajakso / Hero. Kukin tuntee vain sen mitä alempi kerros sille luovuttaa, ei
+miten se syntyi. Ks. `docs/FINANCE_OS_ARCHITECTURE.md` § "Hero / Kassajakso /
+Rahavirta — vastuurajat".
+
+**Toteutettu (js/ui2-v2.js):**
+- Uudet kerrosfunktiot: `lahtokassaOf(snap)`, `nextRecurringDayDate`,
+  `nextMonthOnlyDate`, `collectRahavirrat`, `buildKassajakso`, `heroSum`.
+- `renderKassaSeuraavaRahatilanne` ja `renderTulossaList` käyttävät nyt
+  Kassajakson rajaamaa rahavirtajoukkoa sekä laskennassa että näytössä — aiemmin
+  kaikki `tulevat_items`/`rytmi_items`/`tulot_items` laskettiin mukaan rajoituksetta.
+- Kassa-kortin ylätason yhteenvetoarvo (`card-value`) korjattu käyttämään
+  `lahtokassaOf`:ia erillisen duplikaattikaavan sijaan.
+- Poistettu laitteen kellonaikaan turvautuva varakeino Kassajakson
+  päivämäärälaskennasta (`buildKassajakso` käyttää yksinomaan `latest.date`:a).
+
+**Tunnettu sivuvaikutus (ei korjattu tässä sprintissä):** `tulevat_items`-erillä on
+vain kuukausi, ei vuotta eikä päivää — kuluvan/lähikuukauden kertaluonteinen erä voi
+näyttäytyä kassajakson päättävänä tunnettuna tulona hyvin varhain (approksimoitu
+kuukauden 1. päiväksi). Erät jotka putoavat kassajakson rajan ulkopuolelle eivät
+myöskään näy tai ole muokattavissa tässä kortissa ennen kuin niiden oma jakso koittaa.
+
+**Testattu:**
+- Node-yksikkötestit: 4 skenaariota (normaali kassajakso, ei tunnettua tuloa,
+  palkkapäivä osuu snapshot-päivälle → kääriytyy seuraavaan kuukauteen, vain
+  säännölliset erät) — kaikki täsmäsivät käsin laskettuun kontrolliarvoon.
+- Selainregressio paikallisella palvelimella (todellinen IndexedDB, synteettinen
+  testidata): Kassa-kortin ylälukema, Lähtökassa, Tulevat erät, Säännölliset erät
+  ja Lopputilanne täsmäsivät kaikki toisiinsa ja Node-testien kontrolliarvoihin;
+  ei konsolivirheitä.
+
+Commit:
+- `034eae9` — fix: korjaa Hero/Kassajakso-logiikka Seuraava rahatilanne -korttiin
+
+---
+
 ## Avoimet bugit
 
 ### BUG-A: "Näytä dashboardissa" — täysi no-op
@@ -391,4 +474,4 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-07-19 ("Seuraava rahatilanne" -kortti valmis, Sprintti 1+2/2 — ks. yllä).*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-19 (Hero-tuotemäärittelyn regressiokorjaus, Kassajakso-sprintti, commit `034eae9` — ks. yllä).*

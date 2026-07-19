@@ -336,4 +336,32 @@ talous/
                                                                                                                                                               - Mobiilissa (`max-width: 899px`): mobiilinavigaatio, kelluva Päivitä-nappi
                                                                                                                                                               - Desktopissa (`min-width: 900px`): 3-kolumni layout, sidebar, oikea paneeli
                                                                                                                                                               - iOS-korjaukset: font-size ≥ 16px kaikissa inputeissa (estää auto-zoom)
-                                                                                                                                                              
+
+---
+
+## Hero / Kassajakso / Rahavirta — vastuurajat (LUKITTU, 19.7.2026)
+
+Kassa-kortin "Seuraava rahatilanne" -osio (`renderKassaSeuraavaRahatilanne`,
+js/ui2-v2.js) rakentuu kolmesta vastuukerroksesta. Täydet lukitut tuotepäätökset ja
+niiden perustelut: `docs/CURRENT_STATUS.md` § "Hero-tuotemäärittelyn
+regressiokorjaus — Kassajakso-sprintti (19.7.2026)".
+
+### Rahavirta
+Yksittäinen kirjattu tulo tai meno (`tulot_items`, `rytmi_items`, `tulevat_items`).
+Tuntee vain oman datansa. Kokoaminen yhtenäiseen muotoon: `collectRahavirrat`.
+
+### Kassajakso
+Rajaa rahavirtajoukon viimeisimmästä snapshotista seuraavaan tunnettuun tuloon
+(`buildKassajakso`). Aikareferenssinä yksinomaan `latest.date` — ei laitteen
+kellonaikaa. Laskee lähtökassan (`lahtokassaOf` — tulotili − |op_gold|) ja
+muodostaa Herolle annettavan rajatun joukon.
+
+### Hero
+Puhdas laskentakomponentti (`heroSum`). Summaa vain sille Kassajaksolta annetun
+joukon (lähtökassa + tulot − menot). Ei päättele, ei valitse rahavirtoja, ei tunne
+niiden alkuperää eikä laske itse lähtökassaa.
+
+**Sääntö:** kukin kerros tuntee vain sen mitä alempi kerros sille luovuttaa, ei
+miten se syntyi. Uusia rahavirtalähteitä tai näyttöjä lisättäessä logiikka kuuluu
+Rahavirta- tai Kassajakso-kerrokseen — ei koskaan Heroon.
+
