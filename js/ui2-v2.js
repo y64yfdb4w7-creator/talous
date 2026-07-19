@@ -4184,7 +4184,7 @@ function renderTulossaList() {
         var sign = (item.amount > 0) ? '+' : '';
         var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--red)' : 'var(--text3)');
         html += '<div class="kassa-view-row" onclick="kassaTulossaEdit(\'' + item.id + '\')">' +
-          '<span class="kassa-vr-label">' + (item.label==='auto'?'🚗 ':'') + (item.label||'—') + '</span>' +
+          '<span class="kassa-vr-label">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
           '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
           '</div>';
       }
