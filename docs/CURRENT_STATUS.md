@@ -2,14 +2,14 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-19
-**Viimeisin commit:** `f26d592`
+**Viimeisin commit:** `506403c`
 **Branch:** main
 **Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv.**)
 
-**"Seuraava rahatilanne" -kortti, Sprintti 1/2 (19.7.2026):** Puhdas refaktorointi —
-`renderSaannollisetTulot()`/`renderSaannollisetMenot()`-rivilogiikka eriytetty omaksi
-funktiokseen ilman näkyviä muutoksia, valmistelee Sprintti 2:n (uusi kortti), ks. oma
-osio alla.
+**"Seuraava rahatilanne" -kortti, Sprintti 1+2/2 (19.7.2026) — valmis:** Kassa-kortin
+Kulutusrytmi/Kuukausirytmi/Tulossa/Säännölliset tulot/menot -alue korvattu uudella
+NYT → TULEVAT ERÄT → Välisumma → SÄÄNNÖLLISET ERÄT → Lopputilanne -kortilla. Sprintti 1
+(puhdas refaktorointi) ja Sprintti 2 (uusi kortti) molemmat valmiit, ks. oma osio alla.
 
 **Dokumentaatiosprintti 15.7.2026:** BUG-A…D tarkistettu koodista (HEAD `41ade7c`) — kaikki edelleen avoinna, ks. merkinnät alla.
 
@@ -26,6 +26,7 @@ korjattiin omana pienenä sprinttinä (`6489000`) — ks. oma osio alla.
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `506403c` | feat: uusi "Seuraava rahatilanne" -kortti Kassa-korttiin | 2026-07-19 |
 | `f26d592` | refactor: eriytä säännöllisten tulojen/menojen rivien muodostus omaksi funktioksi | 2026-07-19 |
 | `6489000` | fix: Kassa-editorin iOS Safari focus-scroll ja mobiilin kontrasti | 2026-07-19 |
 | `fc57184` | feat: yhtenäistä Kassa-kortin rahavirtojen lisäys yhteen editoriin | 2026-07-18 |
@@ -229,6 +230,55 @@ Commit:
 
 ---
 
+## "Seuraava rahatilanne" -kortti — Sprintti 2/2: uusi kortti (19.7.2026)
+
+**Suunnittelupäätös (tiivistettynä):** Hero-summa = `tulotili − |op_gold|` ("NYT"),
+sama luku joka on koko ajan ollut Kassa-kortin ydinarvo — ei projektiota, vaan
+kortin tarinan lähtöpiste. Lopputilanne = `Hero + Σ(tulevat_items.amount) +
+Σ(tulot_items.amt_kk) − Σ(rytmi_items.amt_kk)`. "+ Lisää rahavirta" -editori pysyy
+kortin lopussa, Lopputilanteen jälkeen — neutraali sijainti molempien ryhmien
+suhteen, sama paikka kuin ennen. Tyhjä ryhmä näytetään otsikon alla tekstillä ("Ei
+tulevia eriä."/"Ei säännöllisiä eriä.") sen sijaan että lohko piilotettaisiin
+kokonaan — rakenne pysyy ennakoitavana joka snapshotilla.
+
+**Toteutettu:**
+- Uusi `renderKassaSeuraavaRahatilanne(latest)` (js/ui2-v2.js) korvaa segmenttipalkin,
+  KULUTUSRYTMI-lohkon, `renderKassaKuukausirytmi()`-kutsun sekä kaksi erillistä
+  Säännölliset tulot/menot -listaa ja TULOSSA-lohkon yhdellä koosterenderillä:
+  Kortin otsikko (SEURAAVA RAHATILANNE) → Hero (NYT) → TULEVAT ERÄT
+  (`tulevat_items`) → ehdollinen Välisumma ("Jäljellä tulevien erien jälkeen",
+  näkyy vain jos molemmissa ryhmissä ≥1 rivi) → SÄÄNNÖLLISET ERÄT (`rytmi_items` +
+  `tulot_items` yhdistettynä yhden otsikon alle, tulot ennen menoja) → Lopputilanne
+  (näkyy aina).
+- Poistettu käytöstä jääneet: `renderKassaKuukausirytmi()`, `toggleKassaRytmiDetails()`,
+  Sprintti 1:n kääre-funktiot `renderSaannollisetTulot()`/`renderSaannollisetMenot()`
+  (niiden oma otsikko+Yhteensä-rakenne ei sopinut yhdistettyyn ryhmään — uusi funktio
+  kutsuu `buildSaannollinenRows()`-apufunktiota suoraan niiden ohi), sekä käyttämättömät
+  muuttujat `tempo2`/`baseline2`/`devEur2`/`kayttovara`/`kv2Color`.
+- Ei uutta CSS:ää — Hero käyttää `.card-value`, otsikot `.kassa-section-hdr`,
+  Välisumma/Lopputilanne-rivit `.panel-row`/`.panel-row-lbl`/`.panel-row-val`.
+  `renderTulossaList()`, CRUD-funktiot ja `renderRahavirtaEditor()` koskemattomia.
+
+**Testattu:**
+- Node-laskentaregressio: 6 tapausta (peruskäyttäjä, Ryhmä 1 tyhjä, Ryhmä 2 tyhjä,
+  molemmat tyhjät, vain menoja Ryhmä 2:ssa, negatiivinen Hero) — kaikki täsmäsivät
+  käsin laskettuun kontrolliarvoon.
+- Selainregressio desktopilla (todellinen IndexedDB): kaikki ryhmät täynnä, molemmat
+  tyhjät (tyhjän tilan viestit + Välisumman piilotus), säännöllisen menon lisäys ja
+  poisto uuden kortin kautta — Lopputilanne päivittyi oikein joka kerta.
+- Visuaalinen tarkistus stressidatalla (pitkät nimet, 6 tulevaa erää 3 kuukaudessa,
+  11 säännöllistä erää): desktopilla kaikki rivittyy siististi, editori pysyy
+  Lopputilanteen jälkeen. Mobiilissa (390 px viewport, simuloitu iframe-tekniikalla
+  koska `resize_window` ei vaikuta `window.innerWidth`-arvoon tässä
+  selainautomaatiossa — sama rajoitus kuin Kassa syöttö UX 2.0 -sprintissä):
+  ei sivunlaajuista vaakavieritystä, Hero ei ylivuoda, pitkät nimet rivittyvät
+  1–3 riville ilman katkeamista, kaikki arvot täysin näkyvissä.
+
+Commit:
+- `506403c` — feat: uusi "Seuraava rahatilanne" -kortti Kassa-korttiin
+
+---
+
 ## Avoimet bugit
 
 ### BUG-A: "Näytä dashboardissa" — täysi no-op
@@ -341,4 +391,4 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-07-19 ("Seuraava rahatilanne" -kortti, Sprintti 1/2: säännöllisten tulojen/menojen rivien refaktorointi — ks. yllä).*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-19 ("Seuraava rahatilanne" -kortti valmis, Sprintti 1+2/2 — ks. yllä).*

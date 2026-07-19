@@ -910,12 +910,6 @@ async function renderDashboard() {
           if (latest.op_gold === undefined) return '';
           var opGold2    = Math.abs(latest.op_gold ?? 0);
           var tulotili2  = latest.tulotili ?? 0;
-          var nettorytmi2 = tulotili2 - opGold2;
-          var tempo2     = sig && sig.tempo;
-          var baseline2  = tempo2 ? tempo2.paceAvg : null;
-          var devEur2    = (baseline2 !== null) ? nettorytmi2 - baseline2 : null;
-          var kayttovara = nettorytmi2;
-          var kv2Color   = kayttovara >= 0 ? 'var(--green)' : 'var(--red)';
 
           var html2 = '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">'
             // Tulotili-rivi
@@ -938,46 +932,8 @@ async function renderDashboard() {
             +(_pref('cash','row_tulotili',true)||_pref('cash','row_op_gold',true)
               ? '<div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:8px;"></div>'
               : '')
-          // ── Kassakortti: Palkki + Kuukausirytmi + Tulossa ──
-          // Segmenttipalkki (koko kortin leveys)
-                    var _barHtml = '<div style="margin:12px 0 8px 0;height:8px;border-radius:4px;overflow:hidden;display:flex;">';
-          _barHtml += '<div style="flex:6;height:8px;background:var(--card-primary);"></div>';
-          _barHtml += '<div style="width:2px;height:8px;background:rgba(0,0,0,0.5);"></div>';
-          _barHtml += '<div style="flex:2;height:8px;background:var(--card-primary-dark);"></div>';
-          _barHtml += '<div style="width:2px;height:8px;background:rgba(0,0,0,0.5);"></div>';
-          _barHtml += '<div style="flex:2;height:8px;background:rgba(255,255,255,0.15);"></div>';
-          _barHtml += '</div>';
-          html2 += _barHtml;
-          // ── päivä / ylensä / nyt ──
-          if (baseline2 !== null) {
-            var _dn2 = latest.date ? new Date(latest.date).getDate() : null;
-            html2 += '<div class="kassa-section-hdr">KULUTUSRYTMI</div>';
-            html2 += '<div style="margin:14px 0 0;padding:0 2px;">'
-              + (_dn2 ? '<div style="font-size:10px;color:var(--card-primary-dark);margin-bottom:4px;">' + _dn2 + '. päivä</div>' : '')
-              + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'
-              + '<span style="font-size:11px;color:var(--card-primary);">ylensä</span>'
-              + '<span style="font-family:var(--mono);font-size:12px;color:var(--green);">' + fmt(baseline2) + '</span></div>'
-              + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-              + '<span style="font-size:11px;color:var(--card-primary);">nyt</span>'
-              + '<span style="font-family:var(--mono);font-size:12px;color:var(--card-primary);">' + fmt(nettorytmi2) + '</span></div>'
-              + '</div>';
-          }
-
-          // Kuukausirytmi: tulot_items/rytmi_items yhteenveto (korvaa entisen mock-kuukausihistorian)
-          html2 += renderKassaKuukausirytmi(latest);
-
-          // Säännölliset tulot -lista (vain listat + poisto, lisäys yhteisen editorin kautta)
-          html2 += renderSaannollisetTulot(latest);
-
-          // Säännölliset menot -lista (vain listat + poisto, lisäys yhteisen editorin kautta)
-          html2 += renderSaannollisetMenot(latest);
-
-          // TULOSSA (ei enää sidottu 'expanded'-tilaan — sama näkyvyys kuin Kuukausirytmillä ja Säännöllisillä menoilla)
-          var _moRow = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
-          _moRow += '<div class="kassa-section-hdr" style="margin-top:6px">TULOSSA</div>';
-          _moRow += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
-          _moRow += '</div>';
-          html2 += _moRow;
+          // "Seuraava rahatilanne": NYT → tulevat erät → välisumma → säännölliset erät → lopputilanne
+          html2 += renderKassaSeuraavaRahatilanne(latest);
 
           // Yhteinen "+ Lisää rahavirta" -editori (Tulossa / Säännöllinen tulo / Säännöllinen meno)
           html2 += renderRahavirtaEditor(latest);
@@ -1976,59 +1932,65 @@ function validRecurringDay(paiva) {
   return (paiva !== undefined && paiva !== null && paiva !== '' && Number.isInteger(n) && n >= 1 && n <= 31) ? n : null;
 }
 
-// Kassa: Kuukausirytmi — tulot_items/rytmi_items yhteenveto (näyttö, ei muokkausta)
-function renderKassaKuukausirytmi(latest) {
+// Kassa: "Seuraava rahatilanne" -kortti.
+// NYT (Hero, tulotili − |op_gold|) → TULEVAT ERÄT (tulevat_items) → ehdollinen
+// välisumma → SÄÄNNÖLLISET ERÄT (rytmi_items + tulot_items yhtenä ryhmänä) →
+// Lopputilanne. Ryhmäraja tulee tietomallista, ei UI:n päätöksestä.
+function renderKassaSeuraavaRahatilanne(latest) {
+  var hero = (latest.tulotili || 0) - Math.abs(latest.op_gold || 0);
+  var heroColor = hero >= 0 ? 'var(--green)' : 'var(--red)';
+
+  var tulevatItems = Array.isArray(latest.tulevat_items) ? latest.tulevat_items : [];
+  var tulevatSum = tulevatItems.reduce(function(s, x) { return s + (Number(x.amount) || 0); }, 0);
+  var valisumma = hero + tulevatSum;
+
+  var rytmiItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
   var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
-  var menotItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
-  var tulotSum = tulotItems.reduce(function(s, x) { return s + (Number(x.amt_kk) || 0); }, 0);
-  var menotSum = menotItems.reduce(function(s, x) { return s + (Number(x.amt_kk) || 0); }, 0);
-  var netto = tulotSum - menotSum;
-  var nettoColor = netto >= 0 ? 'var(--green)' : 'var(--red)';
+  function menoAmtOf(x) { return parseFloat(x.amt_kk != null ? x.amt_kk : x.amount) || 0; }
+  function tuloAmtOf(x) { return parseFloat(x.amt_kk) || 0; }
+  var tulotBuilt = buildSaannollinenRows(tulotItems, 'Tulo', 'panelTuloDelete', tuloAmtOf);
+  var menotBuilt = buildSaannollinenRows(rytmiItems, 'Meno', 'panelMenoDelete', menoAmtOf);
 
-  var sortedMenot = menotItems.slice().sort(function(a, b) {
-    var da = validRecurringDay(a.paiva); da = (da === null) ? Infinity : da;
-    var db = validRecurringDay(b.paiva); db = (db === null) ? Infinity : db;
-    return da - db;
-  });
+  var loppusumma = valisumma + tulotBuilt.total - menotBuilt.total;
+  var loppuColor = loppusumma >= 0 ? 'var(--green)' : 'var(--red)';
 
-  function summaryRow(label, val, color) {
-    return '<div class="sub-row"><span>' + label + '</span><span style="color:' + color + ';">' + fmt(val) + '</span></div>';
+  var naytaValisumma = tulevatItems.length > 0 && (rytmiItems.length > 0 || tulotItems.length > 0);
+
+  var html = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
+  html += '<div class="kassa-section-hdr">SEURAAVA RAHATILANNE</div>';
+
+  html += '<div style="margin:10px 0 0;padding:0 2px;">'
+    + '<div style="font-size:11px;color:var(--card-primary);">NYT</div>'
+    + '<div class="card-value" style="color:' + heroColor + ';">' + fmt(hero) + '</div>'
+    + '</div>';
+
+  html += '<div class="kassa-section-hdr" style="margin-top:10px;">TULEVAT ERÄT</div>';
+  html += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
+  if (tulevatItems.length === 0) {
+    html += '<div class="panel-row"><span class="panel-row-lbl">Ei tulevia eriä.</span></div>';
   }
 
-  var tulotRows = tulotItems.length
-    ? tulotItems.map(function(x) {
-        return '<div class="sub-row"><span>' + normalizeRecurringLabel(x.label, 'Tulo').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
-      }).join('')
-    : '<div class="sub-row"><span style="color:var(--text3);">Ei säännöllisiä tuloja</span></div>';
+  if (naytaValisumma) {
+    html += '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
+      + '<span class="panel-row-lbl">Jäljellä tulevien erien jälkeen</span>'
+      + '<span class="panel-row-val">' + fmt(valisumma) + '</span>'
+      + '</div>';
+  }
 
-  var menotRows = sortedMenot.length
-    ? sortedMenot.map(function(x) {
-        var day = validRecurringDay(x.paiva);
-        var dayVal = (day !== null) ? (day + '. ') : '';
-        return '<div class="sub-row"><span>' + dayVal + normalizeRecurringLabel(x.label, 'Meno').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
-      }).join('')
-    : '<div class="sub-row"><span style="color:var(--text3);">Ei säännöllisiä menoja</span></div>';
+  html += '<div class="kassa-section-hdr" style="margin-top:10px;">SÄÄNNÖLLISET ERÄT</div>';
+  if (tulotItems.length === 0 && rytmiItems.length === 0) {
+    html += '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä eriä.</span></div>';
+  } else {
+    html += tulotBuilt.rows + menotBuilt.rows;
+  }
 
-  return '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
-    + '<div class="kassa-section-hdr">KUUKAUSIRYTMI</div>'
-    + summaryRow('Tulot / kk', tulotSum, 'var(--green)')
-    + summaryRow('Menot / kk', -menotSum, 'var(--red)')
-    + summaryRow('Netto / kk', netto, nettoColor)
-    + '<div class="kassa-rytmi-toggle" onclick="toggleKassaRytmiDetails(this)" style="cursor:pointer;color:var(--text2);font-size:12px;padding:6px 0 4px;">▼ Näytä tulot ja menot</div>'
-    + '<div class="kassa-rytmi-details" style="display:none;">'
-    + '<div class="kassa-section-hdr" style="margin-top:4px;">SÄÄNNÖLLISET TULOT</div>'
-    + tulotRows
-    + '<div class="kassa-section-hdr" style="margin-top:8px;">SÄÄNNÖLLISET MENOT</div>'
-    + menotRows
-    + '</div>'
+  html += '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
+    + '<span class="panel-row-lbl" style="font-weight:700;">Lopputilanne</span>'
+    + '<span class="panel-row-val" style="color:' + loppuColor + ';">' + fmt(loppusumma) + '</span>'
     + '</div>';
-}
 
-function toggleKassaRytmiDetails(btn) {
-  var details = btn.nextElementSibling;
-  var isOpen = details.style.display === 'block';
-  details.style.display = isOpen ? 'none' : 'block';
-  btn.textContent = isOpen ? '▼ Näytä tulot ja menot' : '▲ Piilota';
+  html += '</div>';
+  return html;
 }
 
 // Kassa inline edit controller — shared for Tulotili and OP Gold
@@ -3749,22 +3711,6 @@ function buildSaannollinenRows(items, fallbackLabel, deleteFnName, amtOf) {
   return { rows: rows, total: total };
 }
 
-function renderSaannollisetMenot(latest) {
-  var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
-  function amtOf(x) { return parseFloat(x.amt_kk != null ? x.amt_kk : x.amount) || 0; }
-  var built = buildSaannollinenRows(items, 'Meno', 'panelMenoDelete', amtOf);
-  var rows = built.rows || '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä menoja.</span></div>';
-
-  return '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
-  + '<div class="kassa-section-hdr" style="margin-top:6px">SÄÄNNÖLLISET MENOT</div>'
-  + rows
-  + '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
-  + '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
-  + '<span class="panel-row-val">' + built.total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-  + '</div>'
-  + '</div>';
-}
-
 window.panelMenoDelete = async function(id) {
   if (!confirm('Poistetaanko meno?')) return;
   var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
@@ -3782,22 +3728,6 @@ window.panelMenoDelete = async function(id) {
   try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
   await renderDashboard();
 };
-
-function renderSaannollisetTulot(latest) {
-  var items = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
-  function amtOf(x) { return parseFloat(x.amt_kk) || 0; }
-  var built = buildSaannollinenRows(items, 'Tulo', 'panelTuloDelete', amtOf);
-  var rows = built.rows || '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä tuloja.</span></div>';
-
-  return '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
-  + '<div class="kassa-section-hdr" style="margin-top:6px">SÄÄNNÖLLISET TULOT</div>'
-  + rows
-  + '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
-  + '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
-  + '<span class="panel-row-val">' + built.total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-  + '</div>'
-  + '</div>';
-}
 
 window.panelTuloDelete = async function(id) {
   if (!confirm('Poistetaanko tulo?')) return;
