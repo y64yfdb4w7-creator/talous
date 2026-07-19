@@ -1960,6 +1960,14 @@ async function saveOpGoldValue(val) {
   });
 }
 
+// Yhteinen nimen normalisointi Kuukausirytmin/Säännöllisten tulojen/menojen riveille.
+// Tyhjä, puuttuva tai pelkkiä pisteitä/välilyöntejä sisältävä nimi korvataan fallbackilla —
+// riviä EI jätetä pois renderöinnistä, vain nimi normalisoidaan.
+function normalizeRecurringLabel(label, fallback) {
+  var s = (label != null) ? String(label).trim() : '';
+  return (/^[.\s]*$/.test(s)) ? fallback : s;
+}
+
 // Kassa: Kuukausirytmi — tulot_items/rytmi_items yhteenveto (näyttö, ei muokkausta)
 function renderKassaKuukausirytmi(latest) {
   var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
@@ -1981,14 +1989,14 @@ function renderKassaKuukausirytmi(latest) {
 
   var tulotRows = tulotItems.length
     ? tulotItems.map(function(x) {
-        return '<div class="sub-row"><span>' + String(x.label || 'Tulo').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
+        return '<div class="sub-row"><span>' + normalizeRecurringLabel(x.label, 'Tulo').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
       }).join('')
     : '<div class="sub-row"><span style="color:var(--text3);">Ei säännöllisiä tuloja</span></div>';
 
   var menotRows = sortedMenot.length
     ? sortedMenot.map(function(x) {
         var dayVal = (x.paiva === undefined || x.paiva === null || x.paiva === '') ? '' : (x.paiva + '. ');
-        return '<div class="sub-row"><span>' + dayVal + String(x.label || 'Meno').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
+        return '<div class="sub-row"><span>' + dayVal + normalizeRecurringLabel(x.label, 'Meno').replace(/</g, '&lt;') + '</span><span>' + fmt(Number(x.amt_kk) || 0) + '</span></div>';
       }).join('')
     : '<div class="sub-row"><span style="color:var(--text3);">Ei säännöllisiä menoja</span></div>';
 
@@ -3715,12 +3723,12 @@ function renderSaannollisetMenot(latest) {
     var da = (a.item.paiva === undefined || a.item.paiva === null || a.item.paiva === '') ? Infinity : Number(a.item.paiva);
     var db = (b.item.paiva === undefined || b.item.paiva === null || b.item.paiva === '') ? Infinity : Number(b.item.paiva);
     if (da !== db) return da - db;
-    return String(a.item.label || '').localeCompare(String(b.item.label || ''), 'fi');
+    return normalizeRecurringLabel(a.item.label, 'Meno').localeCompare(normalizeRecurringLabel(b.item.label, 'Meno'), 'fi');
   });
   var rows = sortedItems.length ? sortedItems.map(function(entry) {
     var item = entry.item;
     var amt = amtOf(item);
-    var label = String(item.label || 'Meno').replace(/</g, '&lt;');
+    var label = normalizeRecurringLabel(item.label, 'Meno').replace(/</g, '&lt;');
     var dayVal = (item.paiva === undefined || item.paiva === null || item.paiva === '') ? '' : String(item.paiva);
     var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);">' + (dayVal ? dayVal + '.' : '') + '</span>';
     return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
@@ -3767,12 +3775,12 @@ function renderSaannollisetTulot(latest) {
     var da = (a.item.paiva === undefined || a.item.paiva === null || a.item.paiva === '') ? Infinity : Number(a.item.paiva);
     var db = (b.item.paiva === undefined || b.item.paiva === null || b.item.paiva === '') ? Infinity : Number(b.item.paiva);
     if (da !== db) return da - db;
-    return String(a.item.label || '').localeCompare(String(b.item.label || ''), 'fi');
+    return normalizeRecurringLabel(a.item.label, 'Tulo').localeCompare(normalizeRecurringLabel(b.item.label, 'Tulo'), 'fi');
   });
   var rows = sortedItems.length ? sortedItems.map(function(entry) {
     var item = entry.item;
     var amt = amtOf(item);
-    var label = String(item.label || 'Tulo').replace(/</g, '&lt;');
+    var label = normalizeRecurringLabel(item.label, 'Tulo').replace(/</g, '&lt;');
     var dayVal = (item.paiva === undefined || item.paiva === null || item.paiva === '') ? '' : String(item.paiva);
     var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);">' + (dayVal ? dayVal + '.' : '') + '</span>';
     return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
