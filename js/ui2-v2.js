@@ -1977,6 +1977,14 @@ function nextMonthOnlyDate(snapshotDate, month) {
 // Kaikki kolme listaa (tulot_items, rytmi_items, tulevat_items) ovat jo
 // luonteeltaan kassavaikutteisia — mikään niistä ei edusta tilien välistä
 // siirtoa tai sijoitusta, joten erillistä suodatusta ei tarvita.
+//
+// Rahavirta ilman kelvollista päivää (tulot_items/rytmi_items) tai kuukautta
+// (tulevat_items) ei saa keksittyä ajankohtaa — LUKITUN "tunnettu tulo"
+// -määritelmän mukaan sillä ei ole "määriteltyä ajallista sijaintia", joten
+// se ei voi osallistua kassajaksoon. Tällaiset rivit (legacy-dataa ennen
+// rahavirtaEditorSaven pakollisuusvalidointia) jätetään pois; käyttäjä
+// täydentää puuttuvan tiedon Kassa-kortin legacy-ilmoituksesta, ks.
+// findLegacyRahavirrat.
 function collectRahavirrat(latest, snapshotDate) {
   var out = [];
   (Array.isArray(latest.tulot_items) ? latest.tulot_items : []).forEach(function(x) {
@@ -1995,6 +2003,26 @@ function collectRahavirrat(latest, snapshotDate) {
     if (!d) return;
     var amt = Number(x.amount) || 0;
     out.push({ ref: x, source: 'tulevat_items', date: d, isIncome: amt > 0, amount: amt });
+  });
+  return out;
+}
+
+// Legacy-rahavirrat: rivit joilta puuttuu kelvollinen paiva/month, tallennettu
+// ennen rahavirtaEditorSaven pakollisuusvalidointia. Sama tunnistuskriteeri
+// kuin collectRahavirrat:ssa (validRecurringDay / kuukausiväli 1-12) — ei
+// erillistä lippua tai versiomerkintää. Käytetään vain Kassa-kortin
+// legacy-ilmoitukseen; ei vaikuta Kassajakson tai Heron laskentaan.
+function findLegacyRahavirrat(latest) {
+  var out = [];
+  (Array.isArray(latest.tulot_items) ? latest.tulot_items : []).forEach(function(x, idx) {
+    if (validRecurringDay(x.paiva) === null) out.push({ source: 'tulot_items', key: (x.id != null ? x.id : ('idx:' + idx)), ref: x });
+  });
+  (Array.isArray(latest.rytmi_items) ? latest.rytmi_items : []).forEach(function(x, idx) {
+    if (validRecurringDay(x.paiva) === null) out.push({ source: 'rytmi_items', key: (x.id != null ? x.id : ('idx:' + idx)), ref: x });
+  });
+  (Array.isArray(latest.tulevat_items) ? latest.tulevat_items : []).forEach(function(x, idx) {
+    var m = parseInt(x.month, 10);
+    if (!(m >= 1 && m <= 12)) out.push({ source: 'tulevat_items', key: (x.id != null ? x.id : ('idx:' + idx)), ref: x });
   });
   return out;
 }
@@ -2041,7 +2069,29 @@ function renderKassaSeuraavaRahatilanne(latest) {
   var tulotBuilt = buildSaannollinenRows(tulotItems, 'Tulo', 'panelTuloDelete', tuloAmtOf);
   var menotBuilt = buildSaannollinenRows(rytmiItems, 'Meno', 'panelMenoDelete', menoAmtOf);
 
+  (function debugHeroInput() {
+    var snapshotDateDbg = new Date((latest.date || '') + 'T00:00:00');
+    var kaikkiRahavirratDbg = collectRahavirrat(latest, snapshotDateDbg);
+    var rows = kaikkiRahavirratDbg.map(function(x) {
+      return {
+        nimi: x.ref.label,
+        tyyppi: x.isIncome ? 'tulo' : 'meno',
+        summa: x.amount,
+        ajankohta: x.date,
+        kassavaikutteinen: true,
+        mukanaKassajaksossa: kassajakso.boundary ? x.date <= kassajakso.boundary.date : false
+      };
+    });
+    console.log('[HERO DEBUG] Lähtökassa:', kassajakso.lahtokassa);
+    console.table(rows);
+    var tulotSumDbg = kassajakso.items.filter(function(x) { return x.isIncome; }).reduce(function(s, x) { return s + x.amount; }, 0);
+    var menotSumDbg = kassajakso.items.filter(function(x) { return !x.isIncome; }).reduce(function(s, x) { return s + x.amount; }, 0);
+    console.log('[HERO DEBUG] Heroon menevien tulojen summa:', tulotSumDbg);
+    console.log('[HERO DEBUG] Heroon menevien menojen summa:', menotSumDbg);
+  })();
+
   var hero = heroSum(kassajakso);
+  console.log('[HERO DEBUG] Hero-lopputulos:', hero);
   var heroColor = hero >= 0 ? 'var(--green)' : 'var(--red)';
 
   var naytaValisumma = tulevatItems.length > 0 && (rytmiItems.length > 0 || tulotItems.length > 0);
@@ -4273,24 +4323,78 @@ async function kassaTulossaDelete(id) {
 // ── RAHAVIRTA: yhteinen "+ Lisää rahavirta" -editori (Tulossa / Säännöllinen tulo / Säännöllinen meno) ──
 var _RV_MONTH_NAMES = ['Tammi','Helmi','Maalis','Huhti','Touko','Kesä','Heinä','Elo','Syys','Loka','Marras','Joulu'];
 
+// Legacy-ilmoitus: näkyy vain jos snapshotilla on rahavirtoja ilman kelvollista
+// paiva/month-kenttää. Painike avaa saman rahavirtaeditorin täydennystilassa
+// ensimmäiselle löytyneelle riville — ilmoitus poistuu automaattisesti, kun
+// findLegacyRahavirrat ei enää löydä yhtään riviä (renderDashboard laskee sen
+// uudelleen jokaisella renderillä).
+function renderLegacyNotice(latest) {
+  var legacy = findLegacyRahavirrat(latest);
+  if (!legacy.length) return '';
+  var first = legacy[0];
+  var kentta = first.source === 'tulevat_items' ? 'kuukausi' : 'päivä';
+  return '<div class="panel-row" style="flex-direction:column;align-items:flex-start;gap:6px;margin-bottom:8px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;">'
+    + '<span style="font-size:12px;color:var(--text2);">' + legacy.length + ' rahavirralta puuttuu päivä tai kuukausi. Ne eivät vielä osallistu kassalaskentaan.</span>'
+    + '<button class="kassa-add-btn" onclick="rahavirtaEditorOpenLegacy(\'' + first.source + '\',\'' + escAttr(first.key) + '\')">Täydennä tiedot</button>'
+    + '</div>';
+}
+
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+}
+
+function findRahavirtaItem(latest, source, key) {
+  var items = Array.isArray(latest[source]) ? latest[source] : [];
+  if (typeof key === 'string' && key.indexOf('idx:') === 0) {
+    return items[parseInt(key.slice(4), 10)] || null;
+  }
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].id === key) return items[i];
+  }
+  return null;
+}
+
+// Päivittää olemassa olevan rahavirran paikallaan (säilyttää id:n ja muut
+// kentät) sen sijaan että lisäisi uuden rivin — käytössä legacy-täydennyksessä.
+function applyRahavirtaEdit(items, key, fields) {
+  var idx;
+  if (typeof key === 'string' && key.indexOf('idx:') === 0) {
+    idx = parseInt(key.slice(4), 10);
+  } else {
+    idx = items.findIndex(function(x) { return x.id === key; });
+  }
+  if (idx < 0 || idx >= items.length) return false;
+  items[idx] = Object.assign({}, items[idx], fields);
+  return true;
+}
+
 function renderRahavirtaEditor(latest) {
   if (!window._rahavirtaEditorOpen) {
     return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
+      + renderLegacyNotice(latest)
       + '<button class="kassa-add-btn" onclick="rahavirtaEditorOpen()">+ Lisää rahavirta</button>'
       + '</div>';
   }
   var type = window._rahavirtaType || 'tulossa';
+  var editTarget = window._rahavirtaEditTarget || null;
+  var prefill = null;
+  if (editTarget) {
+    var item = findRahavirtaItem(latest, editTarget.source, editTarget.key);
+    if (item) prefill = { readonly: true, label: item.label, amount: item.amount, amt_kk: item.amt_kk };
+  }
   function typeRadio(val, label) {
     return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;">'
       + '<input type="radio" name="rv_type" value="' + val + '"' + (type === val ? ' checked' : '') + ' onchange="rahavirtaTypeChange(this.value)"> ' + label
       + '</label>';
   }
   var html = '<div class="kassa-tulossa-form" id="kassaRahavirtaSection" style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
-  html += '<div class="kassa-section-hdr">LISÄÄ RAHAVIRTA</div>';
-  html += '<div style="display:flex;flex-direction:column;gap:6px;margin:8px 0;">'
-    + typeRadio('tulossa', 'Tulossa') + typeRadio('tulo', 'Säännöllinen tulo') + typeRadio('meno', 'Säännöllinen meno')
-    + '</div>';
-  html += '<div id="rvFields">' + renderRahavirtaFields(type) + '</div>';
+  html += '<div class="kassa-section-hdr">' + (editTarget ? 'TÄYDENNÄ TIEDOT' : 'LISÄÄ RAHAVIRTA') + '</div>';
+  if (!editTarget) {
+    html += '<div style="display:flex;flex-direction:column;gap:6px;margin:8px 0;">'
+      + typeRadio('tulossa', 'Tulossa') + typeRadio('tulo', 'Säännöllinen tulo') + typeRadio('meno', 'Säännöllinen meno')
+      + '</div>';
+  }
+  html += '<div id="rvFields">' + renderRahavirtaFields(type, prefill) + '</div>';
   html += '<div class="kassa-action-row">'
     + '<button class="kassa-save-btn" onclick="rahavirtaEditorSave()">✓ Tallenna</button>'
     + '<button class="kassa-cancel-btn" onclick="rahavirtaEditorCancel()">✕ Peru</button>'
@@ -4299,22 +4403,26 @@ function renderRahavirtaEditor(latest) {
   return html;
 }
 
-function renderRahavirtaFields(type) {
+function renderRahavirtaFields(type, prefill) {
+  var ro = (prefill && prefill.readonly) ? ' readonly' : '';
+  var labelVal = (prefill && prefill.label != null) ? escAttr(prefill.label) : '';
   if (type === 'tulossa') {
     var monthOpts = '<option value="">—</option>' + [1,2,3,4,5,6,7,8,9,10,11,12].map(function(n) {
       return '<option value="' + n + '">' + _RV_MONTH_NAMES[n-1] + '</option>';
     }).join('');
+    var amountVal = (prefill && prefill.amount != null) ? escAttr(prefill.amount) : '';
     return '<div class="kassa-field-group"><label class="kassa-field-label">Nimi</label>'
-      + '<input class="kassa-edit-input" id="rv_label" placeholder="esim. Bonus"></div>'
+      + '<input class="kassa-edit-input" id="rv_label" placeholder="esim. Bonus" value="' + labelVal + '"' + ro + '></div>'
       + '<div class="kassa-field-group"><label class="kassa-field-label">Kuukausi</label>'
       + '<select class="kassa-edit-select" id="rv_month">' + monthOpts + '</select></div>'
       + '<div class="kassa-field-group"><label class="kassa-field-label">Summa (€)</label>'
-      + '<input class="kassa-edit-input" id="rv_amount" type="number" placeholder="esim. -450"></div>';
+      + '<input class="kassa-edit-input" id="rv_amount" type="number" placeholder="esim. -450" value="' + amountVal + '"' + ro + '></div>';
   }
+  var amtKkVal = (prefill && prefill.amt_kk != null) ? escAttr(prefill.amt_kk) : '';
   return '<div class="kassa-field-group"><label class="kassa-field-label">Nimi</label>'
-    + '<input class="kassa-edit-input" id="rv_label" placeholder="Nimi"></div>'
+    + '<input class="kassa-edit-input" id="rv_label" placeholder="Nimi" value="' + labelVal + '"' + ro + '></div>'
     + '<div class="kassa-field-group"><label class="kassa-field-label">€/kk</label>'
-    + '<input class="kassa-edit-input" id="rv_amt_kk" type="number" inputmode="decimal" placeholder="€/kk"></div>'
+    + '<input class="kassa-edit-input" id="rv_amt_kk" type="number" inputmode="decimal" placeholder="€/kk" value="' + amtKkVal + '"' + ro + '></div>'
     + '<div class="kassa-field-group"><label class="kassa-field-label">Päivä</label>'
     + '<input class="kassa-edit-input" id="rv_paiva" type="number" inputmode="numeric" min="1" max="31" step="1" placeholder="pv"></div>';
 }
@@ -4329,19 +4437,33 @@ window.rahavirtaTypeChange = function(val) {
 
 window.rahavirtaEditorOpen = async function() {
   window._rahavirtaEditorOpen = true;
+  window._rahavirtaEditTarget = null;
   if (!window._rahavirtaType) window._rahavirtaType = 'tulossa';
   await renderDashboard();
-  _rahavirtaFocusAndScroll();
+  _rahavirtaFocusAndScroll('rv_label');
+};
+
+// Avaa rahavirtaeditorin täydennystilassa yhdelle legacy-riville: nimi/summa
+// esitäytetään ja lukitaan, käyttäjä täyttää vain puuttuvan päivän/kuukauden.
+// Tallennus kulkee tavallisen rahavirtaEditorSaven kautta.
+window.rahavirtaEditorOpenLegacy = async function(source, key) {
+  var typeMap = { tulot_items: 'tulo', rytmi_items: 'meno', tulevat_items: 'tulossa' };
+  window._rahavirtaEditorOpen = true;
+  window._rahavirtaType = typeMap[source] || 'tulossa';
+  window._rahavirtaEditTarget = { source: source, key: key };
+  await renderDashboard();
+  _rahavirtaFocusAndScroll(window._rahavirtaType === 'tulossa' ? 'rv_month' : 'rv_paiva');
 };
 
 window.rahavirtaEditorCancel = async function() {
   window._rahavirtaEditorOpen = false;
+  window._rahavirtaEditTarget = null;
   await renderDashboard();
 };
 
-function _rahavirtaFocusAndScroll() {
+function _rahavirtaFocusAndScroll(focusId) {
   var section = document.getElementById('kassaRahavirtaSection');
-  var inp = document.getElementById('rv_label');
+  var inp = document.getElementById(focusId || 'rv_label');
   if (!inp) return;
   if (!section || window.innerWidth >= 900) {
     inp.focus();
@@ -4362,6 +4484,7 @@ function _rahavirtaFocusAndScroll() {
 
 window.rahavirtaEditorSave = async function() {
   var type = window._rahavirtaType || 'tulossa';
+  var editTarget = window._rahavirtaEditTarget || null;
   var labelEl = document.getElementById('rv_label');
   var label = ((labelEl && labelEl.value) || '').trim();
   if (!label) { if (labelEl) labelEl.focus(); return; }
@@ -4379,7 +4502,11 @@ window.rahavirtaEditorSave = async function() {
     var amount = parseFloat(((amountEl && amountEl.value) || '').replace(',', '.'));
     if (isNaN(amount)) { if (amountEl) amountEl.focus(); return; }
     var tulossaItems = Array.isArray(latest.tulevat_items) ? latest.tulevat_items.slice() : [];
-    tulossaItems.push({ id: 'tulossa_' + Date.now(), month: month, label: label, amount: amount });
+    if (editTarget && editTarget.source === 'tulevat_items') {
+      applyRahavirtaEdit(tulossaItems, editTarget.key, { label: label, month: month, amount: amount });
+    } else {
+      tulossaItems.push({ id: 'tulossa_' + Date.now(), month: month, label: label, amount: amount });
+    }
     latest.tulevat_items = tulossaItems;
   } else {
     var amtEl = document.getElementById('rv_amt_kk');
@@ -4390,15 +4517,22 @@ window.rahavirtaEditorSave = async function() {
     var dayNum = parseFloat(dayRaw);
     if (dayRaw === '' || isNaN(dayNum) || !Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31) { if (dayEl) dayEl.focus(); return; }
     var paiva = dayNum;
-    var newItem = { id: (type === 'tulo' ? 'tulo_' : 'meno_') + Date.now(), label: label, amt_kk: amt, paiva: paiva };
     if (type === 'tulo') {
       var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items.slice() : [];
-      tulotItems.push(newItem);
+      if (editTarget && editTarget.source === 'tulot_items') {
+        applyRahavirtaEdit(tulotItems, editTarget.key, { label: label, amt_kk: amt, paiva: paiva });
+      } else {
+        tulotItems.push({ id: 'tulo_' + Date.now(), label: label, amt_kk: amt, paiva: paiva });
+      }
       latest.tulot_items = tulotItems;
       latest.tulot_kk = tulotItems.reduce(function(s,x){ return s + (Number(x.amt_kk) || 0); }, 0);
     } else {
       var menotItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
-      menotItems.push(newItem);
+      if (editTarget && editTarget.source === 'rytmi_items') {
+        applyRahavirtaEdit(menotItems, editTarget.key, { label: label, amt_kk: amt, paiva: paiva });
+      } else {
+        menotItems.push({ id: 'meno_' + Date.now(), label: label, amt_kk: amt, paiva: paiva });
+      }
       latest.rytmi_items = menotItems;
     }
   }
@@ -4406,6 +4540,7 @@ window.rahavirtaEditorSave = async function() {
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);
   window._rahavirtaEditorOpen = false;
+  window._rahavirtaEditTarget = null;
   try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
   await renderDashboard();
 };
