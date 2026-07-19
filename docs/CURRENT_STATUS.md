@@ -2,9 +2,14 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-19
-**Viimeisin commit:** `6489000`
+**Viimeisin commit:** `f26d592`
 **Branch:** main
 **Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv.**)
+
+**"Seuraava rahatilanne" -kortti, Sprintti 1/2 (19.7.2026):** Puhdas refaktorointi —
+`renderSaannollisetTulot()`/`renderSaannollisetMenot()`-rivilogiikka eriytetty omaksi
+funktiokseen ilman näkyviä muutoksia, valmistelee Sprintti 2:n (uusi kortti), ks. oma
+osio alla.
 
 **Dokumentaatiosprintti 15.7.2026:** BUG-A…D tarkistettu koodista (HEAD `41ade7c`) — kaikki edelleen avoinna, ks. merkinnät alla.
 
@@ -21,6 +26,7 @@ korjattiin omana pienenä sprinttinä (`6489000`) — ks. oma osio alla.
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `f26d592` | refactor: eriytä säännöllisten tulojen/menojen rivien muodostus omaksi funktioksi | 2026-07-19 |
 | `6489000` | fix: Kassa-editorin iOS Safari focus-scroll ja mobiilin kontrasti | 2026-07-19 |
 | `fc57184` | feat: yhtenäistä Kassa-kortin rahavirtojen lisäys yhteen editoriin | 2026-07-18 |
 | `2ff48af` | fix: prevent Kassa Tulossa Poista button from clipping on mobile | 2026-07-17 |
@@ -176,6 +182,53 @@ Commit:
 
 ---
 
+## "Seuraava rahatilanne" -kortti — Sprintti 1/2: puhdas refaktorointi (19.7.2026)
+
+**Konteksti:** Kassa-kortin nykyinen Kulutusrytmi/Kuukausirytmi/Tulossa/Säännölliset
+tulot/menot -alue korvataan suunnittelupäätöksen mukaan uudella "Seuraava
+rahatilanne" -kortilla (Hero-summa → Ryhmä 1: TULEVAT ERÄT → Välisumma →
+Ryhmä 2: SÄÄNNÖLLISET ERÄT → Loppurivi). Työ jaettiin kahteen sprinttiin
+regressioriskin pienentämiseksi: Sprintti 1 (tämä) on puhdas refaktorointi ilman
+näkyviä muutoksia, Sprintti 2 rakentaa uuden kortin sen päälle.
+
+**Toteutettu:**
+- `renderSaannollisetTulot()` ja `renderSaannollisetMenot()` (js/ui2-v2.js) sisälsivät
+  identtisen rivien muodostuslogiikan (lajittelu päivän/nimen mukaan, nimen/päivän
+  normalisointi, rivi-HTML, poistonapin `onclick`, summan laskenta) kopioituna kahteen
+  kertaan. Erotettiin yhteinen osa uuteen apufunktioon
+  `buildSaannollinenRows(items, fallbackLabel, deleteFnName, amtOf)`, joka palauttaa
+  `{rows, total}`.
+- Molemmat alkuperäiset funktiot kutsuvat nyt apufunktiota ja kokoavat oman otsikkonsa,
+  tyhjän listan viestin ja "Yhteensä"-rivin sen ympärille — tuloste-HTML täsmälleen
+  ennallaan.
+- Ei muutoksia tietomalliin, synkronointiin, CSS:ään eikä CRUD-funktioihin
+  (`panelMenoDelete`, `panelTuloDelete`, `renderRahavirtaEditor`). `renderTulossaList()`
+  ei vaatinut muutoksia — sen otsikko tulee jo valmiiksi kutsujalta.
+
+**Testattu:**
+- Node-regressiotesti: vanhan (pre-refaktorointi) ja uuden toteutuksen tuloste-HTML
+  vertailtu merkki merkiltä 5 testitapauksella (tyhjä lista, puuttuvat kentät, yksi rivi,
+  useita rivejä sekalaisessa järjestyksessä tyhjillä/piste-nimillä, virheelliset päivät
+  0/32/desimaali/tyhjä) — kaikki identtiset.
+- Selainregressio desktopilla (paikallinen staattinen palvelin, todellinen IndexedDB):
+  säännöllisen menon lisäys ja poisto, säännöllisen tulon lisäys ja poisto. Lajittelu
+  (päivä nousevasti, tasapelissä aakkosjärjestys), tyhjä/piste-nimen korvautuminen
+  oletusnimellä, päivämuotoilu ("N.") ja summat (Yhteensä-rivit, Tulot/Menot/Netto per
+  kk) täsmäsivät ennen/jälkeen jokaisen operaation.
+- Muokkaus-toimintoa ei ole olemassa säännöllisille tulo-/menoriveille nykyisessä
+  UI:ssa — vain lisäys ("+ Lisää rahavirta") ja poisto (✕). Tarkistettu koodista, tila
+  ennallaan refaktoroinnin jälkeen.
+
+**Miksi Sprintti 2 on turvallisempi:** Ryhmä 2:n ("SÄÄNNÖLLISET ERÄT") yhdistetty
+rivilista `rytmi_items`- ja `tulot_items`-taulukoista voidaan rakentaa kutsumalla
+`buildSaannollinenRows()`-funktiota molemmilla taulukoilla, ilman että rivien
+sisäistä muodostuslogiikkaa kirjoitetaan tai testataan uudelleen kahteen kertaan.
+
+Commit:
+- `f26d592` — refactor: eriytä säännöllisten tulojen/menojen rivien muodostus omaksi funktioksi
+
+---
+
 ## Avoimet bugit
 
 ### BUG-A: "Näytä dashboardissa" — täysi no-op
@@ -288,4 +341,4 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-07-19 (Kassa syöttö UX 2.0: kolmen erillisen lomakkeen yhtenäistäminen, iOS Safari focus-scroll ja mobiilikontrasti — ks. yllä).*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-19 ("Seuraava rahatilanne" -kortti, Sprintti 1/2: säännöllisten tulojen/menojen rivien refaktorointi — ks. yllä).*

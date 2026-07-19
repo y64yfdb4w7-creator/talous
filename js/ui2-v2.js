@@ -3723,36 +3723,44 @@ async function myyntiDelete(id) {
 
 // SÄÄNNÖLLISET MENOT — yhteinen editori (Kassa-kortti, desktop + mobiili)
 // ══════════════════════════════════════════════════════════════
-function renderSaannollisetMenot(latest) {
-  var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
-  function amtOf(x) { return parseFloat(x.amt_kk != null ? x.amt_kk : x.amount) || 0; }
-  var total = items.reduce(function(s, x) { return s + amtOf(x); }, 0);
+// Rivien muodostus erotettu esitysrakenteesta (otsikko/Yhteensä-rivi), jotta
+// sama rivilogiikka on uudelleenkäytettävissä ilman kopiointia.
+function buildSaannollinenRows(items, fallbackLabel, deleteFnName, amtOf) {
   var withKeys = items.map(function(item, idx) { return { item: item, delKey: (item.id != null ? item.id : ('idx:' + idx)) }; });
   var sortedItems = withKeys.slice().sort(function(a, b) {
     var da = validRecurringDay(a.item.paiva); da = (da === null) ? Infinity : da;
     var db = validRecurringDay(b.item.paiva); db = (db === null) ? Infinity : db;
     if (da !== db) return da - db;
-    return normalizeRecurringLabel(a.item.label, 'Meno').localeCompare(normalizeRecurringLabel(b.item.label, 'Meno'), 'fi');
+    return normalizeRecurringLabel(a.item.label, fallbackLabel).localeCompare(normalizeRecurringLabel(b.item.label, fallbackLabel), 'fi');
   });
-  var rows = sortedItems.length ? sortedItems.map(function(entry) {
+  var total = items.reduce(function(s, x) { return s + amtOf(x); }, 0);
+  var rows = sortedItems.map(function(entry) {
     var item = entry.item;
     var amt = amtOf(item);
-    var label = normalizeRecurringLabel(item.label, 'Meno').replace(/</g, '&lt;');
+    var label = normalizeRecurringLabel(item.label, fallbackLabel).replace(/</g, '&lt;');
     var day = validRecurringDay(item.paiva);
     var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (day !== null ? day + '.' : '') + '</span>';
     return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
     + '<span style="display:flex;align-items:center;gap:8px;">'
     + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-    + '<button onclick="panelMenoDelete(\'' + entry.delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
+    + '<button onclick="' + deleteFnName + '(\'' + entry.delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
     + '</span></div>';
-  }).join('') : '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä menoja.</span></div>';
+  }).join('');
+  return { rows: rows, total: total };
+}
+
+function renderSaannollisetMenot(latest) {
+  var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
+  function amtOf(x) { return parseFloat(x.amt_kk != null ? x.amt_kk : x.amount) || 0; }
+  var built = buildSaannollinenRows(items, 'Meno', 'panelMenoDelete', amtOf);
+  var rows = built.rows || '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä menoja.</span></div>';
 
   return '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
   + '<div class="kassa-section-hdr" style="margin-top:6px">SÄÄNNÖLLISET MENOT</div>'
   + rows
   + '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
   + '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
-  + '<span class="panel-row-val">' + total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
+  + '<span class="panel-row-val">' + built.total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
   + '</div>'
   + '</div>';
 }
@@ -3778,33 +3786,15 @@ window.panelMenoDelete = async function(id) {
 function renderSaannollisetTulot(latest) {
   var items = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
   function amtOf(x) { return parseFloat(x.amt_kk) || 0; }
-  var total = items.reduce(function(s, x) { return s + amtOf(x); }, 0);
-  var withKeys = items.map(function(item, idx) { return { item: item, delKey: (item.id != null ? item.id : ('idx:' + idx)) }; });
-  var sortedItems = withKeys.slice().sort(function(a, b) {
-    var da = validRecurringDay(a.item.paiva); da = (da === null) ? Infinity : da;
-    var db = validRecurringDay(b.item.paiva); db = (db === null) ? Infinity : db;
-    if (da !== db) return da - db;
-    return normalizeRecurringLabel(a.item.label, 'Tulo').localeCompare(normalizeRecurringLabel(b.item.label, 'Tulo'), 'fi');
-  });
-  var rows = sortedItems.length ? sortedItems.map(function(entry) {
-    var item = entry.item;
-    var amt = amtOf(item);
-    var label = normalizeRecurringLabel(item.label, 'Tulo').replace(/</g, '&lt;');
-    var day = validRecurringDay(item.paiva);
-    var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (day !== null ? day + '.' : '') + '</span>';
-    return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
-    + '<span style="display:flex;align-items:center;gap:8px;">'
-    + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-    + '<button onclick="panelTuloDelete(\'' + entry.delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
-    + '</span></div>';
-  }).join('') : '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä tuloja.</span></div>';
+  var built = buildSaannollinenRows(items, 'Tulo', 'panelTuloDelete', amtOf);
+  var rows = built.rows || '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä tuloja.</span></div>';
 
   return '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
   + '<div class="kassa-section-hdr" style="margin-top:6px">SÄÄNNÖLLISET TULOT</div>'
   + rows
   + '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
   + '<span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span>'
-  + '<span class="panel-row-val">' + total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
+  + '<span class="panel-row-val">' + built.total.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
   + '</div>'
   + '</div>';
 }
