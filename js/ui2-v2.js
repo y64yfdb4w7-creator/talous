@@ -4374,6 +4374,8 @@ window.rahavirtaEditorSave = async function() {
     var monthEl = document.getElementById('rv_month');
     var amountEl = document.getElementById('rv_amount');
     var month = (monthEl && monthEl.value) || '';
+    var monthNum = parseInt(month, 10);
+    if (!(monthNum >= 1 && monthNum <= 12)) { if (monthEl) monthEl.focus(); return; }
     var amount = parseFloat(((amountEl && amountEl.value) || '').replace(',', '.'));
     if (isNaN(amount)) { if (amountEl) amountEl.focus(); return; }
     var tulossaItems = Array.isArray(latest.tulevat_items) ? latest.tulevat_items.slice() : [];
@@ -4385,14 +4387,10 @@ window.rahavirtaEditorSave = async function() {
     var amt = parseFloat(((amtEl && amtEl.value) || '').replace(',', '.'));
     if (isNaN(amt) || amt <= 0) { if (amtEl) amtEl.focus(); return; }
     var dayRaw = ((dayEl && dayEl.value) || '').trim();
-    var paiva;
-    if (dayRaw !== '') {
-      var dayNum = parseFloat(dayRaw);
-      if (isNaN(dayNum) || !Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31) { if (dayEl) dayEl.focus(); return; }
-      paiva = dayNum;
-    }
-    var newItem = { id: (type === 'tulo' ? 'tulo_' : 'meno_') + Date.now(), label: label, amt_kk: amt };
-    if (paiva !== undefined) newItem.paiva = paiva;
+    var dayNum = parseFloat(dayRaw);
+    if (dayRaw === '' || isNaN(dayNum) || !Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31) { if (dayEl) dayEl.focus(); return; }
+    var paiva = dayNum;
+    var newItem = { id: (type === 'tulo' ? 'tulo_' : 'meno_') + Date.now(), label: label, amt_kk: amt, paiva: paiva };
     if (type === 'tulo') {
       var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items.slice() : [];
       tulotItems.push(newItem);
