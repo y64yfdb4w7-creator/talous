@@ -897,7 +897,7 @@ async function renderDashboard() {
           {key:'elatustili', label:'Elatustili'},
           {key:'op_gold',    label:'OP Gold'},
         ])}
-<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; var _kv=(latest.tulotili||0)-Math.abs(latest.op_gold||0); var _c=_kv>=0?'var(--green)':'var(--red)'; return '<div class="card-value">'+fmt(_kv)+'</div>'; })()}</div>
+<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; return '<div class="card-value">'+fmt(lahtokassaOf(latest))+'</div>'; })()}</div>
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--card-primary-dark);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="card-right">
@@ -1932,27 +1932,117 @@ function validRecurringDay(paiva) {
   return (paiva !== undefined && paiva !== null && paiva !== '' && Number.isInteger(n) && n >= 1 && n <= 31) ? n : null;
 }
 
+// ── Rahavirta / Kassajakso / Hero ──────────────────────────────────────
+// LUKITTU tuotemäärittely:
+//   Rahavirta  – yksittäinen kirjattu tulo/meno.
+//   Kassajakso – rajaa rahavirtajoukon viimeisimmästä snapshotista
+//                seuraavaan tunnettuun tuloon; laskee lähtökassan ja
+//                muodostaa Herolle annettavan joukon.
+//   Hero       – puhdas laskentakomponentti: summaa vain sille annetun
+//                joukon (lähtökassa + tulot − menot). Ei päättele, ei
+//                valitse, ei tunne rahavirran alkuperää.
+
+// Lähtökassa = viimeisimmän snapshotin lähtökassaan kuuluvien tilien summa.
+function lahtokassaOf(snap) {
+  return (snap.tulotili || 0) - Math.abs(snap.op_gold || 0);
+}
+
+// Seuraava päivämäärä (> snapshotDate), jolloin kuukauden "paiva" osuu kohdalle.
+// Jos paiva ei mahdu kuukauteen (esim. 31. helmikuussa), käytetään kuukauden
+// viimeistä päivää.
+function nextRecurringDayDate(snapshotDate, paiva) {
+  var day = validRecurringDay(paiva);
+  if (day === null) return null;
+  var probe = new Date(snapshotDate.getFullYear(), snapshotDate.getMonth(), 1);
+  for (var i = 0; i < 24; i++) {
+    var lastOfMonth = new Date(probe.getFullYear(), probe.getMonth() + 1, 0).getDate();
+    var candidate = new Date(probe.getFullYear(), probe.getMonth(), Math.min(day, lastOfMonth));
+    if (candidate > snapshotDate) return candidate;
+    probe.setMonth(probe.getMonth() + 1);
+  }
+  return null;
+}
+
+// Seuraava päivämäärä kuukausinumerolle (1–12; vuotta ei tallenneta dataan).
+// Kuluva kuukausi tulkitaan vielä tulevaksi, koska tarkkaa päivää ei tunneta.
+function nextMonthOnlyDate(snapshotDate, month) {
+  var m = parseInt(month, 10);
+  if (!(m >= 1 && m <= 12)) return null;
+  var year = snapshotDate.getFullYear();
+  if (m < snapshotDate.getMonth() + 1) year += 1;
+  return new Date(year, m - 1, 1);
+}
+
+// Rahavirta-kerros: kokoaa kaikki kirjatut rahavirrat yhtenäiseen muotoon.
+// Kaikki kolme listaa (tulot_items, rytmi_items, tulevat_items) ovat jo
+// luonteeltaan kassavaikutteisia — mikään niistä ei edusta tilien välistä
+// siirtoa tai sijoitusta, joten erillistä suodatusta ei tarvita.
+function collectRahavirrat(latest, snapshotDate) {
+  var out = [];
+  (Array.isArray(latest.tulot_items) ? latest.tulot_items : []).forEach(function(x) {
+    var d = nextRecurringDayDate(snapshotDate, x.paiva);
+    if (!d) return;
+    out.push({ ref: x, source: 'tulot_items', date: d, isIncome: true, amount: Number(x.amt_kk) || 0 });
+  });
+  (Array.isArray(latest.rytmi_items) ? latest.rytmi_items : []).forEach(function(x) {
+    var d = nextRecurringDayDate(snapshotDate, x.paiva);
+    if (!d) return;
+    var amt = Number(x.amt_kk != null ? x.amt_kk : x.amount) || 0;
+    out.push({ ref: x, source: 'rytmi_items', date: d, isIncome: false, amount: -Math.abs(amt) });
+  });
+  (Array.isArray(latest.tulevat_items) ? latest.tulevat_items : []).forEach(function(x) {
+    var d = nextMonthOnlyDate(snapshotDate, x.month);
+    if (!d) return;
+    var amt = Number(x.amount) || 0;
+    out.push({ ref: x, source: 'tulevat_items', date: d, isIncome: amt > 0, amount: amt });
+  });
+  return out;
+}
+
+// Kassajakso: rajaa rahavirtajoukon viimeisimmästä snapshotista seuraavaan
+// tunnettuun tuloon (LUKITTU rajaamiskriteeri). Jos tunnettua tulevaa tuloa
+// ei ole, kassajaksoa ei voida rajata — joukko jää tyhjäksi eikä Hero näin
+// ollen summaa mitään lähtökassan lisäksi.
+function buildKassajakso(latest) {
+  var snapshotDate = new Date(latest.date + 'T00:00:00');
+  var rahavirrat = collectRahavirrat(latest, snapshotDate);
+  var incomes = rahavirrat.filter(function(x) { return x.isIncome; })
+    .sort(function(a, b) { return a.date - b.date; });
+  var boundary = incomes.length ? incomes[0] : null;
+  var items = boundary
+    ? rahavirrat.filter(function(x) { return x.date <= boundary.date; })
+    : [];
+  return { lahtokassa: lahtokassaOf(latest), items: items, boundary: boundary };
+}
+
+// Hero: puhdas laskentakomponentti. Summaa vain sille annetun joukon.
+function heroSum(kassajakso) {
+  return kassajakso.items.reduce(function(s, x) { return s + x.amount; }, kassajakso.lahtokassa);
+}
+
 // Kassa: "Seuraava rahatilanne" -kortti.
-// NYT (Hero, tulotili − |op_gold|) → TULEVAT ERÄT (tulevat_items) → ehdollinen
-// välisumma → SÄÄNNÖLLISET ERÄT (rytmi_items + tulot_items yhtenä ryhmänä) →
-// Lopputilanne. Ryhmäraja tulee tietomallista, ei UI:n päätöksestä.
+// LÄHTÖKASSA → TULEVAT ERÄT → ehdollinen välisumma → SÄÄNNÖLLISET ERÄT →
+// Lopputilanne (Hero). Rahavirtajoukko on Kassajakson rajaama: vain
+// viimeisimmän snapshotin ja seuraavan tunnetun tulon välissä olevat erät
+// näkyvät ja lasketaan mukaan.
 function renderKassaSeuraavaRahatilanne(latest) {
-  var hero = (latest.tulotili || 0) - Math.abs(latest.op_gold || 0);
-  var heroColor = hero >= 0 ? 'var(--green)' : 'var(--red)';
+  var kassajakso = buildKassajakso(latest);
+  var lahtokassa = kassajakso.lahtokassa;
+  var lahtokassaColor = lahtokassa >= 0 ? 'var(--green)' : 'var(--red)';
 
-  var tulevatItems = Array.isArray(latest.tulevat_items) ? latest.tulevat_items : [];
+  var tulevatItems = kassajakso.items.filter(function(x) { return x.source === 'tulevat_items'; }).map(function(x) { return x.ref; });
   var tulevatSum = tulevatItems.reduce(function(s, x) { return s + (Number(x.amount) || 0); }, 0);
-  var valisumma = hero + tulevatSum;
+  var valisumma = lahtokassa + tulevatSum;
 
-  var rytmiItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
-  var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
+  var rytmiItems = kassajakso.items.filter(function(x) { return x.source === 'rytmi_items'; }).map(function(x) { return x.ref; });
+  var tulotItems = kassajakso.items.filter(function(x) { return x.source === 'tulot_items'; }).map(function(x) { return x.ref; });
   function menoAmtOf(x) { return parseFloat(x.amt_kk != null ? x.amt_kk : x.amount) || 0; }
   function tuloAmtOf(x) { return parseFloat(x.amt_kk) || 0; }
   var tulotBuilt = buildSaannollinenRows(tulotItems, 'Tulo', 'panelTuloDelete', tuloAmtOf);
   var menotBuilt = buildSaannollinenRows(rytmiItems, 'Meno', 'panelMenoDelete', menoAmtOf);
 
-  var loppusumma = valisumma + tulotBuilt.total - menotBuilt.total;
-  var loppuColor = loppusumma >= 0 ? 'var(--green)' : 'var(--red)';
+  var hero = heroSum(kassajakso);
+  var heroColor = hero >= 0 ? 'var(--green)' : 'var(--red)';
 
   var naytaValisumma = tulevatItems.length > 0 && (rytmiItems.length > 0 || tulotItems.length > 0);
 
@@ -1960,8 +2050,8 @@ function renderKassaSeuraavaRahatilanne(latest) {
   html += '<div class="kassa-section-hdr">SEURAAVA RAHATILANNE</div>';
 
   html += '<div style="margin:10px 0 0;padding:0 2px;">'
-    + '<div style="font-size:11px;color:var(--card-primary);">NYT</div>'
-    + '<div class="card-value" style="color:' + heroColor + ';">' + fmt(hero) + '</div>'
+    + '<div style="font-size:11px;color:var(--card-primary);">LÄHTÖKASSA</div>'
+    + '<div class="card-value" style="color:' + lahtokassaColor + ';">' + fmt(lahtokassa) + '</div>'
     + '</div>';
 
   html += '<div class="kassa-section-hdr" style="margin-top:10px;">TULEVAT ERÄT</div>';
@@ -1986,7 +2076,7 @@ function renderKassaSeuraavaRahatilanne(latest) {
 
   html += '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
     + '<span class="panel-row-lbl" style="font-weight:700;">Lopputilanne</span>'
-    + '<span class="panel-row-val" style="color:' + loppuColor + ';">' + fmt(loppusumma) + '</span>'
+    + '<span class="panel-row-val" style="color:' + heroColor + ';">' + fmt(hero) + '</span>'
     + '</div>';
 
   html += '</div>';
@@ -4076,7 +4166,9 @@ function renderTulossaList() {
   var el = document.getElementById('kassaTulossaList');
   if (!el) return;
   var snap = window._allSnaps?.[window._allSnaps.length - 1];
-  var items = (snap && snap.tulevat_items) ? snap.tulevat_items : [];
+  var items = snap
+    ? buildKassajakso(snap).items.filter(function(x) { return x.source === 'tulevat_items'; }).map(function(x) { return x.ref; })
+    : [];
   var editing = window._tulossaEditing || null;
   var monthNames = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu','Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'];
   var groups = {};
