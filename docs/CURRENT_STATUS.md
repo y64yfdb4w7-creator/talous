@@ -153,6 +153,29 @@ seuraavassa pienessä sprintissä.
 
 ---
 
+## Säännöllisten menojen renderöinnin kovennus (19.7.2026)
+
+Toteutettu:
+- Korjattu renderöintibugi, jossa virheellinen nimi (esim. ".", "...", tyhjä tai pelkät välilyönnit) näkyi käyttöliittymässä pisteenä.
+- Lisätty yhteinen nimen normalisointi renderöintiin.
+- Virheelliset nimet korvataan käyttöliittymässä oletusnimellä ("Meno" tai "Tulo"), jolloin käyttäjä voi edelleen muokata tai poistaa rivin.
+- Ratkaisu ei muuta tietomallia eikä tallennuslogiikkaa.
+- Sama logiikka käytössä kaikissa kuukausirytmin renderöinneissä, jotta vastaava bugi ei voi syntyä eri näkymissä.
+
+Testattu:
+- "."
+- "..."
+- pelkät välilyönnit
+- tyhjä nimi
+- normaalit nimet
+- poisto toimii edelleen oikealla indeksillä
+- kuukausisummat pysyvät oikein
+
+Commit:
+- `8a38d0b` — fix: normalize recurring income/expense labels during rendering
+
+---
+
 ## Avoimet bugit
 
 ### BUG-A: "Näytä dashboardissa" — täysi no-op
