@@ -2048,15 +2048,11 @@ function heroSum(kassajakso) {
   return kassajakso.items.reduce(function(s, x) { return s + x.amount; }, kassajakso.lahtokassa);
 }
 
-// Hero ja "Jäljellä tulevien erien jälkeen" käyttävät samaa laskentaa.
-// Hero kuvaa käyttäjän seuraavaa kassatilannetta huomioiden kassajakson
-// tulevat erät, mutta ei vielä säännöllisiä eriä.
+// Hero näyttää Kassajakson lopputilanteen: sama laskenta kuin heroSum(),
+// eli lähtökassa + kaikki Kassajaksoon kuuluvat rahavirrat (kertaluonteiset
+// ja säännölliset).
 function kassaValisumma(latest) {
-  var kassajakso = buildKassajakso(latest);
-  var tulevatSum = kassajakso.items
-    .filter(function(x) { return x.source === 'tulevat_items'; })
-    .reduce(function(s, x) { return s + (Number(x.amount) || 0); }, 0);
-  return kassajakso.lahtokassa + tulevatSum;
+  return heroSum(buildKassajakso(latest));
 }
 
 // Kassa: "Seuraava rahatilanne" -kortti.

@@ -28,16 +28,13 @@ Historia löytyy `git log`:sta ja `docs/CURRENT_STATUS.md`:stä.
 
 Kassa-kortin yläosan iso lukuarvo (`card-value`, `js/ui2-v2.js:900`) näyttää:
 
-**Lähtökassa + Kassajakson TULEVAT ERÄT -summa**
+**Kassajakson lopputilanteen** — lähtökassa + kaikki `buildKassajakso(...).items`-joukon
+rahavirrat, kertaluonteiset ja säännölliset yhtäläisesti.
 
-— eli täsmälleen saman luvun kuin kortin oma "Jäljellä tulevien erien jälkeen" -rivi.
-Molemmat kutsuvat samaa funktiota `kassaValisumma(latest)` (`js/ui2-v2.js:2054`), joten
-ne eivät voi näyttää eri lukua.
-
-**Hero EI tällä hetkellä sisällä säännöllisiä eriä** (`tulot_items`/`rytmi_items`).
-Säännölliset erät näkyvät vasta "Lopputilanne"-rivillä, joka lasketaan erillisellä
-`heroSum(kassajakso)`-funktiolla (`js/ui2-v2.js:2047`) ja sisältää koko Kassajakson
-rajaaman rahavirtajoukon (tulevat + säännölliset tulot − säännölliset menot).
+`kassaValisumma(latest)` (`js/ui2-v2.js:2054`) delegoi suoraan `heroSum(buildKassajakso(latest))`
+-funktiolle (`js/ui2-v2.js:2047`), joten näkyvä Hero ja kortin oma "Lopputilanne"-rivi
+näyttävät aina saman luvun. "Hero" viittaa nyt yksiselitteisesti yhteen lukuun, joka
+näytetään kahdessa paikassa.
 
 **Legacy-fallback:** jos snapshotilla ei ole `op_gold`-kenttää lainkaan, Hero näyttää
 poikkeuksellisesti pelkän `cash`-summan (vanha data ennen OP Gold -ominaisuutta). Tätä
@@ -56,11 +53,13 @@ kerros sille luovuttaa (ks. myös `docs/FINANCE_OS_ARCHITECTURE.md`):
 2. **Kassajakso** — rajaa rahavirtajoukon viimeisimmästä snapshotista seuraavaan
    tunnettuun tuloon (`buildKassajakso`, `js/ui2-v2.js:2034`). Palauttaa
    `{lahtokassa, items, boundary}`.
-3. **Hero-taso** — kaksi eri lukua rakennetaan samasta Kassajaksosta:
-   - `kassaValisumma(latest)` (`js/ui2-v2.js:2054`) → näkyvä Hero ja "Jäljellä
-     tulevien erien jälkeen" (lähtökassa + tulevat erät).
-   - `heroSum(kassajakso)` (`js/ui2-v2.js:2047`) → "Lopputilanne" (lähtökassa +
-     tulevat + säännölliset, koko Kassajakson joukko).
+3. **Hero-taso** — yksi laskenta, kaksi näyttöpaikkaa:
+   - `heroSum(kassajakso)` (`js/ui2-v2.js:2047`) → puhdas laskentakomponentti:
+     lähtökassa + koko Kassajakson joukko (tulevat + säännölliset tulot −
+     säännölliset menot).
+   - `kassaValisumma(latest)` (`js/ui2-v2.js:2054`) → rakentaa Kassajakson ja
+     delegoi `heroSum`:lle. Näkyvä Hero (`card-value`) ja kortin "Lopputilanne"
+     näyttävät siis aina saman luvun.
 
 Päivämääräfunktiot `nextRecurringDayDate` (`js/ui2-v2.js:1953`, säännöllisille
 kuukauden päivä -erille) ja `nextMonthOnlyDate` (`js/ui2-v2.js:1968`, kertaluonteisille
@@ -149,9 +148,10 @@ suunnittelupäätöstä):
    ennakkovalintaa tyypistä. Säännöllinen on metadataa, ei laskentaa muuttava tieto.
 8. **Yksi Päivämäärä-kenttä** (`0523f06`) palvelee sekä kertaluonteista että
    säännöllistä rahavirtaa; rakenne ei muutu Säännöllinen-rastin mukaan.
-9. **Näkyvä Hero = lähtökassa + tulevat erät** (`948b625`) — sama luku kuin
-   "Jäljellä tulevien erien jälkeen". Säännölliset erät eivät tässä sprintissä
-   vaikuta Heroon, vain Lopputilanteeseen.
+9. **Hero näyttää Kassajakson lopputilanteen** — Hero huomioi kaikki
+   `buildKassajakso(...).items`-joukon rahavirrat (kertaluonteiset ja
+   säännölliset), samalla logiikalla kuin `heroSum()`. Korvaa aiemman
+   päätöksen "Hero = lähtökassa + tulevat erät" (`948b625`).
 
 ---
 
@@ -159,13 +159,6 @@ suunnittelupäätöstä):
 
 Asiat, joista ei ole vielä tehty lopullista päätöstä:
 
-- **"Hero"-nimen kaksi merkitystä koodissa.** `heroSum()`/Lopputilanne (koko
-  Kassajakson summa, v1.0-määrittely) ja näkyvä Kassa-kortin card-value
-  (lähtökassa + tulevat erät, tämän sprintin päätös) ovat nyt kaksi eri lukua
-  saman "Hero"-nimen alla. Ei ole päätetty, tarvitaanko nimeämiselle
-  selkeytystä vai onko tämä hyväksytty pysyvä tila.
-- **Milloin/miten säännölliset erät otetaan mukaan näkyvään Heroon** — jos
-  koskaan. Tämän sprintin rajaus jätti asian avoimeksi.
 - **OP Gold -logiikka** — saldon syöttö, luottorajan käsittely, mahdolliset
   puutteet — ei käsitelty, tietoisesti rajattu ulos tästä sprintistä.
 - **`tulevat_items`:n kuukausi-vain-tarkkuus** — erällä ei ole vuotta eikä
