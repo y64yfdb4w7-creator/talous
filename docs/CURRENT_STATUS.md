@@ -2,9 +2,20 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-20
-**Viimeisin commit:** `565e653`
+**Viimeisin commit:** `927c5e9`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv.**)
+
+**Kassa-kortin Info-painike ja selittävä modal (20.7.2026) — valmis:**
+Uusi Info-painike (`ℹ`) Kassa-kortin otsikkoriville, samassa tyylissä ja
+paikassa kuin olemassa oleva Asetukset-painike (`⋯`). Avaa keskitetyn,
+kevyen modalin (backdrop, klikkaa ulkopuolelle tai ✕ sulkee), joka selittää
+lyhyesti kortin tarkoituksen, Hero-luvun, tilien/rahavirtojen vaikutuksen ja
+"Lopputilanne"-rivin. Vahvistettu, ettei kortilla ole aiemmin ollut Info-
+painiketta tai -dialogia (grep + `git log --all --grep`, tyhjä tulos) ennen
+toteutusta. Puhtaasti selittävä lisäys — ei muutoksia laskentalogiikkaan,
+Hero-laskentaan tai tietomalliin. Toimii mobiilissa (testattu 390px) ja
+desktopissa samalla toteutuksella. Ks. oma osio alla.
 
 **Kassa-kortin mobiili-UX viimeistely (20.7.2026) — valmis:**
 Rajattu mobiili-CSS-sprintti (`565e653`): Hero omalle täysleveälle riville
@@ -53,6 +64,7 @@ korjattiin omana pienenä sprinttinä (`6489000`) — ks. oma osio alla.
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `927c5e9` | feat: add Info button and explainer modal to Kassa card | 2026-07-20 |
 | `565e653` | fix: polish Kassa card mobile layout and spacing | 2026-07-20 |
 | `a2f97c2` | fix: remove Kassajakso income boundary from RAHAVIRRAT calculation | 2026-07-20 |
 | `abb98df` | feat: refine Kassa terminology and cashflow colors | 2026-07-20 |
@@ -501,6 +513,44 @@ Commit:
 
 ---
 
+## Kassa-kortin Info-painike ja selittävä modal (20.7.2026)
+
+Uusi ominaisuus, ei bugikorjaus. Ennen toteutusta varmistettu, ettei
+Kassa-kortilla (tai muuallakaan koodikannassa) ole koskaan ollut Info-
+painiketta tai -dialogia: `grep -n "Info\|ℹ️\|info-btn\|cardInfo\|InfoModal\|infoPopover"`
+ui2-v2.js:ssä/index.html:ssä ei löytänyt Kassa-korttiin liittyviä osumia, ja
+`git log --all --oneline -i --grep="info"` palautti tyhjän. Etsintä lopetettu
+tähän ja siirrytty suoraan toteutukseen, kuten pyydetty.
+
+### 1. Info-painike + keskitetty selitysmodal — `927c5e9`
+**Muutos:** `_cardHeader`-funktioon (`js/ui2-v2.js:606`) lisätty ehdollinen
+`ℹ`-painike, joka renderöityy vain `cardKey === 'cash'` -tapauksessa, samalla
+tyylillä ja samassa otsikkorivin painikeryhmässä kuin olemassa oleva
+`⋯`-Asetukset-painike. Klikkaus kutsuu uutta `window.openCardInfo(cardKey, evt)`
+-funktiota (`js/ui2-v2.js` heti `_cardHeader`:n jälkeen), joka rakentaa
+DOM-elementtinä kevyen, keskitetyn modalin: puoliläpinäkyvä backdrop
+(`position:fixed;inset:0`), sisältöboksi `max-width:min(380px,92vw)` +
+`max-height:80vh;overflow-y:auto` (skaalautuu mobiiliin ilman erillistä
+media querya), neljä lyhyttä osiota (Tarkoitus, Hero-luku, Tilit ja
+rahavirrat, "Lopputilanne"). Sulkeutuu ✕-painikkeesta, backdrop-klikkauksesta
+tai uudelleen ℹ:tä klikkaamalla (toggle). Design System -yhteensopiva:
+samat CSS-muuttujat (`var(--surface)`, `var(--border-bright)`, `var(--text2)`,
+`var(--card-primary)`) ja samantyyppinen rakenne kuin olemassa olevassa
+`openCardSettings`-popoverissa.
+**Ei koskettanut:** laskentalogiikkaa, Hero-laskentaa (`heroSum`,
+`kassaValisumma`, `buildKassajakso`), tietomallia, muita korttien
+otsikkorivejä (`inv`, `debt` — vahvistettu, ei sisällä `openCardInfo`-kutsua).
+**Testattu:** paikallinen selainregressio synteettisellä testisnapshotilla —
+painike näkyy vain Kassa-kortilla, modal avautuu/sulkeutuu oikein (✕, backdrop,
+toggle), sisältö luettavissa kokonaan sekä 390px mobiiliviewportissa että
+desktop-leveydellä, ei konsolivirheitä, Hero-arvo muuttumaton modalin
+avaamisen/sulkemisen jälkeen.
+
+Commit:
+- `927c5e9` — feat: add Info button and explainer modal to Kassa card
+
+---
+
 ## Avoimet bugit
 
 ### BUG-A: "Näytä dashboardissa" — täysi no-op
@@ -613,8 +663,9 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-07-20 (Kassa-kortin mobiili-UX
-viimeistely — commit `565e653` — ks. yllä). Samana päivänä aiemmin
-RAHAVIRRAT-sprintti: listan yhdistäminen, Hero-synkronointi, terminologia/värit,
-Kassajakson rajaamismallin poisto — commitit `f4a0bb9`, `cfdaece`, `abb98df`,
-`a2f97c2` — ks. yllä.*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-20 (Kassa-kortin Info-
+painike ja selittävä modal — commit `927c5e9` — ks. yllä). Samana päivänä
+aiemmin: mobiili-UX-viimeistely (`565e653`) ja RAHAVIRRAT-sprintti: listan
+yhdistäminen, Hero-synkronointi, terminologia/värit, Kassajakson
+rajaamismallin poisto — commitit `f4a0bb9`, `cfdaece`, `abb98df`, `a2f97c2`
+— ks. yllä.*
