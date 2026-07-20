@@ -50,9 +50,12 @@ kerros sille luovuttaa (ks. myös `docs/FINANCE_OS_ARCHITECTURE.md`):
 1. **Rahavirta** — yksittäinen kirjattu tulo/meno. Kootaan kolmesta listasta
    (`collectRahavirrat`, `js/ui2-v2.js:1988`) yhtenäiseen muotoon
    `{ref, source, date, isIncome, amount}`.
-2. **Kassajakso** — rajaa rahavirtajoukon viimeisimmästä snapshotista seuraavaan
-   tunnettuun tuloon (`buildKassajakso`, `js/ui2-v2.js:2034`). Palauttaa
-   `{lahtokassa, items, boundary}`.
+2. **Kassajakso** — ei enää rajaa rahavirtajoukkoa (LUKITTU päätös #12,
+   toteutettu). `buildKassajakso` (`js/ui2-v2.js:2034`) palauttaa
+   `{lahtokassa, items}`, jossa `items` on suoraan `collectRahavirrat(...)`:n
+   koko tulos: kaikki tiedossa olevat tulevat kertaluonteiset rahavirrat ja
+   jokaisen säännöllisen rahavirran seuraava esiintymä, ilman katkaisua
+   ensimmäiseen tunnettuun tuloon.
 3. **Hero-taso** — yksi laskenta, kaksi näyttöpaikkaa:
    - `heroSum(kassajakso)` (`js/ui2-v2.js:2047`) → puhdas laskentakomponentti:
      nykyinen kassa + koko Kassajakson joukko (tulevat + säännölliset tulot −
@@ -137,10 +140,14 @@ suunnittelupäätöstä):
    laskentakomponentti: summaa vain sille annetun rahavirtajoukon. Ei tee
    ennusteita, ei päättele kassajaksoa.
 2. **Aikareferenssi** — käyttäjän viimeisin snapshot, ei laitteen kellonaika.
-3. **Kassajakson rajaamiskriteeri** — viimeisin snapshot → seuraava tunnettu tulo.
-4. **Tunnetun tulon määritelmä** — kirjattu rahavirta jolla on määritelty,
+3. ~~**Kassajakson rajaamiskriteeri** — viimeisin snapshot → seuraava tunnettu tulo.~~
+   **KUMOTTU ja TOTEUTETTU päätöksellä #12** — ei enää voimassa koodissa
+   eikä tuotemäärittelyssä.
+4. ~~**Tunnetun tulon määritelmä** — kirjattu rahavirta jolla on määritelty,
    snapshotin jälkeinen ajallinen sijainti; kertaluonteinen ja säännöllinen
-   kelpaavat yhtäläisesti.
+   kelpaavat yhtäläisesti.~~
+   **KUMOTTU päätöksellä #12** — "tunnettu tulo" rajaus-käsitteenä poistuu,
+   kun rahavirtajoukkoa ei enää katkaista ensimmäiseen tuloon.
 5. **Nykyisen kassan lähde** — `tulotili − |op_gold|`, ei erikseen syötetty eikä
    Heron itse johtama.
 6. **Kassavaikutteisen rahavirran määritelmä** — muuttaa nykyiseen kassaan kuuluvien
@@ -163,6 +170,60 @@ suunnittelupäätöstä):
     ei kirkkaalla punaisella. Koskee sekä kertaluonteisia että säännöllisiä
     rahavirtarivejä RAHAVIRRAT-listassa. Tarkoitus on auttaa hahmottamaan
     rahavirran suunta yhdellä vilkaisulla, ei varoittaa käyttäjää.
+12. **Rahavirtajoukkoa ei enää katkaista ensimmäiseen tunnettuun tuloon**
+    (TOTEUTETTU, ks. "Kassajakso"-kohta yllä ja `buildKassajakso`,
+    `js/ui2-v2.js:2034`). Kumoaa päätökset #3 ja #4.
+    - **Kertaluonteiset rahavirrat**: näytetään kaikki tiedossa olevat tulevat
+      kertaluonteiset tapahtumat, ei rajausta ensimmäiseen tuloon.
+    - **Säännölliset rahavirrat**: näytetään jokaisesta vain seuraava
+      toteutuva esiintymä — tämä ei muuta nykyistä `collectRahavirrat`-
+      logiikkaa, joka tuottaa jo vain yhden ajankohdan per säännöllinen erä.
+    - **Hero, Lopputilanne ja Rahavirrat-lista lasketaan samasta,
+      rajaamattomasta joukosta** — käyttäjä ei näe eri logiikkaa kuin mitä
+      Hero käyttää.
+    - **Perustelu**: Finance OS ei yritä ennustaa kuukausia eteenpäin, vaan
+      näyttää nykyisen kassan + kaikki tiedossa olevat kertaluonteiset erät +
+      jokaisen säännöllisen rahavirran seuraavan esiintymän. Esimerkki:
+      tämän kuun OP Gold -ostot maksetaan seuraavan kuun palkalla, joten
+      seuraavan kuun ensimmäinen palkka on olennainen osa nykyistä
+      kassakuvaa eikä sitä saa rajata pois vain koska se sattuu olemaan
+      ensimmäinen tunnettu tulo.
+
+---
+
+# Toteutettu: Rahavirrat-listan rajaamismallin muutos (päätös #12)
+
+`buildKassajakso(latest)` (`js/ui2-v2.js:2034`) ei enää rajaa rahavirtajoukkoa.
+Aiempi `incomes`/`boundary`-suodatus poistettiin; `items` on nyt suoraan
+`collectRahavirrat(...)`:n koko tulos:
+
+```js
+function buildKassajakso(latest) {
+  var snapshotDate = new Date(latest.date + 'T00:00:00');
+  var items = collectRahavirrat(latest, snapshotDate);
+  return { lahtokassa: lahtokassaOf(latest), items: items };
+}
+```
+
+`boundary`-kenttä poistettiin palautusarvosta kokonaan (ei enää käytössä).
+`heroSum`, `kassaValisumma` ja `renderTulossaList()` (RAHAVIRRAT-lista) eivät
+muuttuneet — ne kuluttavat `buildKassajakso(...).items`:n sellaisenaan ja
+perivät uuden, rajaamattoman käyttäytymisen automaattisesti. Yksi
+tietojoukko, yksi totuus: Hero, Lopputilanne ja RAHAVIRRAT-lista näyttävät
+aina saman joukon.
+
+Testattu (paikallinen selaintesti, ei kosketettu oikeaa dataa):
+- Snapshot **ilman yhtään tunnettua tulevaa tuloa**: aiemmin koko lista ja
+  Hero tyhjenivät (`items: []`); nyt kaikki kirjatut rahavirrat näkyvät ja
+  lasketaan mukaan.
+- Snapshot jossa kertaluonteisia ja säännöllisiä eriä useassa eri
+  kuukaudessa ensimmäisen tunnetun tulon jälkeen: kaikki näkyivät, aiemmin
+  rajautuneet pois. Kuukausiryhmittely säilyi.
+- Ylätason Hero (`card-value`) ja kortin "Lopputilanne" näyttivät koko ajan
+  saman luvun.
+- Uuden rahavirran lisäys (`rahavirtaEditorSave`) toimi muuttumattomana,
+  myös kaukana tulevaisuudessa olevalle kertaluonteiselle erälle.
+- Ei JS-virheitä konsolissa.
 
 ---
 
@@ -173,8 +234,10 @@ Asiat, joista ei ole vielä tehty lopullista päätöstä:
 - **OP Gold -logiikka** — saldon syöttö, luottorajan käsittely, mahdolliset
   puutteet — ei käsitelty, tietoisesti rajattu ulos tästä sprintistä.
 - **`tulevat_items`:n kuukausi-vain-tarkkuus** — erällä ei ole vuotta eikä
-  päivää, joten kuluvan/lähikuukauden erä voi näyttäytyä kassajakson rajana
-  hyvin varhain. Tunnettu, ei korjattu.
+  päivää, joten kuluvan/lähikuukauden erä voi laskea ajankohdakseen jo
+  menneen päivän. Tunnettu, ei korjattu. **Huom:** päätöksen #12
+  toteutuksen jälkeen tämä reunatapaus on aiempaa näkyvämpi, koska
+  Kassajakson rajaus ei enää peitä sitä millään tavalla.
 - **BUG-B** (Muutosprosentit-asetus ei vaikuta mihinkään Kassa-kortissa,
   `_cardHeader`, `js/ui2-v2.js:608`) ja **BUG-C** (`.sub-rows`-legacy-lohko
   Kassa-kortissa, `js/ui2-v2.js:902–908`, redundantti html2-blokin rinnalla) —

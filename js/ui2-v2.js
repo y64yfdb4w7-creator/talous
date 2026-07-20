@@ -1979,12 +1979,10 @@ function nextMonthOnlyDate(snapshotDate, month) {
 // siirtoa tai sijoitusta, joten erillistä suodatusta ei tarvita.
 //
 // Rahavirta ilman kelvollista päivää (tulot_items/rytmi_items) tai kuukautta
-// (tulevat_items) ei saa keksittyä ajankohtaa — LUKITUN "tunnettu tulo"
-// -määritelmän mukaan sillä ei ole "määriteltyä ajallista sijaintia", joten
-// se ei voi osallistua kassajaksoon. Tällaiset rivit (legacy-dataa ennen
-// rahavirtaEditorSaven pakollisuusvalidointia) jätetään pois; käyttäjä
-// täydentää puuttuvan tiedon Kassa-kortin legacy-ilmoituksesta, ks.
-// findLegacyRahavirrat.
+// (tulevat_items) ei saa keksittyä ajankohtaa, joten sille ei voida laskea
+// date-kenttää. Tällaiset rivit (legacy-dataa ennen rahavirtaEditorSaven
+// pakollisuusvalidointia) jätetään pois; käyttäjä täydentää puuttuvan tiedon
+// Kassa-kortin legacy-ilmoituksesta, ks. findLegacyRahavirrat.
 function collectRahavirrat(latest, snapshotDate) {
   var out = [];
   (Array.isArray(latest.tulot_items) ? latest.tulot_items : []).forEach(function(x) {
@@ -2027,20 +2025,15 @@ function findLegacyRahavirrat(latest) {
   return out;
 }
 
-// Kassajakso: rajaa rahavirtajoukon viimeisimmästä snapshotista seuraavaan
-// tunnettuun tuloon (LUKITTU rajaamiskriteeri). Jos tunnettua tulevaa tuloa
-// ei ole, kassajaksoa ei voida rajata — joukko jää tyhjäksi eikä Hero näin
-// ollen summaa mitään lähtökassan lisäksi.
+// Kassajakso: LUKITTU tuotepäätös #12 — rahavirtajoukkoa ei katkaista
+// ensimmäiseen tunnettuun tuloon. Joukko sisältää kaikki tiedossa olevat
+// tulevat kertaluonteiset rahavirrat ja jokaisesta säännöllisestä rahavirrasta
+// vain seuraavan esiintymän (collectRahavirrat tuottaa jo tämän valmiiksi).
+// Hero, Lopputilanne ja RAHAVIRRAT-lista käyttävät kaikki tätä samaa joukkoa.
 function buildKassajakso(latest) {
   var snapshotDate = new Date(latest.date + 'T00:00:00');
-  var rahavirrat = collectRahavirrat(latest, snapshotDate);
-  var incomes = rahavirrat.filter(function(x) { return x.isIncome; })
-    .sort(function(a, b) { return a.date - b.date; });
-  var boundary = incomes.length ? incomes[0] : null;
-  var items = boundary
-    ? rahavirrat.filter(function(x) { return x.date <= boundary.date; })
-    : [];
-  return { lahtokassa: lahtokassaOf(latest), items: items, boundary: boundary };
+  var items = collectRahavirrat(latest, snapshotDate);
+  return { lahtokassa: lahtokassaOf(latest), items: items };
 }
 
 // Hero: puhdas laskentakomponentti. Summaa vain sille annetun joukon.
@@ -2058,8 +2051,9 @@ function kassaValisumma(latest) {
 // Kassa: "Seuraava rahatilanne" -kortti.
 // NYKYINEN KASSA → RAHAVIRRAT (yksi lista, kertaluonteiset + säännölliset,
 // aikajärjestyksessä; ks. renderTulossaList) → Lopputilanne (Hero).
-// Rahavirtajoukko on Kassajakson rajaama: vain viimeisimmän snapshotin ja
-// seuraavan tunnetun tulon välissä olevat erät näkyvät ja lasketaan mukaan.
+// Rahavirtajoukko ei ole rajattu (LUKITTU tuotepäätös #12) — kaikki tiedossa
+// olevat tulevat kertaluonteiset erät ja jokaisen säännöllisen rahavirran
+// seuraava esiintymä näkyvät ja lasketaan mukaan.
 function renderKassaSeuraavaRahatilanne(latest) {
   var kassajakso = buildKassajakso(latest);
   var lahtokassa = kassajakso.lahtokassa;
@@ -2074,8 +2068,7 @@ function renderKassaSeuraavaRahatilanne(latest) {
         tyyppi: x.isIncome ? 'tulo' : 'meno',
         summa: x.amount,
         ajankohta: x.date,
-        kassavaikutteinen: true,
-        mukanaKassajaksossa: kassajakso.boundary ? x.date <= kassajakso.boundary.date : false
+        kassavaikutteinen: true
       };
     });
     console.log('[HERO DEBUG] Lähtökassa:', kassajakso.lahtokassa);
