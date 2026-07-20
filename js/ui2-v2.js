@@ -4259,7 +4259,7 @@ function renderTulossaList() {
           var sign = (item.amount > 0) ? '+' : '';
           var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--expense)' : 'var(--text3)');
           html += '<div class="kassa-view-row" onclick="kassaTulossaEdit(\'' + item.id + '\')">' +
-            '<span class="kassa-vr-label">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
+            '<span class="kassa-vr-label" style="color:' + amtColor + '">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
             '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
             '</div>';
         }
@@ -4274,7 +4274,7 @@ function renderTulossaList() {
         var delKey = ritem.id != null ? ritem.id : ('idx:' + srcArr.indexOf(ritem));
         var deleteFn = isIncome ? 'panelTuloDelete' : 'panelMenoDelete';
         var rAmtColor = isIncome ? 'var(--green)' : 'var(--expense)';
-        html += '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span style="color:var(--text3);" title="Säännöllinen">⟳</span><span class="panel-row-lbl">' + label + '</span></span>'
+        html += '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span style="color:var(--text3);" title="Säännöllinen">⟳</span><span class="panel-row-lbl" style="color:' + rAmtColor + ';">' + label + '</span></span>'
           + '<span style="display:flex;align-items:center;gap:8px;">'
           + '<span class="panel-row-val" style="color:' + rAmtColor + ';">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
           + '<button onclick="' + deleteFn + '(\'' + delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'

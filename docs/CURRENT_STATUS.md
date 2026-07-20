@@ -2,9 +2,24 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-20
-**Viimeisin commit:** `6a218a1`
+**Viimeisin commit:** (tuleva) `style: color-code cashflow labels by cashflow direction`
 **Branch:** main
 **Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv.**)
+
+**Rahavirta-rivien semanttinen värikoodaus (20.7.2026) — valmis:**
+Rajattu UI/CSS-sprintti: Kassa-kortin RAHAVIRRAT-listassa rahavirran nimi
+näytetään nyt samalla värillä kuin sen euromäärä, jotta suunta (tulo/meno)
+näkyy yhdellä silmäyksellä ilman tekstin lukemista. `js/ui2-v2.js`,
+`renderTulossaList()`: kertaluonteisille erille (`kassa-vr-label`) ja
+säännöllisille tuloille/menoille (`panel-row-lbl`) lisättiin inline
+`style="color:..."`, joka lukee saman `amtColor`/`rAmtColor`-muuttujan,
+jota rivin euromäärä jo käytti (ei uutta väriä, ei tekstipohjaista
+tunnistusta nimestä). Päivämäärä, kuukausiotsikot, toistuvuusikoni,
+poistoikoni ja ryhmäotsikot pysyivät neutraaleina. Testattu selaimessa
+(desktop + tarkistettu CSS-tasolla mobiilin `[data-item-id="cash"]`-säännöt,
+jotka koskevat vain layoutia, ei väriä) — Kassavirta-sivu, Dashboard, Salkku
+ja Päiväkirja vahvistettu koskemattomiksi (muutos rajattu yksinomaan
+`renderTulossaList`-funktioon, joka renderöi vain Kassa-kortin listan).
 
 **Kassa Info-modalin sisällön viimeistely (20.7.2026) — valmis:**
 Puhdas sisältösprintti (`6a218a1`): Info-modalin (ks. edellinen sprintti alla)
