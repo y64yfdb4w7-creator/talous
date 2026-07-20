@@ -649,10 +649,12 @@ window.openCardInfo = function(cardKey, evt) {
   box.appendChild(hdr);
 
   var sections = [
-    ['Tarkoitus', 'Kassa-kortti näyttää päivittäisen rahatilanteen: mitä tileillä on nyt, ja mihin se on menossa tunnettujen tulojen ja menojen perusteella.'],
-    ['Hero-luku (yläreunan iso lukema)', 'Nykyinen kassa (tilit − OP Gold) + kaikki tiedossa olevat tulevat rahavirrat: kertaluonteiset erät ja jokaisesta säännöllisestä tulosta/menosta seuraava esiintymä. Sama luku näkyy myös listan lopussa "Lopputilanne"-rivillä.'],
-    ['Tilit ja rahavirrat', '"NYKYINEN KASSA" on tilien ja OP Goldin erotus tällä hetkellä. RAHAVIRRAT-lista näyttää tulevat tulot ja menot aikajärjestyksessä — ne lisätään tai vähennetään nykyisestä kassasta, kun lasketaan Hero-lukua.'],
-    ['"Lopputilanne"', 'Listan viimeinen rivi. Näyttää saman luvun kuin Hero — nykyinen kassa kaikkien listalla näkyvien rahavirtojen jälkeen.']
+    ['Tarkoitus', 'Kassa-kortti näyttää tämänhetkisen kassatilanteesi ja sen, mihin kassasi on kehittymässä tällä hetkellä tiedossa olevien tulojen ja menojen perusteella.'],
+    ['Hero-luku', 'Hero-luku näyttää kassasi kaikkien tällä hetkellä tiedossa olevien rahavirtojen jälkeen. Laskenta alkaa nykyisestä kassasta ja huomioi sekä kertaluonteiset että säännölliset rahavirrat aikajärjestyksessä.'],
+    ['Nykyinen kassa', 'Nykyinen kassa muodostuu tilien saldosta, josta vähennetään OP Gold -luottokortin käytetty saldo. Tämä toimii lähtöpisteenä kaikille rahavirtalaskelmille.'],
+    ['Rahavirrat', 'Rahavirrat-lista näyttää tulevat tulot ja menot aikajärjestyksessä. Jokainen tapahtuma kasvattaa tai pienentää kassaa, jolloin näet, miten kassatilanne muuttuu ajan myötä.'],
+    ['"Lopputilanne"', 'Lopputilanne näyttää, mihin kassasi päätyy kaikkien listalla näkyvien rahavirtojen jälkeen. Se vastaa Hero-luvun ennustettua kassatilannetta.'],
+    ['Huomio', 'Kassa-kortti perustuu Finance OS:n snapshot-ajatteluun. Se ei seuraa yksittäisiä pankkitapahtumia eikä ole kirjanpito- tai budjetointityökalu. Kortti näyttää nykyisen tilanteen sekä siitä muodostuvan kassanäkymän tällä hetkellä tiedossa olevien rahavirtojen perusteella.']
   ];
   sections.forEach(function(s) {
     var sec = document.createElement('div');
