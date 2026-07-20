@@ -2060,24 +2060,14 @@ function kassaValisumma(latest) {
 }
 
 // Kassa: "Seuraava rahatilanne" -kortti.
-// LÄHTÖKASSA → TULEVAT ERÄT → ehdollinen välisumma → SÄÄNNÖLLISET ERÄT →
-// Lopputilanne (Hero). Rahavirtajoukko on Kassajakson rajaama: vain
-// viimeisimmän snapshotin ja seuraavan tunnetun tulon välissä olevat erät
-// näkyvät ja lasketaan mukaan.
+// LÄHTÖKASSA → RAHAVIRRAT (yksi lista, kertaluonteiset + säännölliset,
+// aikajärjestyksessä; ks. renderTulossaList) → Lopputilanne (Hero).
+// Rahavirtajoukko on Kassajakson rajaama: vain viimeisimmän snapshotin ja
+// seuraavan tunnetun tulon välissä olevat erät näkyvät ja lasketaan mukaan.
 function renderKassaSeuraavaRahatilanne(latest) {
   var kassajakso = buildKassajakso(latest);
   var lahtokassa = kassajakso.lahtokassa;
   var lahtokassaColor = lahtokassa >= 0 ? 'var(--green)' : 'var(--red)';
-
-  var tulevatItems = kassajakso.items.filter(function(x) { return x.source === 'tulevat_items'; }).map(function(x) { return x.ref; });
-  var valisumma = kassaValisumma(latest);
-
-  var rytmiItems = kassajakso.items.filter(function(x) { return x.source === 'rytmi_items'; }).map(function(x) { return x.ref; });
-  var tulotItems = kassajakso.items.filter(function(x) { return x.source === 'tulot_items'; }).map(function(x) { return x.ref; });
-  function menoAmtOf(x) { return parseFloat(x.amt_kk != null ? x.amt_kk : x.amount) || 0; }
-  function tuloAmtOf(x) { return parseFloat(x.amt_kk) || 0; }
-  var tulotBuilt = buildSaannollinenRows(tulotItems, 'Tulo', 'panelTuloDelete', tuloAmtOf);
-  var menotBuilt = buildSaannollinenRows(rytmiItems, 'Meno', 'panelMenoDelete', menoAmtOf);
 
   (function debugHeroInput() {
     var snapshotDateDbg = new Date((latest.date || '') + 'T00:00:00');
@@ -2104,8 +2094,6 @@ function renderKassaSeuraavaRahatilanne(latest) {
   console.log('[HERO DEBUG] Hero-lopputulos:', hero);
   var heroColor = hero >= 0 ? 'var(--green)' : 'var(--red)';
 
-  var naytaValisumma = tulevatItems.length > 0 && (rytmiItems.length > 0 || tulotItems.length > 0);
-
   var html = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
   html += '<div class="kassa-section-hdr">SEURAAVA RAHATILANNE</div>';
 
@@ -2114,25 +2102,8 @@ function renderKassaSeuraavaRahatilanne(latest) {
     + '<div class="card-value" style="color:' + lahtokassaColor + ';">' + fmt(lahtokassa) + '</div>'
     + '</div>';
 
-  html += '<div class="kassa-section-hdr" style="margin-top:10px;">TULEVAT ERÄT</div>';
+  html += '<div class="kassa-section-hdr" style="margin-top:10px;">RAHAVIRRAT</div>';
   html += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';
-  if (tulevatItems.length === 0) {
-    html += '<div class="panel-row"><span class="panel-row-lbl">Ei tulevia eriä.</span></div>';
-  }
-
-  if (naytaValisumma) {
-    html += '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
-      + '<span class="panel-row-lbl">Jäljellä tulevien erien jälkeen</span>'
-      + '<span class="panel-row-val">' + fmt(valisumma) + '</span>'
-      + '</div>';
-  }
-
-  html += '<div class="kassa-section-hdr" style="margin-top:10px;">SÄÄNNÖLLISET ERÄT</div>';
-  if (tulotItems.length === 0 && rytmiItems.length === 0) {
-    html += '<div class="panel-row"><span class="panel-row-lbl">Ei säännöllisiä eriä.</span></div>';
-  } else {
-    html += tulotBuilt.rows + menotBuilt.rows;
-  }
 
   html += '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
     + '<span class="panel-row-lbl" style="font-weight:700;">Lopputilanne</span>'
@@ -3833,34 +3804,6 @@ async function myyntiDelete(id) {
 }
 
 
-// SÄÄNNÖLLISET MENOT — yhteinen editori (Kassa-kortti, desktop + mobiili)
-// ══════════════════════════════════════════════════════════════
-// Rivien muodostus erotettu esitysrakenteesta (otsikko/Yhteensä-rivi), jotta
-// sama rivilogiikka on uudelleenkäytettävissä ilman kopiointia.
-function buildSaannollinenRows(items, fallbackLabel, deleteFnName, amtOf) {
-  var withKeys = items.map(function(item, idx) { return { item: item, delKey: (item.id != null ? item.id : ('idx:' + idx)) }; });
-  var sortedItems = withKeys.slice().sort(function(a, b) {
-    var da = validRecurringDay(a.item.paiva); da = (da === null) ? Infinity : da;
-    var db = validRecurringDay(b.item.paiva); db = (db === null) ? Infinity : db;
-    if (da !== db) return da - db;
-    return normalizeRecurringLabel(a.item.label, fallbackLabel).localeCompare(normalizeRecurringLabel(b.item.label, fallbackLabel), 'fi');
-  });
-  var total = items.reduce(function(s, x) { return s + amtOf(x); }, 0);
-  var rows = sortedItems.map(function(entry) {
-    var item = entry.item;
-    var amt = amtOf(item);
-    var label = normalizeRecurringLabel(item.label, fallbackLabel).replace(/</g, '&lt;');
-    var day = validRecurringDay(item.paiva);
-    var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (day !== null ? day + '.' : '') + '</span>';
-    return '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span class="panel-row-lbl">' + label + '</span></span>'
-    + '<span style="display:flex;align-items:center;gap:8px;">'
-    + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-    + '<button onclick="' + deleteFnName + '(\'' + entry.delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
-    + '</span></div>';
-  }).join('');
-  return { rows: rows, total: total };
-}
-
 window.panelMenoDelete = async function(id) {
   if (!confirm('Poistetaanko meno?')) return;
   var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
@@ -4221,22 +4164,31 @@ function toggleInvBroker(key) {
 }
 window.toggleInvBroker = toggleInvBroker;
 
-// ── Kassa: Tulossa CRUD ──────────────────────────────────────────────
+// ── Kassa: Rahavirrat CRUD ────────────────────────────────────────────
+// Yksi lista kaikille Kassajakson rahavirroille (kertaluonteiset +
+// säännölliset), aikajärjestyksessä. Sama buildKassajakso(...).items-joukko
+// kuin ennen — suodatin vain rajaa mitä joukosta näytetään, ei koske
+// laskentaan käytettävää dataa.
 function renderTulossaList() {
   var el = document.getElementById('kassaTulossaList');
   if (!el) return;
   var snap = window._allSnaps?.[window._allSnaps.length - 1];
-  var items = snap
-    ? buildKassajakso(snap).items.filter(function(x) { return x.source === 'tulevat_items'; }).map(function(x) { return x.ref; })
-    : [];
+  var allItems = snap ? buildKassajakso(snap).items : [];
+  var filter = window._rahavirtaFilter || 'all';
+  var items = allItems.filter(function(x) {
+    if (filter === 'recurring') return x.source !== 'tulevat_items';
+    if (filter === 'once') return x.source === 'tulevat_items';
+    return true;
+  }).slice().sort(function(a, b) { return a.date - b.date; });
+
   var editing = window._tulossaEditing || null;
   var monthNames = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu','Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'];
   var groups = {};
   var order = [];
-  items.forEach(function(item) {
-    var m = String(item.month || '0');
+  items.forEach(function(x) {
+    var m = String(x.date.getMonth() + 1);
     if (!groups[m]) { groups[m] = []; order.push(m); }
-    groups[m].push(item);
+    groups[m].push(x);
   });
   order.sort(function(a, b) { return Number(a) - Number(b); });
   var html = '';
@@ -4244,35 +4196,65 @@ function renderTulossaList() {
     var mNum = parseInt(m, 10);
     var mName = (mNum >= 1 && mNum <= 12) ? monthNames[mNum - 1] : (m || '—');
     html += '<div class="kassa-month-hdr">' + mName + '</div>';
-    groups[m].forEach(function(item) {
-      if (editing && editing === item.id) {
-        html += '<div class="kassa-row kassa-row-edit"><div class="kassa-tulossa-form">' +
-          '<div class="kassa-field-group"><label class="kassa-field-label">Kuukausi</label>' +
-          '<select class="kassa-edit-select" id="te_month">' +
-          '<option value="">—</option>' +
-          [1,2,3,4,5,6,7,8,9,10,11,12].map(function(n){var nm=['Tammi','Helmi','Maalis','Huhti','Touko','Kesä','Heinä','Elo','Syys','Loka','Marras','Joulu'][n-1];return '<option value="'+n+'"'+(String(item.month)===String(n)?' selected':'')+'>'+nm+'</option>';}).join('') +
-          '</select></div>' +
-          '<div class="kassa-field-group"><label class="kassa-field-label">Kuvaus</label>' +
-          '<input class="kassa-edit-input" id="te_label" value="' + (item.label||'') + '" placeholder="esim. Bonus"></div>' +
-          '<div class="kassa-field-group"><label class="kassa-field-label">Summa (€)</label>' +
-          '<input class="kassa-edit-input" id="te_amount" type="number" value="' + (item.amount == null || item.amount === '' ? '' : item.amount) + '" placeholder="esim. -450"></div>' +
-          '<div class="kassa-action-row">' +
-          '<button class="kassa-save-btn" onclick="kassaTulossaSave(\'' + item.id + '\')">✓ Tallenna</button>' +
-          '<button class="kassa-cancel-btn" onclick="kassaTulossaCancel()">✕ Peru</button>' +
-          '<button class="kassa-delete-btn" onclick="kassaTulossaDelete(\'' + item.id + '\')">🗑 Poista</button>' +
-          '</div></div></div>';
+    groups[m].forEach(function(x) {
+      if (x.source === 'tulevat_items') {
+        var item = x.ref;
+        if (editing && editing === item.id) {
+          html += '<div class="kassa-row kassa-row-edit"><div class="kassa-tulossa-form">' +
+            '<div class="kassa-field-group"><label class="kassa-field-label">Kuukausi</label>' +
+            '<select class="kassa-edit-select" id="te_month">' +
+            '<option value="">—</option>' +
+            [1,2,3,4,5,6,7,8,9,10,11,12].map(function(n){var nm=['Tammi','Helmi','Maalis','Huhti','Touko','Kesä','Heinä','Elo','Syys','Loka','Marras','Joulu'][n-1];return '<option value="'+n+'"'+(String(item.month)===String(n)?' selected':'')+'>'+nm+'</option>';}).join('') +
+            '</select></div>' +
+            '<div class="kassa-field-group"><label class="kassa-field-label">Kuvaus</label>' +
+            '<input class="kassa-edit-input" id="te_label" value="' + (item.label||'') + '" placeholder="esim. Bonus"></div>' +
+            '<div class="kassa-field-group"><label class="kassa-field-label">Summa (€)</label>' +
+            '<input class="kassa-edit-input" id="te_amount" type="number" value="' + (item.amount == null || item.amount === '' ? '' : item.amount) + '" placeholder="esim. -450"></div>' +
+            '<div class="kassa-action-row">' +
+            '<button class="kassa-save-btn" onclick="kassaTulossaSave(\'' + item.id + '\')">✓ Tallenna</button>' +
+            '<button class="kassa-cancel-btn" onclick="kassaTulossaCancel()">✕ Peru</button>' +
+            '<button class="kassa-delete-btn" onclick="kassaTulossaDelete(\'' + item.id + '\')">🗑 Poista</button>' +
+            '</div></div></div>';
+        } else {
+          var sign = (item.amount > 0) ? '+' : '';
+          var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--red)' : 'var(--text3)');
+          html += '<div class="kassa-view-row" onclick="kassaTulossaEdit(\'' + item.id + '\')">' +
+            '<span class="kassa-vr-label">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
+            '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
+            '</div>';
+        }
       } else {
-        var sign = (item.amount > 0) ? '+' : '';
-        var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--red)' : 'var(--text3)');
-        html += '<div class="kassa-view-row" onclick="kassaTulossaEdit(\'' + item.id + '\')">' +
-          '<span class="kassa-vr-label">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
-          '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
-          '</div>';
+        var isIncome = x.source === 'tulot_items';
+        var ritem = x.ref;
+        var amt = isIncome ? (parseFloat(ritem.amt_kk) || 0) : (parseFloat(ritem.amt_kk != null ? ritem.amt_kk : ritem.amount) || 0);
+        var label = normalizeRecurringLabel(ritem.label, isIncome ? 'Tulo' : 'Meno').replace(/</g, '&lt;');
+        var day = validRecurringDay(ritem.paiva);
+        var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (day !== null ? day + '.' : '') + '</span>';
+        var srcArr = isIncome ? snap.tulot_items : snap.rytmi_items;
+        var delKey = ritem.id != null ? ritem.id : ('idx:' + srcArr.indexOf(ritem));
+        var deleteFn = isIncome ? 'panelTuloDelete' : 'panelMenoDelete';
+        html += '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span style="color:var(--text3);" title="Säännöllinen">⟳</span><span class="panel-row-lbl">' + label + '</span></span>'
+          + '<span style="display:flex;align-items:center;gap:8px;">'
+          + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
+          + '<button onclick="' + deleteFn + '(\'' + delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
+          + '</span></div>';
       }
     });
   });
-  el.innerHTML = html;
+
+  if (!items.length) html = '<div class="panel-row"><span class="panel-row-lbl">Ei rahavirtoja.</span></div>';
+
+  var filterRow = '<div class="kassa-filter-row">' + ['all','recurring','once'].map(function(f) {
+    var flabel = f === 'all' ? 'Kaikki' : (f === 'recurring' ? 'Säännölliset' : 'Kertaluonteiset');
+    return '<button class="kassa-filter-btn' + (filter === f ? ' active' : '') + '" onclick="rahavirtaFilterSet(\'' + f + '\')">' + flabel + '</button>';
+  }).join('') + '</div>';
+
+  el.innerHTML = filterRow + html;
 }
+window.rahavirtaFilterSet = function(mode) {
+  window._rahavirtaFilter = mode;
+  renderTulossaList();
+};
 function kassaTulossaEdit(id) {
   window._tulossaEditing = id;
   renderTulossaList();
