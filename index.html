@@ -1205,6 +1205,41 @@ if ('serviceWorker' in navigator) {
   .db-item.card .card-left .card-value { white-space:nowrap; font-size:clamp(11px,4.1vw,16px); }
   .db-item.card .card-right { grid-area:rgt; align-self:start; min-width:0; overflow:hidden; }
 
+  /* Kassa-kortti: Hero omalle rivilleen koko leveydelle (ei erillistä 40%-sarakkeeta),
+     jotta se ei jää ankkuroituna vasempaan laitaan tyhjän tilan päälle. */
+  .db-item.card[data-item-id="cash"] {
+    grid-template-columns: 1fr;
+    grid-template-areas: "hdr" "lft" "rgt";
+  }
+  .db-item.card[data-item-id="cash"] .card-left { margin-bottom: 8px; }
+
+  /* Kassa RAHAVIRRAT-rivit: nimi typistyy tarvittaessa (…), summa+poisto pysyvät ehjänä omassa sarakkeessaan */
+  .db-item.card[data-item-id="cash"] .panel-row-lbl {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .db-item.card[data-item-id="cash"] .panel-row-val {
+    white-space: nowrap;
+    min-width: 44px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .db-item.card[data-item-id="cash"] .panel-row > span:last-child { flex-shrink: 0; }
+  .db-item.card[data-item-id="cash"] .panel-row button { margin-left: 6px; }
+
+  /* Rahavirrat-suodattimet: vaakascrollaus jos eivät mahdu, eivät koskaan leikkaudu */
+  .kassa-filter-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .kassa-filter-row::-webkit-scrollbar { display: none; }
+  .kassa-filter-btn { flex-shrink: 0; }
+
   .db-date { margin-bottom:4px; }
 
   .db-date > span:first-child { font-size:13px; font-weight:600; color:rgba(255,225,185,0.82); }
@@ -1214,7 +1249,7 @@ if ('serviceWorker' in navigator) {
   .db-item.card .card-header-row { margin-bottom:6px; }
   .db-item.card .sub-rows { margin-top:8px; }
 
-  .view { padding-top:8px; padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
+  .view { padding-top:8px; padding-bottom:calc(120px + env(safe-area-inset-bottom)); }
 
   #db-admin-panel .db-admin-item { display:block; }
 
