@@ -2,9 +2,20 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-20
-**Viimeisin commit:** `927c5e9`
+**Viimeisin commit:** `6a218a1`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv.**)
+
+**Kassa Info-modalin sisällön viimeistely (20.7.2026) — valmis:**
+Puhdas sisältösprintti (`6a218a1`): Info-modalin (ks. edellinen sprintti alla)
+tekstit kirjoitettiin uudelleen käyttäjälähtöisesti ja Finance OS:n
+snapshot-filosofian mukaisiksi — Tarkoitus, Hero-luku ja Lopputilanne
+selitetään ilman toteutuksen sisäisiä termejä, "Tilit ja rahavirrat" jaettiin
+kahdeksi omaksi osiokseen (Nykyinen kassa, Rahavirrat), ja loppuun lisättiin
+uusi "Huomio"-osio, joka linjaa kortin snapshot-ajatteluun (ei kirjanpito-
+eikä budjetointityökalu). Ainoastaan `openCardInfo`-funktion `sections`-
+taulukon tekstisisältö muuttui — ei modalin rakennetta, painikkeita, CSS:ää
+eikä laskentaa. Ks. oma osio alla.
 
 **Kassa-kortin Info-painike ja selittävä modal (20.7.2026) — valmis:**
 Uusi Info-painike (`ℹ`) Kassa-kortin otsikkoriville, samassa tyylissä ja
@@ -64,6 +75,7 @@ korjattiin omana pienenä sprinttinä (`6489000`) — ks. oma osio alla.
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `6a218a1` | docs: refine Kassa Info modal content | 2026-07-20 |
 | `927c5e9` | feat: add Info button and explainer modal to Kassa card | 2026-07-20 |
 | `565e653` | fix: polish Kassa card mobile layout and spacing | 2026-07-20 |
 | `a2f97c2` | fix: remove Kassajakso income boundary from RAHAVIRRAT calculation | 2026-07-20 |
@@ -551,6 +563,36 @@ Commit:
 
 ---
 
+## Kassa Info-modalin sisällön viimeistely (20.7.2026)
+
+Puhdas sisältösprintti — ei toiminnallinen muutos. Edellisessä sprintissä
+(yllä) rakennettu Info-modal sai käyttäjälähtöisemmän tekstin ja uuden
+"Huomio"-osion.
+
+### 1. Info-modalin tekstien uudelleenkirjoitus — `6a218a1`
+**Muutos:** `openCardInfo`-funktion (`js/ui2-v2.js`) `sections`-taulukko
+kirjoitettiin kokonaan uudelleen:
+- **Tarkoitus** ja **Hero-luku**: tekninen sanamuoto ("tilit − OP Gold",
+  "seuraava esiintymä") korvattiin käyttäjälähtöisellä selityksellä siitä,
+  mitä käyttäjä näkee — ei miten se lasketaan.
+- **"Tilit ja rahavirrat"** jaettiin kahdeksi omaksi osiokseen: **Nykyinen
+  kassa** (tilien saldo − OP Goldin käytetty saldo, lähtöpiste
+  rahavirtalaskelmille) ja **Rahavirrat** (tuleva lista aikajärjestyksessä).
+- **"Lopputilanne"**: sanamuoto selkeytetty, viittaa nyt suoraan Hero-lukuun.
+- Uusi **Huomio**-osio lisätty loppuun: kortti perustuu snapshot-ajatteluun,
+  ei ole kirjanpito- tai budjetointityökalu, ei seuraa yksittäisiä
+  pankkitapahtumia.
+**Ei koskettanut:** modalin DOM-rakennetta, `sections.forEach`-renderöintiä,
+CSS:ää, painikkeita eikä laskentalogiikkaa — vain taulukon merkkijonot.
+**Testattu:** paikallinen selainregressio 390px mobiiliviewportissa — kaikki
+kuusi osiota (mukaan lukien uusi Huomio) rivittyvät oikein modalin sisäisen
+scrollin sisällä, ei vaakaylivuotoa, Hero-arvo muuttumaton.
+
+Commit:
+- `6a218a1` — docs: refine Kassa Info modal content
+
+---
+
 ## Avoimet bugit
 
 ### BUG-A: "Näytä dashboardissa" — täysi no-op
@@ -663,9 +705,9 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-07-20 (Kassa-kortin Info-
-painike ja selittävä modal — commit `927c5e9` — ks. yllä). Samana päivänä
-aiemmin: mobiili-UX-viimeistely (`565e653`) ja RAHAVIRRAT-sprintti: listan
-yhdistäminen, Hero-synkronointi, terminologia/värit, Kassajakson
-rajaamismallin poisto — commitit `f4a0bb9`, `cfdaece`, `abb98df`, `a2f97c2`
-— ks. yllä.*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-20 (Kassa Info-modalin
+sisällön viimeistely — commit `6a218a1` — ks. yllä). Samana päivänä
+aiemmin: Info-painike ja modal (`927c5e9`), mobiili-UX-viimeistely
+(`565e653`) ja RAHAVIRRAT-sprintti: listan yhdistäminen, Hero-synkronointi,
+terminologia/värit, Kassajakson rajaamismallin poisto — commitit `f4a0bb9`,
+`cfdaece`, `abb98df`, `a2f97c2` — ks. yllä.*
