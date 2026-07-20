@@ -611,11 +611,60 @@ var CARD_ACCENT = { cash:'var(--accent-kassa)', inv:'var(--accent-sijoitukset)',
   return '<div class="card-header-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
         + '<div class="card-label" style="margin-bottom:0;cursor:pointer;color:' + accent + ';' + '" onclick="toggleCardDetail(\'' + cardKey + '\')">' + '<span class="card-dot"></span>' + label + '</div>'
     + '<div style="display:flex;gap:3px;align-items:center;">'
+    + (cardKey === 'cash'
+        ? '<button onclick="event.stopPropagation();openCardInfo(\'' + cardKey + '\',event)" '
+          + 'title="Tietoa Kassa-kortista" style="font-size:11px;padding:2px 7px;border-radius:4px;'
+          + 'border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;">ℹ</button>'
+        : '')
     + '<button onclick="event.stopPropagation();openCardSettings(\'' + cardKey + '\',\'' + label + '\',' + rowsJSON + ')" '
         + 'title="Asetukset" style="font-size:11px;padding:2px 7px;border-radius:4px;'
         + 'border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;">⋯</button>'
     + '</div></div>';
 }
+
+// Kassa-kortin Info-modal: kevyt, keskitetty selitys kortin tarkoituksesta.
+// Puhtaasti selittävä — ei lue eikä kirjoita mitään laskentatilaa.
+window.openCardInfo = function(cardKey, evt) {
+  if (evt) evt.stopPropagation();
+  var existing = document.getElementById('card-info-overlay');
+  if (existing) { existing.remove(); return; }
+
+  var overlay = document.createElement('div');
+  overlay.id = 'card-info-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6);'
+    + 'display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface);border:1px solid var(--border-bright);border-radius:12px;'
+    + 'padding:18px 20px;max-width:min(380px,92vw);max-height:80vh;overflow-y:auto;'
+    + 'box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
+  hdr.innerHTML = '<span style="font-size:13px;font-weight:700;color:var(--card-primary,var(--text));">'
+    + '<span class="card-dot"></span>Kassa — mitä kortti näyttää</span>'
+    + '<button title="Sulje" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>';
+  hdr.querySelector('button').addEventListener('click', function() { overlay.remove(); });
+  box.appendChild(hdr);
+
+  var sections = [
+    ['Tarkoitus', 'Kassa-kortti näyttää päivittäisen rahatilanteen: mitä tileillä on nyt, ja mihin se on menossa tunnettujen tulojen ja menojen perusteella.'],
+    ['Hero-luku (yläreunan iso lukema)', 'Nykyinen kassa (tilit − OP Gold) + kaikki tiedossa olevat tulevat rahavirrat: kertaluonteiset erät ja jokaisesta säännöllisestä tulosta/menosta seuraava esiintymä. Sama luku näkyy myös listan lopussa "Lopputilanne"-rivillä.'],
+    ['Tilit ja rahavirrat', '"NYKYINEN KASSA" on tilien ja OP Goldin erotus tällä hetkellä. RAHAVIRRAT-lista näyttää tulevat tulot ja menot aikajärjestyksessä — ne lisätään tai vähennetään nykyisestä kassasta, kun lasketaan Hero-lukua.'],
+    ['"Lopputilanne"', 'Listan viimeinen rivi. Näyttää saman luvun kuin Hero — nykyinen kassa kaikkien listalla näkyvien rahavirtojen jälkeen.']
+  ];
+  sections.forEach(function(s) {
+    var sec = document.createElement('div');
+    sec.style.cssText = 'margin-bottom:12px;';
+    sec.innerHTML = '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">' + s[0] + '</div>'
+      + '<div style="font-size:12px;color:var(--text2);line-height:1.5;">' + s[1] + '</div>';
+    box.appendChild(sec);
+  });
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+};
 
 async function renderDashboard() {
   const c = document.getElementById('db-content');
