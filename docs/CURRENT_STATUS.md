@@ -1,10 +1,17 @@
 # CURRENT_STATUS.md
 # Finance OS — Current Status
 
-**Päivitetty:** 2026-07-19
-**Viimeisin commit:** `034eae9`
+**Päivitetty:** 2026-07-20
+**Viimeisin commit:** `a2f97c2`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv.**)
+
+**Kassajakson rajaamismallin poisto — RAHAVIRRAT-sprintti (20.7.2026) — valmis:**
+Neljä peräkkäistä committia (`f4a0bb9`, `cfdaece`, `abb98df`, `a2f97c2`) yhdistivät
+Kassa-kortin TULEVAT ERÄT- ja SÄÄNNÖLLISET ERÄT -osiot yhdeksi RAHAVIRRAT-listaksi,
+synkronoivat Heron Lopputilanteen kanssa, päivittivät terminologian ja
+värikoodauksen, ja lopuksi poistivat Kassajakson "ensimmäiseen tunnettuun tuloon"
+-rajauksen kokonaan (LUKITTU tuotepäätös #12) — ks. oma osio alla.
 
 **Hero-tuotemäärittelyn regressiokorjaus — Kassajakso-sprintti (19.7.2026) — valmis:**
 Sprintti 1+2:ssa (alla) kirjattu Hero-määrittely osoittautui auditoinnissa regressioksi:
@@ -35,6 +42,10 @@ korjattiin omana pienenä sprinttinä (`6489000`) — ks. oma osio alla.
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `a2f97c2` | fix: remove Kassajakso income boundary from RAHAVIRRAT calculation | 2026-07-20 |
+| `abb98df` | feat: refine Kassa terminology and cashflow colors | 2026-07-20 |
+| `cfdaece` | fix: align Kassa Hero with cashflow model | 2026-07-20 |
+| `f4a0bb9` | refactor: unify Kassa cashflow list UI | 2026-07-20 |
 | `034eae9` | fix: korjaa Hero/Kassajakso-logiikka Seuraava rahatilanne -korttiin | 2026-07-19 |
 | `506403c` | feat: uusi "Seuraava rahatilanne" -kortti Kassa-korttiin | 2026-07-19 |
 | `f26d592` | refactor: eriytä säännöllisten tulojen/menojen rivien muodostus omaksi funktioksi | 2026-07-19 |
@@ -362,6 +373,78 @@ Commit:
 
 ---
 
+## Kassa-kortin RAHAVIRRAT-sprintti: yhdistäminen, Hero-synkronointi, terminologia, Kassajakson rajaamismallin poisto (20.7.2026)
+
+Neljä peräkkäistä, käyttäjän hyväksymää pienisprinttiä, kukin oma commitinsa,
+ks. `docs/KASSA_CARD_STATUS.md` täydelliset auditoinnit ja testiraportit.
+
+### 1. RAHAVIRRAT-listan yhdistäminen — `f4a0bb9`
+**Muutos:** Kassa-kortin erilliset TULEVAT ERÄT- ja SÄÄNNÖLLISET ERÄT -osiot
+(otsikot, "Jäljellä tulevien erien jälkeen" -välisumma, erilliset tyhjän tilan
+viestit) korvattiin yhdellä RAHAVIRRAT-listalla. Kaikki rahavirrat (kertaluonteiset
+ja säännölliset) näkyvät yhdessä listassa aikajärjestyksessä, kuukausiryhmittäin.
+Säännöllisyys näkyy pienellä ⟳-symbolilla. Lisätty kevyt suodatin
+(Kaikki/Säännölliset/Kertaluonteiset), joka päivittää vain listan, ei koko
+dashboardia. `buildSaannollinenRows`-apufunktio poistui käytöstä (logiikka
+siirrettiin `renderTulossaList`-funktioon). Kassajakson rajauslogiikkaa,
+Hero-laskentaa tai tietomallia ei koskettu.
+**Testattu:** selainregressio (paikallinen IndexedDB) — sorttaus, kuukausiryhmittely,
+suodatin, kertaluonteisen rivin klikkaa-muokkaa, säännöllisen rivin poisto,
+"+ Lisää rahavirta" — kaikki muuttumattomina.
+
+### 2. Hero synkronoitiin Kassajakson lopputilanteen kanssa — `cfdaece`
+**Ongelma (havaittu auditoinnissa):** `kassaValisumma()` (näkyvä Hero, `card-value`)
+laski vain lähtökassan + tulevat kertaluonteiset erät, kun taas kortin oma
+"Lopputilanne" (`heroSum()`) laski koko Kassajakson joukon (myös säännölliset).
+Kaksi eri lukua saman "Hero"-nimen alla.
+**Korjaus:** `kassaValisumma(latest)` delegoi nyt suoraan
+`heroSum(buildKassajakso(latest))`:lle — yksi rivi. LUKITTU tuotepäätös #9.
+**Testattu:** ylätason Hero ja "Lopputilanne" näyttivät saman luvun kaikissa
+testiskenaarioissa; Kassajakson rajaus ja `heroSum`/`buildKassajakso` koskematta.
+
+### 3. Kassa-kortin terminologia ja rahavirtojen värikoodaus — `abb98df`
+**Muutos:** "LÄHTÖKASSA" → "NYKYINEN KASSA" (yksi UI-tekstikohta,
+`js/ui2-v2.js:2097`) — arvo kuvaa käyttäjän nettokassaa (tilit − luottokortit),
+ei Kassajakson alkua. `lahtokassaOf()`-funktiota tai sisäistä muuttujaa ei
+nimetty uudelleen. Lisätty uusi CSS-muuttuja `--expense: #a8654f` (hillitty,
+tumma terrakotta-koralli — tummempi kuin `--red`, erottuu selvästi
+"varoitus"-punaisesta) menorivien väriksi sekä kertaluonteisille että
+säännöllisille rahavirroille; tulot säilyttivät vihreän.
+**Testattu:** väriarvot varmistettu `getComputedStyle`:lla, typografia/asettelu
+ennallaan, Hero-arvo muuttumaton.
+
+### 4. Kassajakson "ensimmäiseen tunnettuun tuloon" -rajaus poistettiin — `a2f97c2`
+**Tausta:** Auditoinnissa löytyi regressio: jos käyttäjällä ei ollut yhtään
+tunnettua tulevaa tuloa kirjattuna, `buildKassajakso()` palautti tyhjän
+`items`-joukon — koko RAHAVIRRAT-lista ja Hero tyhjenivät, vaikka
+säännöllisiä menoja oli tallennettu oikein. Uusi LUKITTU tuotepäätös #12
+(kumoaa päätökset #3 ja #4): rahavirtajoukkoa ei enää katkaista ensimmäiseen
+tuloon — kaikki tiedossa olevat tulevat kertaluonteiset erät näkyvät, ja
+jokaisesta säännöllisestä rahavirrasta vain seuraava esiintymä.
+**Korjaus:** `buildKassajakso(latest)` (`js/ui2-v2.js:2034`) palauttaa nyt
+`{lahtokassa, items}`, jossa `items = collectRahavirrat(...)` sellaisenaan —
+`incomes`/`boundary`-suodatus ja `boundary`-kenttä poistettiin kokonaan.
+`heroSum`, `kassaValisumma`, `renderTulossaList()` eivät muuttuneet — ne
+perivät uuden käyttäytymisen automaattisesti, koska kuluttavat
+`buildKassajakso(...).items`:n sellaisenaan. Yksi tietojoukko, yksi totuus.
+**Testattu:** (a) snapshot ilman yhtään tunnettua tuloa — kaikki rahavirrat
+näkyvät nyt oikein (aiemmin tyhjä lista); (b) monikuukautinen sekoitettu
+aineisto (kertaluonteisia + säännöllisiä, tahallisesti sekoitetussa
+syöttöjärjestyksessä) — kuukausiryhmittely ja kronologinen järjestys
+täsmäsivät oikein jokaisessa ryhmässä; sorttaus tapahtuu `renderTulossaList()`:ssä,
+ei koskaan ollut `buildKassajakso()`:n vastuulla; (c) ylätason Hero ja
+Lopputilanne täsmäsivät kaikissa skenaarioissa; (d) "+ Lisää rahavirta" testattu
+kaukana tulevaisuudessa olevalle erälle — tallentui ja näkyi oikein; (e) ei
+JS-virheitä konsolissa.
+
+Commit:
+- `f4a0bb9` — refactor: unify Kassa cashflow list UI
+- `cfdaece` — fix: align Kassa Hero with cashflow model
+- `abb98df` — feat: refine Kassa terminology and cashflow colors
+- `a2f97c2` — fix: remove Kassajakso income boundary from RAHAVIRRAT calculation
+
+---
+
 ## Avoimet bugit
 
 ### BUG-A: "Näytä dashboardissa" — täysi no-op
@@ -474,4 +557,6 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-07-19 (Hero-tuotemäärittelyn regressiokorjaus, Kassajakso-sprintti, commit `034eae9` — ks. yllä).*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-20 (RAHAVIRRAT-sprintti: listan
+yhdistäminen, Hero-synkronointi, terminologia/värit, Kassajakson rajaamismallin
+poisto — commitit `f4a0bb9`, `cfdaece`, `abb98df`, `a2f97c2` — ks. yllä).*
