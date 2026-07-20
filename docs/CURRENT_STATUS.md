@@ -2,9 +2,34 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-20
-**Viimeisin commit:** (tuleva) `style: color-code cashflow labels by cashflow direction`
+**Viimeisin commit:** (tuleva) `fix: restore desktop cashflow row layout after color-coding regression`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv.**)
+
+**Bugfix: Rahavirrat-listan desktop-layout (20.7.2026) — valmis:**
+Pitkät rahavirtanimet (esim. "Pääpalkka kuukausittain työnantajalta",
+"Vuokratulo sijoitusasunnosta Espoossa") saivat nimen ja euromäärän
+rivittymään kahdelle riville ja menemään päällekkäin desktop-leveyksillä
+(≥900 px). **Juurisyy ei ollut väriajossa `8a0cb98`** — todistettu ajamalla
+identtinen headless-repro (Playwright, IndexedDB-siemennetty snapshotti
+pitkillä nimillä, 1400 px leveys) sekä commitia `8a0cb98` edeltävää
+(`b5cbe9c`) että sen jälkeistä koodia vasten: mittaustulokset (rivikorkeudet,
+reunakoordinaatit) olivat bittitäsmälleen identtiset molemmissa — bugi oli
+siis olemassa jo ennen väriajoa. Todellinen syy: `.panel-row-lbl`/
+`.panel-row-val`-sarakkeiden ellipsis/nowrap/flex-shrink-suoja (lisätty
+mobiilisprintissä `565e653`) oli rajattu yksinomaan
+`@media (max-width:899px)`-sääntöön — desktopilla näillä elementeillä ei
+ollut koskaan tilanhallintaa, vain lyhyet demo-nimet olivat piilottaneet
+puutteen aiemmin. Korjaus: siirrettiin nuo neljä sääntöä
+(`.panel-row-lbl`, `.panel-row-val`, `.panel-row > span:last-child`,
+`.panel-row button`, kaikki `[data-item-id="cash"]`-rajattuja) pois
+media querystä yleispäteviksi — ei duplikointia, ei uusia sääntöjä, ei uusia
+erikoistapauksia. Nimi typistyy ellipsillä tarvittaessa, summa ei koskaan
+rivity. Mobiili ei rikkoutunut, koska säännöt ovat identtiset kuin ennen —
+ne vain koskevat nyt myös leveämpiä näyttöjä. Ei muutoksia väritykseen,
+laskentalogiikkaan eikä renderöintiin (vain CSS, `index.html`). Testattu
+headless-Playwrightilla 1400 px (ei rivityksiä, ei päällekkäisyyksiä) ja
+390 px (ellipsis + värit ennallaan).
 
 **Rahavirta-rivien semanttinen värikoodaus (20.7.2026) — valmis:**
 Rajattu UI/CSS-sprintti: Kassa-kortin RAHAVIRRAT-listassa rahavirran nimi

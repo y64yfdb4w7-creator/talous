@@ -796,6 +796,23 @@
     .panel-row-val { font-family:var(--mono); font-weight:700; color:var(--text2); }
     .panel-row-val.pos { color:var(--green); }
     .panel-row-val.neg { color:var(--red); }
+    /* Kassa RAHAVIRRAT-rivit (kaikki leveydet): nimi typistyy tarvittaessa (…),
+       summa+poisto pysyvät ehjänä omassa sarakkeessaan eivätkä koskaan rivity. */
+    .db-item.card[data-item-id="cash"] .panel-row-lbl {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .db-item.card[data-item-id="cash"] .panel-row-val {
+      white-space: nowrap;
+      min-width: 44px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .db-item.card[data-item-id="cash"] .panel-row > span:last-child { flex-shrink: 0; }
+    .db-item.card[data-item-id="cash"] .panel-row button { margin-left: 6px; }
     .panel-month-title { font-family:var(--sans); font-size:15px; font-weight:700; color:var(--text); margin-bottom:14px; }
     .loan-bar-wrap { margin-bottom:10px; }
     .loan-bar-hdr { display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; }
@@ -1212,23 +1229,6 @@ if ('serviceWorker' in navigator) {
     grid-template-areas: "hdr" "lft" "rgt";
   }
   .db-item.card[data-item-id="cash"] .card-left { margin-bottom: 8px; }
-
-  /* Kassa RAHAVIRRAT-rivit: nimi typistyy tarvittaessa (…), summa+poisto pysyvät ehjänä omassa sarakkeessaan */
-  .db-item.card[data-item-id="cash"] .panel-row-lbl {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .db-item.card[data-item-id="cash"] .panel-row-val {
-    white-space: nowrap;
-    min-width: 44px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-  .db-item.card[data-item-id="cash"] .panel-row > span:last-child { flex-shrink: 0; }
-  .db-item.card[data-item-id="cash"] .panel-row button { margin-left: 6px; }
 
   /* Rahavirrat-suodattimet: vaakascrollaus jos eivät mahdu, eivät koskaan leikkaudu */
   .kassa-filter-row {
