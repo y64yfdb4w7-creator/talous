@@ -2,9 +2,20 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-20
-**Viimeisin commit:** `a2f97c2`
+**Viimeisin commit:** `565e653`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv.**)
+
+**Kassa-kortin mobiili-UX viimeistely (20.7.2026) — valmis:**
+Rajattu mobiili-CSS-sprintti (`565e653`): Hero omalle täysleveälle riville
+40%/60%-gridin sijaan, RAHAVIRRAT-rivien nimet typistyvät ellipsillä eivätkä
+riko riviä, summat pysyvät yhdellä rivillä, poistoikonille oma spacing,
+suodattimet (Kaikki/Säännölliset/Kertaluonteiset) vaakascrollautuvat kapealla
+näytöllä eivätkä leikkaudu, ja "Päivitä"-FAB:n alle jää enemmän scroll-tilaa.
+Kaikki muutokset `@media (max-width:899px)`-sääntöön ja
+`[data-item-id="cash"]`-selektoriin rajattuna — desktop ja muut kortit
+koskematta. Ei liiketoimintalogiikka-, laskenta- eikä datamallimuutoksia.
+Ks. oma osio alla.
 
 **Kassajakson rajaamismallin poisto — RAHAVIRRAT-sprintti (20.7.2026) — valmis:**
 Neljä peräkkäistä committia (`f4a0bb9`, `cfdaece`, `abb98df`, `a2f97c2`) yhdistivät
@@ -42,6 +53,7 @@ korjattiin omana pienenä sprinttinä (`6489000`) — ks. oma osio alla.
 
 | Hash | Viesti | Päivä |
 |------|--------|-------|
+| `565e653` | fix: polish Kassa card mobile layout and spacing | 2026-07-20 |
 | `a2f97c2` | fix: remove Kassajakso income boundary from RAHAVIRRAT calculation | 2026-07-20 |
 | `abb98df` | feat: refine Kassa terminology and cashflow colors | 2026-07-20 |
 | `cfdaece` | fix: align Kassa Hero with cashflow model | 2026-07-20 |
@@ -445,6 +457,50 @@ Commit:
 
 ---
 
+## Kassa-kortin mobiili-UX viimeistely (20.7.2026)
+
+Rajattu mobiili-CSS-sprintti — pelkkä layout/spacing, ei liiketoimintalogiikkaa,
+laskentaa, rahavirtojen toimintaa eikä datamallia. Kaikki muutokset index.html:n
+olemassa olevaan `@media (max-width:899px)`-sääntöön.
+
+### 1. Hero omalle riville, RAHAVIRRAT-rivien typistys, poistoikonin spacing, suodattimien vaakascroll, FAB-tila — `565e653`
+**Ongelma:** Kassa-kortin mobiililayout (<899px) käytti samaa 40%/60%-gridiä
+kuin muut kortit: Hero jäi ankkuroituna kapeaan vasempaan sarakkeeseen ison
+tyhjän tilan päälle, RAHAVIRRAT-rivien nimet ja summat saattoivat rikkoa
+rivin kahdelle, poistoikoni oli liian lähellä summaa, segmenttipainikkeet
+(Kaikki/Säännölliset/Kertaluonteiset) saattoivat leikkautua kapealla
+näytöllä, ja kelluva "Päivitä"-painike saattoi peittää kortin viimeisiä
+rivejä.
+**Korjaus:** Kaikki `[data-item-id="cash"]`-selektorilla scopattuna (muihin
+korttien mobiililayouttiin ei puututtu):
+- `.db-item.card[data-item-id="cash"]`: `grid-template-columns:1fr` +
+  `grid-template-areas:"hdr" "lft" "rgt"` — Hero täysleveänä omalla rivillään.
+- `.panel-row-lbl`: `flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap` — nimi typistyy, ei riko riviä.
+- `.panel-row-val`: `white-space:nowrap;min-width:44px;text-align:right;
+  flex-shrink:0` — summa ei koskaan katkea.
+- `.panel-row > span:last-child` + `.panel-row button`: `flex-shrink:0` +
+  `margin-left:6px` — poistoikonille oma spacing.
+- `.kassa-filter-row`/`.kassa-filter-btn`: `overflow-x:auto` +
+  `flex-shrink:0` — suodattimet vaakascrollautuvat, eivät leikkaudu.
+- `.view`: padding-bottom 96px → 120px (kaikki mobiilinäkymät) — enemmän
+  scroll-tilaa FAB:n alle.
+Paddingin pienennystä (18px→14px) harkittiin, mutta testattiin todelliseen
+390px/430px-leveyteen ja todettiin tarpeettomaksi — Hero-korjaus yksin riitti,
+ja alkuperäinen 18px säilytettiin Design System 1.0:n yhtenäisyyden vuoksi.
+**Testattu:** paikallinen selainregressio (computed-style-vertailu ennen/
+jälkeen, iframe-pohjainen 390px/430px-viewport-testi), desktop (>899px)
+varmistettu koskemattomaksi (`[data-item-id="inv"]` säilytti 40%/60%-gridin
+ja 18px paddingin). Julkaisuvaiheessa havaittu ja korjattu erillinen
+prosessivirhe: commit ei ollut alun perin pushattu origin/mainiin, minkä
+vuoksi tuotantosivu näytti hetken vanhaa CSS:ää — vahvistettu
+`git log origin/main..HEAD` tyhjäksi pushin jälkeen.
+
+Commit:
+- `565e653` — fix: polish Kassa card mobile layout and spacing
+
+---
+
 ## Avoimet bugit
 
 ### BUG-A: "Näytä dashboardissa" — täysi no-op
@@ -557,6 +613,8 @@ näkyvämpi kuin se nyt on — ei dominoida, mutta ei hävitä numeroidenkaan al
 ---
 
 *Tiedosto päivitetään kehityssessioiden yhteydessä.*
-*Viimeisin päivitys tehty kehityssessiossa 2026-07-20 (RAHAVIRRAT-sprintti: listan
-yhdistäminen, Hero-synkronointi, terminologia/värit, Kassajakson rajaamismallin
-poisto — commitit `f4a0bb9`, `cfdaece`, `abb98df`, `a2f97c2` — ks. yllä).*
+*Viimeisin päivitys tehty kehityssessiossa 2026-07-20 (Kassa-kortin mobiili-UX
+viimeistely — commit `565e653` — ks. yllä). Samana päivänä aiemmin
+RAHAVIRRAT-sprintti: listan yhdistäminen, Hero-synkronointi, terminologia/värit,
+Kassajakson rajaamismallin poisto — commitit `f4a0bb9`, `cfdaece`, `abb98df`,
+`a2f97c2` — ks. yllä.*
