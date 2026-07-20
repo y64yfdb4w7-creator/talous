@@ -897,7 +897,7 @@ async function renderDashboard() {
           {key:'elatustili', label:'Elatustili'},
           {key:'op_gold',    label:'OP Gold'},
         ])}
-<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; return '<div class="card-value">'+fmt(lahtokassaOf(latest))+'</div>'; })()}</div>
+<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; return '<div class="card-value">'+fmt(kassaValisumma(latest))+'</div>'; })()}</div>
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--card-primary-dark);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="card-right">
@@ -2048,6 +2048,17 @@ function heroSum(kassajakso) {
   return kassajakso.items.reduce(function(s, x) { return s + x.amount; }, kassajakso.lahtokassa);
 }
 
+// Hero ja "Jäljellä tulevien erien jälkeen" käyttävät samaa laskentaa.
+// Hero kuvaa käyttäjän seuraavaa kassatilannetta huomioiden kassajakson
+// tulevat erät, mutta ei vielä säännöllisiä eriä.
+function kassaValisumma(latest) {
+  var kassajakso = buildKassajakso(latest);
+  var tulevatSum = kassajakso.items
+    .filter(function(x) { return x.source === 'tulevat_items'; })
+    .reduce(function(s, x) { return s + (Number(x.amount) || 0); }, 0);
+  return kassajakso.lahtokassa + tulevatSum;
+}
+
 // Kassa: "Seuraava rahatilanne" -kortti.
 // LÄHTÖKASSA → TULEVAT ERÄT → ehdollinen välisumma → SÄÄNNÖLLISET ERÄT →
 // Lopputilanne (Hero). Rahavirtajoukko on Kassajakson rajaama: vain
@@ -2059,8 +2070,7 @@ function renderKassaSeuraavaRahatilanne(latest) {
   var lahtokassaColor = lahtokassa >= 0 ? 'var(--green)' : 'var(--red)';
 
   var tulevatItems = kassajakso.items.filter(function(x) { return x.source === 'tulevat_items'; }).map(function(x) { return x.ref; });
-  var tulevatSum = tulevatItems.reduce(function(s, x) { return s + (Number(x.amount) || 0); }, 0);
-  var valisumma = lahtokassa + tulevatSum;
+  var valisumma = kassaValisumma(latest);
 
   var rytmiItems = kassajakso.items.filter(function(x) { return x.source === 'rytmi_items'; }).map(function(x) { return x.ref; });
   var tulotItems = kassajakso.items.filter(function(x) { return x.source === 'tulot_items'; }).map(function(x) { return x.ref; });
