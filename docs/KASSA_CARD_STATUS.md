@@ -28,7 +28,7 @@ Historia löytyy `git log`:sta ja `docs/CURRENT_STATUS.md`:stä.
 
 Kassa-kortin yläosan iso lukuarvo (`card-value`, `js/ui2-v2.js:900`) näyttää:
 
-**Kassajakson lopputilanteen** — lähtökassa + kaikki `buildKassajakso(...).items`-joukon
+**Kassajakson lopputilanteen** — nykyinen kassa + kaikki `buildKassajakso(...).items`-joukon
 rahavirrat, kertaluonteiset ja säännölliset yhtäläisesti.
 
 `kassaValisumma(latest)` (`js/ui2-v2.js:2054`) delegoi suoraan `heroSum(buildKassajakso(latest))`
@@ -55,7 +55,7 @@ kerros sille luovuttaa (ks. myös `docs/FINANCE_OS_ARCHITECTURE.md`):
    `{lahtokassa, items, boundary}`.
 3. **Hero-taso** — yksi laskenta, kaksi näyttöpaikkaa:
    - `heroSum(kassajakso)` (`js/ui2-v2.js:2047`) → puhdas laskentakomponentti:
-     lähtökassa + koko Kassajakson joukko (tulevat + säännölliset tulot −
+     nykyinen kassa + koko Kassajakson joukko (tulevat + säännölliset tulot −
      säännölliset menot).
    - `kassaValisumma(latest)` (`js/ui2-v2.js:2054`) → rakentaa Kassajakson ja
      delegoi `heroSum`:lle. Näkyvä Hero (`card-value`) ja kortin "Lopputilanne"
@@ -69,7 +69,8 @@ kuukausi-erille) eivät ole muuttuneet.
 
 ## Miten OP Gold huomioidaan
 
-Lähtökassa lasketaan `lahtokassaOf(snap)`-funktiolla (`js/ui2-v2.js:1946`):
+Nykyinen kassa lasketaan `lahtokassaOf(snap)`-funktiolla (`js/ui2-v2.js:1946`, funktion
+nimeä ei muutettu — ks. terminologiapäätös #10):
 
 ```
 lahtokassa = tulotili − |op_gold|
@@ -140,9 +141,9 @@ suunnittelupäätöstä):
 4. **Tunnetun tulon määritelmä** — kirjattu rahavirta jolla on määritelty,
    snapshotin jälkeinen ajallinen sijainti; kertaluonteinen ja säännöllinen
    kelpaavat yhtäläisesti.
-5. **Lähtökassan lähde** — `tulotili − |op_gold|`, ei erikseen syötetty eikä
+5. **Nykyisen kassan lähde** — `tulotili − |op_gold|`, ei erikseen syötetty eikä
    Heron itse johtama.
-6. **Kassavaikutteisen rahavirran määritelmä** — muuttaa lähtökassaan kuuluvien
+6. **Kassavaikutteisen rahavirran määritelmä** — muuttaa nykyiseen kassaan kuuluvien
    tilien yhteissummaa.
 7. **Rahavirran syöttö on yksi yhtenäinen lomake** (`0523f06`) — ei
    ennakkovalintaa tyypistä. Säännöllinen on metadataa, ei laskentaa muuttava tieto.
@@ -152,6 +153,16 @@ suunnittelupäätöstä):
    `buildKassajakso(...).items`-joukon rahavirrat (kertaluonteiset ja
    säännölliset), samalla logiikalla kuin `heroSum()`. Korvaa aiemman
    päätöksen "Hero = lähtökassa + tulevat erät" (`948b625`).
+10. **Käyttöliittymän termi "NYKYINEN KASSA"** — korvaa aiemman UI-tekstin
+    "LÄHTÖKASSA" (`js/ui2-v2.js:2097`), koska arvo kuvaa käyttäjän
+    tämänhetkistä nettokassaa (tilit − luottokortit) eikä Kassajakson alkua.
+    Vain käyttöliittymän teksti muuttui — `lahtokassaOf()`-funktio, sisäinen
+    `lahtokassa`-muuttuja ja itse laskenta pysyivät ennallaan.
+11. **Rahavirtojen värikoodaus** — tulot vihreällä (`var(--green)`), menot
+    hillityllä, tummalla koralli-/roosasävyllä (`var(--expense)`, `#a8654f`),
+    ei kirkkaalla punaisella. Koskee sekä kertaluonteisia että säännöllisiä
+    rahavirtarivejä RAHAVIRRAT-listassa. Tarkoitus on auttaa hahmottamaan
+    rahavirran suunta yhdellä vilkaisulla, ei varoittaa käyttäjää.
 
 ---
 

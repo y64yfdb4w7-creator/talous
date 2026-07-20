@@ -2056,7 +2056,7 @@ function kassaValisumma(latest) {
 }
 
 // Kassa: "Seuraava rahatilanne" -kortti.
-// LÄHTÖKASSA → RAHAVIRRAT (yksi lista, kertaluonteiset + säännölliset,
+// NYKYINEN KASSA → RAHAVIRRAT (yksi lista, kertaluonteiset + säännölliset,
 // aikajärjestyksessä; ks. renderTulossaList) → Lopputilanne (Hero).
 // Rahavirtajoukko on Kassajakson rajaama: vain viimeisimmän snapshotin ja
 // seuraavan tunnetun tulon välissä olevat erät näkyvät ja lasketaan mukaan.
@@ -2094,7 +2094,7 @@ function renderKassaSeuraavaRahatilanne(latest) {
   html += '<div class="kassa-section-hdr">SEURAAVA RAHATILANNE</div>';
 
   html += '<div style="margin:10px 0 0;padding:0 2px;">'
-    + '<div style="font-size:11px;color:var(--card-primary);">LÄHTÖKASSA</div>'
+    + '<div style="font-size:11px;color:var(--card-primary);">NYKYINEN KASSA</div>'
     + '<div class="card-value" style="color:' + lahtokassaColor + ';">' + fmt(lahtokassa) + '</div>'
     + '</div>';
 
@@ -4213,7 +4213,7 @@ function renderTulossaList() {
             '</div></div></div>';
         } else {
           var sign = (item.amount > 0) ? '+' : '';
-          var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--red)' : 'var(--text3)');
+          var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--expense)' : 'var(--text3)');
           html += '<div class="kassa-view-row" onclick="kassaTulossaEdit(\'' + item.id + '\')">' +
             '<span class="kassa-vr-label">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
             '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
@@ -4229,9 +4229,10 @@ function renderTulossaList() {
         var srcArr = isIncome ? snap.tulot_items : snap.rytmi_items;
         var delKey = ritem.id != null ? ritem.id : ('idx:' + srcArr.indexOf(ritem));
         var deleteFn = isIncome ? 'panelTuloDelete' : 'panelMenoDelete';
+        var rAmtColor = isIncome ? 'var(--green)' : 'var(--expense)';
         html += '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span style="color:var(--text3);" title="Säännöllinen">⟳</span><span class="panel-row-lbl">' + label + '</span></span>'
           + '<span style="display:flex;align-items:center;gap:8px;">'
-          + '<span class="panel-row-val">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
+          + '<span class="panel-row-val" style="color:' + rAmtColor + ';">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
           + '<button onclick="' + deleteFn + '(\'' + delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
           + '</span></div>';
       }
