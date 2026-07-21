@@ -4249,9 +4249,15 @@ function renderTulossaList() {
     groups[m].forEach(function(x) {
       if (x.source === 'tulevat_items') {
         var item = x.ref;
+        // Sama taaksepäin yhteensopiva tunniste kuin säännöllisten rivien poistossa
+        // (ks. delKey alla): vanhemmilla/synkronoiduilla riveillä ei aina ole
+        // id-kenttää, jolloin käytetään indeksipohjaista idx:-fallbackia. Ilman
+        // tätä onclick muodostuisi merkkijonoksi "...('undefined')", joka ei
+        // koskaan täsmää mihinkään riviin.
+        var itemKey = item.id != null ? item.id : ('idx:' + snap.tulevat_items.indexOf(item));
         var sign = (item.amount > 0) ? '+' : '';
         var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--expense)' : 'var(--text3)');
-        html += '<div class="kassa-view-row" onclick="rahavirtaEditorOpenTulossa(\'' + item.id + '\')">' +
+        html += '<div class="kassa-view-row" onclick="rahavirtaEditorOpenTulossa(\'' + itemKey + '\')">' +
           '<span class="kassa-vr-label" style="color:' + amtColor + '">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
           '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
           '</div>';
@@ -4495,8 +4501,12 @@ window.rahavirtaEditorDelete = async function() {
   if (!snaps.length) return;
   var latest = Object.assign({}, snaps[snaps.length - 1]);
   var items = Array.isArray(latest[editTarget.source]) ? latest[editTarget.source].slice() : [];
-  var idx = items.findIndex(function(i) { return i.id === editTarget.key; });
-  if (idx >= 0) items.splice(idx, 1);
+  // Sama idx:-fallback kuin findRahavirtaItem/applyRahavirtaEdit — id:ttömät
+  // rivit tunnistetaan alkuperäisellä taulukkoindeksillä.
+  var idx = (typeof editTarget.key === 'string' && editTarget.key.indexOf('idx:') === 0)
+    ? parseInt(editTarget.key.slice(4), 10)
+    : items.findIndex(function(i) { return i.id === editTarget.key; });
+  if (idx >= 0 && idx < items.length) items.splice(idx, 1);
   latest[editTarget.source] = items;
   latest._updatedAt = new Date().toISOString();
   await DB.putSnapshot(latest);

@@ -2,9 +2,52 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `feat: allow editing one-time cashflows through the shared rahavirta editor`
+**Viimeisin commit:** (tuleva) `fix: support id-less tulevat_items rows in the rahavirta editor`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+
+**Id:ttömien tulevat_items-rivien tuki muokkauseditoriin (21.7.2026) — valmis:**
+Jatkoauditoinnissa (edellisen sprintin jälkeen) löytyi juurisyy raportoituun
+oireeseen "kertaluonteisten muokkaus ei toimi": `renderTulossaList()` muodosti
+klikkauksen onclick-attribuutin suoraan `item.id`:stä. Uudet, editorin kautta
+lisätyt rivit saavat aina `id`:n, mutta vanhemmat tai Supabasesta synkronoidut
+rivit (`js/sync2.js`, jonka `tulevat_items`-käsittely vain välittää datan
+sellaisenaan, ei koskaan täydennä puuttuvaa `id`:tä) voivat olla ilman sitä —
+tällöin onclick muodostui merkkijonoksi `rahavirtaEditorOpenTulossa('undefined')`,
+joka ei koskaan täsmännyt mihinkään riviin ja palautui hiljaa ilman virhettä.
+**Korjaus (`js/ui2-v2.js`):** käytetty samaa taaksepäin yhteensopivaa
+`idx:N`-fallback-tunnistetta, joka sovelluksessa on jo ennestään käytössä
+(`findRahavirtaItem`, `applyRahavirtaEdit`, `findLegacyRahavirrat`, sekä
+säännöllisten rivien oma poistopainike `delKey = ritem.id != null ? ritem.id
+: ('idx:' + srcArr.indexOf(ritem))`).
+- `renderTulossaList()`: `tulevat_items`-rivin onclick käyttää nyt
+  `item.id != null ? item.id : ('idx:' + snap.tulevat_items.indexOf(item))`
+  — sama kaava kuin säännöllisten rivien delete-painikkeessa jo ennestään.
+- `rahavirtaEditorOpenTulossa()` ja editorin prefill (`renderRahavirtaEditor`,
+  `findRahavirtaItem`:n kautta) tukivat `idx:`-avainta jo entuudestaan — ei
+  muutostarvetta.
+- `rahavirtaEditorDelete()`: lisätty puuttunut `idx:`-tunnistus (oli ainoa
+  kohta koko ketjussa, joka ei sitä tukenut — käytti pelkkää
+  `items.findIndex(i => i.id === key)`, joka ei koskaan löytänyt id:töntä
+  riviä).
+- Ei muutoksia tietomalliin eikä migraatiota: id:tön rivi pysyy id:ttömänä
+  myös muokkauksen jälkeen, tunnistetaan joka renderillä uudelleen
+  taulukkoindeksin perusteella. `Hero`, `buildKassajakso()`,
+  `collectRahavirrat()`, kuukausiryhmittely ja suodatinlogiikka koskematta.
+**Testattu:** paikallinen staattinen palvelin, oikea koodi. Kolmen rivin
+sekoitus (kaksi id:töntä + yksi id:llinen, lomittain taulukossa) — jokaisen
+rivin onclick-avain (`idx:0`, `has_id_1`, `idx:2`) täsmäsi oikeaan riviin.
+Aito hiiriklikkaus (ei ohjelmallinen funktiokutsu) toisen id:ttömän rivin
+kohdalla avasi editorin oikealla esitäytöllä ja tuotti `editTarget.key ===
+'idx:2'` — vahvistaa ettei kahta id:töntä riviä sekoiteta keskenään. Molemmat
+tapaukset (id:llinen ja id:tön) testattu täydellä kierrolla: avaus → muokkaus
+(nimi/summa/tyyppi/kuukausi) → tallennus (rivi päivittyi paikallaan, ei uutta
+riviä, `id`-kenttä säilyi ennallaan tai puuttui ennallaan) → poisto editorin
+kautta (oikea rivi poistui, muut koskematta). Hero täsmäsi käsin laskettuihin
+kontrolliarvoihin jokaisen operaation jälkeen (esim. 2000 → 1925 kolmen rivin
+summana). Kaikki/Säännölliset/Kertaluonteiset-suodatin ja kuukausiryhmittely
+tarkistettu sekaryhmällä — toimivat identtisesti id:llisille ja id:ttömille
+riveille. Ei konsolivirheitä.
 
 **Tulevien (kertaluonteisten) rahavirtojen muokkaus — yksi yhteinen editori (21.7.2026) — valmis:**
 Sprintin lähtöoletus ("kertaluonteisia rahavirtoja ei voi muokata") osoittautui
