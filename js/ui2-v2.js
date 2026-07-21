@@ -948,7 +948,22 @@ async function renderDashboard() {
           {key:'elatustili', label:'Elatustili'},
           {key:'op_gold',    label:'OP Gold'},
         ])}
-<div class="card-left">        ${(()=>{ if(latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>'; return '<div class="card-value">'+fmt(kassaValisumma(latest))+'</div>'; })()}</div>
+<div class="card-left">        ${(()=>{
+          if (latest.op_gold===undefined) return '<div class="card-value">'+fmt(cash)+'</div>';
+          var heroVal = kassaValisumma(latest);
+          var lahtokassa = lahtokassaOf(latest);
+          var lahtokassaColor = lahtokassa >= 0 ? 'var(--green)' : 'var(--red)';
+          return '<div style="display:flex;gap:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);">'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-size:11px;color:var(--card-primary);margin-bottom:2px;">KASSA HERO</div>'
+            + '<div class="card-value">' + fmt(heroVal) + '</div>'
+            + '</div>'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-size:11px;color:var(--card-primary);margin-bottom:2px;">NYKYINEN KASSA</div>'
+            + '<div class="card-value" style="color:' + lahtokassaColor + ';">' + fmt(lahtokassa) + '</div>'
+            + '</div>'
+            + '</div>';
+        })()}</div>
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--card-primary-dark);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="card-right">
@@ -2107,8 +2122,6 @@ function kassaValisumma(latest) {
 // seuraava esiintymä näkyvät ja lasketaan mukaan.
 function renderKassaSeuraavaRahatilanne(latest) {
   var kassajakso = buildKassajakso(latest);
-  var lahtokassa = kassajakso.lahtokassa;
-  var lahtokassaColor = lahtokassa >= 0 ? 'var(--green)' : 'var(--red)';
 
   (function debugHeroInput() {
     var snapshotDateDbg = new Date((latest.date || '') + 'T00:00:00');
@@ -2136,11 +2149,6 @@ function renderKassaSeuraavaRahatilanne(latest) {
 
   var html = '<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">';
   html += '<div class="kassa-section-hdr">SEURAAVA RAHATILANNE</div>';
-
-  html += '<div style="margin:10px 0 0;padding:0 2px;">'
-    + '<div style="font-size:11px;color:var(--card-primary);">NYKYINEN KASSA</div>'
-    + '<div class="card-value" style="color:' + lahtokassaColor + ';">' + fmt(lahtokassa) + '</div>'
-    + '</div>';
 
   html += '<div class="kassa-section-hdr" style="margin-top:10px;">RAHAVIRRAT</div>';
   html += '<div class="kassa-tulossa-list" id="kassaTulossaList"></div>';

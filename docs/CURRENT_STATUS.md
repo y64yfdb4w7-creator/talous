@@ -1,10 +1,27 @@
 # CURRENT_STATUS.md
 # Finance OS — Current Status
 
-**Päivitetty:** 2026-07-20
-**Viimeisin commit:** (tuleva) `fix: restore desktop cashflow row layout after color-coding regression`
+**Päivitetty:** 2026-07-21
+**Viimeisin commit:** (tuleva) `feat: move Kassa Hero and Nykyinen kassa to top of Kassa card in two columns`
 **Branch:** main
 **Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv.**)
+
+**Kassa Hero + Nykyinen kassa kaksipalstaiseksi yhteenvedoksi kortin kärkeen (21.7.2026) — valmis:**
+Rajattu layout-sprintti (`js/ui2-v2.js`): Kassa-kortin kaksi tärkeintä lukua,
+Kassa Hero (`kassaValisumma`) ja Nykyinen kassa (`lahtokassaOf`), näkyvät nyt
+heti "KASSA"-otsikon alla kahden sarakkeen rivillä (flex, `card-left`-divin
+sisällä) — aiemmin Nykyinen kassa näkyi vasta kortin alaosassa "SEURAAVA
+RAHATILANNE" -osion "NYKYINEN KASSA" -rivinä. Sama arvo ja väri (aina vihreä
+Herolle, positiivinen/negatiivinen-logiikka Nykyiselle kassalle), vain
+sijainti muuttui — laskenta (`lahtokassaOf`, `kassaValisumma`, `heroSum`,
+`buildKassajakso`) koskematon. "SEURAAVA RAHATILANNE" -osiosta poistettiin
+duplikoitunut "NYKYINEN KASSA" -rivi (`renderKassaSeuraavaRahatilanne`);
+RAHAVIRRAT-lista ja Lopputilanne-rivi ennallaan. Tililista (S-Pankki,
+Tavoitetili, Elatustili, Tulotili, OP Gold) ja tilien järjestys koskematta.
+Ei uutta CSS:ää — pelkkää inline flex-tyyliä samaan tapaan kuin muukin kortin
+sisältö. Testattu paikallisella palvelimella selaimessa: desktop-leveys ja
+390px mobiiliviewport (iframe-tekniikka), Info-modal, Asetukset-popover ja
+"Yksityiskohdat"-toggle vahvistettu koskemattomiksi, ei konsolivirheitä.
 
 **Bugfix: Rahavirrat-listan desktop-layout (20.7.2026) — valmis:**
 Pitkät rahavirtanimet (esim. "Pääpalkka kuukausittain työnantajalta",
