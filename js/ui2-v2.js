@@ -976,34 +976,29 @@ async function renderDashboard() {
           if (latest.op_gold === undefined) return '';
           var opGold2    = Math.abs(latest.op_gold ?? 0);
           var tulotili2  = latest.tulotili ?? 0;
-          var yhteensa2      = lahtokassaOf(latest);
-          var yhteensa2Color = yhteensa2 >= 0 ? 'var(--green)' : 'var(--red)';
+          var yhteensa2  = lahtokassaOf(latest);
 
-          var html2 = '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">'
+          var html2 = '<div style="margin-top:12px;padding-top:10px;">'
             // Tulotili-rivi
             +(_pref('cash','row_tulotili',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">'
-              + '<span style="font-size:12px;color:var(--card-primary);font-weight:600;border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">Tulotili</span>'
-        + '<span data-raw="'+tulotili2+'" id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--card-primary);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
+              + '<span style="font-size:12px;color:var(--text);font-weight:600;border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">Tulotili</span>'
+        + '<span data-raw="'+tulotili2+'" id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
         + '<input id="kassa-tulotili-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
             // OP Gold -rivi
             +(_pref('cash','row_op_gold',true)
               ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-              + '<span style="font-size:12px;color:var(--card-primary);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
-        + '<span data-raw="'+opGold2+'" id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--card-primary);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
+              + '<span style="font-size:12px;color:var(--text);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
+        + '<span data-raw="'+opGold2+'" id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--text);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
         + '<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--card-primary);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
-            // Viiva — piilotetaan jos molemmat rivit piilossa
-            +(_pref('cash','row_tulotili',true)||_pref('cash','row_op_gold',true)
-              ? '<div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:8px;"></div>'
-              : '')
-            // YHTEENSÄ-rivi — tilien yhteenveto, sama arvo kuin "NYKYINEN"
+            // YHTEENSÄ-rivi — tilien yhteenveto, sama arvo kuin "NYKYINEN", neutraali väri
             + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-            + '<span style="font-size:12px;color:var(--card-primary);font-weight:600;">YHTEENSÄ</span>'
-            + '<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:' + yhteensa2Color + ';">' + fmt(yhteensa2) + '</span>'
+            + '<span style="font-size:12px;color:var(--text);font-weight:600;">YHTEENSÄ</span>'
+            + '<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);">' + fmt(yhteensa2) + '</span>'
             + '</div>'
           // "Seuraava rahatilanne": NYT → tulevat erät → välisumma → säännölliset erät → lopputilanne
           html2 += renderKassaSeuraavaRahatilanne(latest);

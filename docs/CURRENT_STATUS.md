@@ -2,9 +2,39 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `feat: rename Kassa Hero/Nykyinen labels and add tililista summary row`
+**Viimeisin commit:** (tuleva) `style: neutralize Kassa account rows and remove Tulotili/OP Gold divider lines`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+
+**Kassa-kortin visuaalinen viimeistely — tilit neutraaleiksi (21.7.2026) — valmis:**
+Puhdas UI-viimeistelysprintti (`js/ui2-v2.js`, `index.html`), ei laskentamuutoksia.
+Neljä osaa: (1) Poistettu Tulotili/OP Gold-lohkoa ympäröineet ohuet
+vaakaviivat (`border-top` html2-containerista ja "Viiva"-divin bottom-line
+Tulotili/OP Gold-rivien ja YHTEENSÄ-rivin väliltä) — ryhmitys säilyy
+edelleen rivien vasemman reunan pystyviivalla. (2)–(3) Kaikkien tilien
+(S-Pankki, Tavoitetili, Elatustili — `.sub-row`/`.sub-row span:last-child`,
+`index.html`; Tulotili, OP Gold — inline-tyylit, `js/ui2-v2.js`) nimet ja
+saldot muutettu `var(--card-primary)`:sta (kortin teemavärille, aiemmin
+aina vihreä) neutraaliksi `var(--text)`:ksi riippumatta summan etumerkistä.
+(4) YHTEENSÄ-rivi muutettu täysin neutraaliksi (`var(--text)` otsikolle ja
+summalle), aiempi positiivinen/negatiivinen-väritys (`yhteensa2Color`)
+poistettu kokonaan. Väriperiaate sprintin jälkeen: ODOTE pysyy vihreänä,
+NYKYINEN säilyttää positiivinen/negatiivinen-värityksensä, RAHAVIRRAT-listan
+tulo/meno-väritys ennallaan — vain tilit ja YHTEENSÄ ovat nyt neutraaleja.
+`lahtokassaOf`, `kassaValisumma`, `heroSum`, `buildKassajakso`, rahavirtojen
+laskenta ja tilien järjestys koskematta. `.sub-row`-CSS-luokka vahvistettu
+käytössä vain Kassa-kortilla (`js/ui.js`/`js/ui2.js` eivät ole ladattuja
+tiedostoja, ks. `index.html`:n `<script>`-listaus) — muutos ei vaikuta
+muihin kortteihin.
+**Testattu:** paikallinen staattinen palvelin, sama synteettinen IndexedDB-
+snapshotti kuin edellisessä sprintissä. Desktop ja 390px mobiiliviewport
+(iframe-tekniikka, cache-busting varmistettu): kaikki tilit ja YHTEENSÄ
+näyttivät neutraalin vaalean tekstin, ei viivoja Tulotili/OP Gold-lohkon
+ympärillä, ODOTE/NYKYINEN-väritys ja Lopputilanne-rivin väritys ennallaan.
+Info-modal, Asetukset-popover vahvistettu koskemattomiksi. Ei
+konsolivirheitä (poislukien testiharjoituksen oma artefakti toisessa
+välilehdessä, jonka DOM tyhjennettiin manuaalisesti mobiilitestiä varten —
+ei liity tuotantokoodiin).
 
 **Kassa-kortin terminologian ja tililistan yhteenvedon viimeistely (21.7.2026) — valmis:**
 Puhdas käyttöliittymäsprintti (`js/ui2-v2.js`), ei laskentamuutoksia. Kaksi
