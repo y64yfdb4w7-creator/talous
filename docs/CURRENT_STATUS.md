@@ -2,9 +2,33 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `feat: move Kassa Hero and Nykyinen kassa to top of Kassa card in two columns`
+**Viimeisin commit:** (tuleva) `feat: rename Kassa Hero/Nykyinen labels and add tililista summary row`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv.**)
+
+**Kassa-kortin terminologian ja tililistan yhteenvedon viimeistely (21.7.2026) — valmis:**
+Puhdas käyttöliittymäsprintti (`js/ui2-v2.js`), ei laskentamuutoksia. Kaksi
+osaa: (1) Kortin kärjessä olevat otsikot "KASSA HERO" → "ODOTE" ja "NYKYINEN
+KASSA" → "NYKYINEN" (vain tekstit, ks. rivit ~958/962) — kortin oma otsikko on
+jo "KASSA", "Hero" on sisäinen kehittäjätermi, ja "Odote" kuvaa paremmin
+tunnetuista rahavirroista laskettua odotettua kassatilannetta. (2) Uusi
+"YHTEENSÄ"-rivi lisätty tililistan loppuun (html2-blokin olemassa olevan
+Tulotili/OP Gold-viivan jälkeen, ennen "Seuraava rahatilanne" -osiota) —
+näyttää saman arvon kuin "NYKYINEN" (`lahtokassaOf(latest)`, ei uutta
+laskentaa, uusi `var`-nimi `yhteensa2` samassa IIFE-scopessa kuin `opGold2`/
+`tulotili2`), sama positiivinen/negatiivinen-väritys (`var(--green)`/
+`var(--red)`). `lahtokassaOf`, `kassaValisumma`, `heroSum`, `buildKassajakso`
+ja tilien järjestys koskematta. Info-modalin oma sisältöteksti (eri
+funktio, `openCardInfo`) jätettiin tietoisesti koskematta — rajattu tämän
+sprintin ulkopuolelle.
+**Testattu:** paikallinen staattinen palvelin, synteettinen IndexedDB-
+snapshotti (S-Pankki 10 €, Tulotili 127 €, OP Gold −1552 €, Tavoitetili
+500 €, Elatustili 0 €). Desktop ja 390px mobiiliviewport (iframe-tekniikka):
+ODOTE/NYKYINEN-otsikot ja YHTEENSÄ-rivi (−1425 €) näyttivät saman arvon
+keskenään ja Lopputilanne-rivin kanssa, ei vaakaylivuotoa. Info-modal,
+Asetukset-popover ja "Yksityiskohdat"-toggle vahvistettu koskemattomiksi
+(YHTEENSÄ-rivi näkyy/piiloutuu samalla ehdolla kuin Tulotili/OP Gold, ei
+oma uusi piilotusehto). Ei konsolivirheitä.
 
 **Kassa Hero + Nykyinen kassa kaksipalstaiseksi yhteenvedoksi kortin kärkeen (21.7.2026) — valmis:**
 Rajattu layout-sprintti (`js/ui2-v2.js`): Kassa-kortin kaksi tärkeintä lukua,
