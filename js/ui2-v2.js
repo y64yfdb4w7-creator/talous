@@ -979,25 +979,25 @@ async function renderDashboard() {
           var yhteensa2  = lahtokassaOf(latest);
 
           var html2 = '<div style="margin-top:12px;padding-top:10px;">'
-            // Tulotili-rivi
+            // Tulotili-rivi — sama .sub-row-komponentti kuin S-Pankki/Tavoitetili/Elatustili
             +(_pref('cash','row_tulotili',true)
-              ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">'
-              + '<span style="font-size:12px;color:var(--text);font-weight:600;border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">Tulotili</span>'
-        + '<span data-raw="'+tulotili2+'" id="kassa-tulotili-val" style="font-family:var(--mono);font-size:13px;color:var(--text);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
+              ? '<div class="sub-row" style="margin-bottom:5px;">'
+              + '<span>Tulotili</span>'
+        + '<span data-raw="'+tulotili2+'" id="kassa-tulotili-val" style="cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
         + '<input id="kassa-tulotili-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
-            // OP Gold -rivi
+            // OP Gold -rivi — sama .sub-row-komponentti
             +(_pref('cash','row_op_gold',true)
-              ? '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-              + '<span style="font-size:12px;color:var(--text);border-left:2px solid rgba(255,255,255,0.08);padding-left:12px;display:block;">OP Gold</span>'
-        + '<span data-raw="'+opGold2+'" id="kassa-op_gold-val" style="font-family:var(--mono);font-size:13px;color:var(--text);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
+              ? '<div class="sub-row" style="margin-bottom:5px;">'
+              + '<span>OP Gold</span>'
+        + '<span data-raw="'+opGold2+'" id="kassa-op_gold-val" style="cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
         + '<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--card-primary);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
-            // YHTEENSÄ-rivi — tilien yhteenveto, sama arvo kuin "NYKYINEN", neutraali väri
+            // YHT.-rivi — tilien yhteenveto, sama arvo kuin "NYKYINEN"; vain summa lihavoitu, ei väriä
             + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
-            + '<span style="font-size:12px;color:var(--text);font-weight:600;">YHTEENSÄ</span>'
+            + '<span style="font-size:12px;color:var(--text);">YHT.</span>'
             + '<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);">' + fmt(yhteensa2) + '</span>'
             + '</div>'
           // "Seuraava rahatilanne": NYT → tulevat erät → välisumma → säännölliset erät → lopputilanne

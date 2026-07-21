@@ -2,9 +2,37 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `style: neutralize Kassa account rows and remove Tulotili/OP Gold divider lines`
+**Viimeisin commit:** (tuleva) `style: unify Kassa account rows into one shared row style`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+
+**Kassa-kortin visuaalinen viimeistely v2 — tililistan rivit yhtenäistetty (21.7.2026) — valmis:**
+Puhdas UI-viimeistelysprintti (`js/ui2-v2.js`), jatkoa edelliselle
+neutralisointisprintille, ei laskentamuutoksia. Neljä osaa: (1) Tulotili- ja
+OP Gold -rivien vasemman reunan pystyviiva (`border-left`) ja siihen
+liittynyt `padding-left` poistettu. (2) Tulotili ja OP Gold käyttävät nyt
+samaa `.sub-row`-CSS-komponenttia kuin S-Pankki/Tavoitetili/Elatustili
+(aiemmin inline-tyylitetyt divit, joissa poikkeava fontti, fonttikoko,
+lihavointi ja riviväli) — kaikilla viidellä tilillä nyt identtinen vasen
+marginaali, fontti, fonttikoko (12px, peritty `.sub-row`:lta),
+riviväli (`margin-bottom:5px`), tekstiväri (`var(--text)`) ja
+numerotyylitys (`var(--mono)`). Tulotili/OP Gold-rivien klikkaa-muokkaa-
+toiminnallisuus (`kassaInlineEdit`, `data-raw`, piilotettu `<input>`)
+säilytetty muuttumattomana — vain koristetyylit poistettu, itse
+elementit ja tapahtumakäsittelijät koskematta. (3) "YHTEENSÄ" → "YHT.".
+(4) YHT.-rivin otsikko palautettu normaalipainoiseksi (lihavointi
+poistettu), vain summa pysyy lihavoituna (`font-weight:600`), väri
+neutraali (`var(--text)`) kummassakin. `lahtokassaOf`, `kassaValisumma`,
+`heroSum`, `buildKassajakso`, rahavirtojen laskenta, tilien järjestys ja
+Kassa-kortin rakenne koskematta.
+**Testattu:** paikallinen staattinen palvelin, sama synteettinen
+IndexedDB-snapshotti. Desktop ja 390px mobiiliviewport (iframe-tekniikka,
+cache-busting): kaikki viisi tiliä (S-Pankki, Tavoitetili, Elatustili,
+Tulotili, OP Gold) visuaalisesti identtisiä, YHT.-rivi näyttää lihavoidun
+summan normaalipainoisen otsikon vieressä, ei vaakaylivuotoa. Tulotili-
+rivin klikkaa-muokkaa testattu selaimessa (input avautuu, arvo esitäytetty,
+Escape peruuttaa muuttamatta dataa). Info-modal ja Asetukset-popover
+vahvistettu koskemattomiksi. Ei konsolivirheitä.
 
 **Kassa-kortin visuaalinen viimeistely — tilit neutraaleiksi (21.7.2026) — valmis:**
 Puhdas UI-viimeistelysprintti (`js/ui2-v2.js`, `index.html`), ei laskentamuutoksia.
