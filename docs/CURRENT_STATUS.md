@@ -2,9 +2,71 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `fix: normalize regular cashflow amount sign to match one-time cashflow`
+**Viimeisin commit:** (tuleva) `feat: allow editing one-time cashflows through the shared rahavirta editor`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+
+**Tulevien (kertaluonteisten) rahavirtojen muokkaus — yksi yhteinen editori (21.7.2026) — valmis:**
+Sprintin lähtöoletus ("kertaluonteisia rahavirtoja ei voi muokata") osoittautui
+auditoinnissa osittain vääräksi: `tulevat_items`-riveille oli jo olemassa erillinen,
+kevyt inline-muokkausmekanismi (`kassaTulossaEdit`/`kassaTulossaSave`/
+`kassaTulossaCancel`/`kassaTulossaDelete`, listan sisään renderöity oma
+kolmen kentän lomake). Siinä ei kuitenkaan ollut Tulo/Meno-valintaa — käyttäjä
+kirjoitti etumerkin suoraan Summa-kenttään, sama ongelma kuin edellisessä
+sprintissä korjattiin säännöllisille rahavirroille. Käyttäjän suunnittelupäätöksen
+mukaisesti tämä erillinen mekanismi **poistettiin kokonaan** ja korvattiin
+täysin jaetulla "+ Lisää rahavirta" -rahavirtaeditorilla
+(`renderRahavirtaEditor`/`renderRahavirtaFields`/`rahavirtaEditorSave`) — yksi
+editori, yksi validointilogiikka, yksi tapa käsitellä kaikkia rahavirtoja.
+**Toteutettu (`js/ui2-v2.js`):**
+- Poistettu kokonaan: `kassaTulossaEdit`, `kassaTulossaSave`, `kassaTulossaCancel`,
+  `kassaTulossaDelete` sekä niiden käyttämät `window._tulossaEditing`/
+  `window._lastSnap`-globaalit ja `te_month`/`te_label`/`te_amount`-kentät.
+  `renderTulossaList()`:n `tulevat_items`-rivi renderöityy nyt aina pelkkänä
+  näkymärivinä, klikkaus avaa `rahavirtaEditorOpenTulossa(id)`.
+- Uusi `rahavirtaEditorOpenTulossa(id)`: hakee rivin, esitäyttää jaetun editorin
+  nimellä, summalla (itseisarvona), oikealla Tulo/Meno-valinnalla (rivin
+  senhetkisen etumerkin mukaan) ja kuukaudella (`rv_date`, päiväksi aina 1.,
+  koska `tulevat_items` ei tallenna päivää — tietomallia ei muutettu).
+- `editTarget`-mekanismiin lisättiin `mode:'edit'`, joka erottaa täyden
+  muokkauksen legacy-täydennyksestä (`rahavirtaEditorOpenLegacy`, koskematon):
+  Nimi/Summa/Tyyppi ovat muokattavissa (`readonly`/`lockSign` false), "Säännöllinen"
+  pysyy aina lukittuna (rivin tyyppi ei vaihdu tässä sprintissä — `type` tulee
+  edelleen yksinomaan `editTarget.source`:sta `rahavirtaEditorSave`:ssa).
+- `rahavirtaEditorSave()`: tallennus päivittää olemassa olevan
+  `tulevat_items`-rivin `applyRahavirtaEdit`:llä (sama koodipolku kuin
+  legacy-täydennyksellä jo ennestään — ei uutta riviä, `id` säilyy). Summan
+  etumerkki normalisoidaan täydessä muokkaustilassa samalla `Math.abs()`+
+  Tyyppi-radio-periaatteella kuin uutta rahavirtaa lisättäessä (legacy-
+  täydennyksen "säilytä alkuperäinen summa sellaisenaan" -käytös säilytetty
+  ennallaan, koska sen kentät ovat aina lukittuja).
+- Uusi `rahavirtaEditorDelete()`: poistaa parhaillaan muokattavan rivin,
+  toimii vain `mode:'edit'`-tilassa — korvaa vanhan inline-editorin
+  poistopainikkeen. Editorin toimintorivillä näkyy nyt "🗑 Poista" vain
+  täydessä muokkaustilassa (ei uutta rahavirtaa lisättäessä eikä
+  legacy-täydennyksessä).
+- `Hero`, `buildKassajakso()`, `collectRahavirrat()`, tietomalli, kuukausiryhmittely
+  ja suodatinlogiikka koskematta — muokkaus vain mutatoi `tulevat_items`-taulukkoa
+  ja kutsuu `renderDashboard()`:ia, loppu laskenta/renderöinti kulkee samaa
+  ennestään olemassa olevaa polkua. Säännöllisten rahavirtojen (`tulot_items`/
+  `rytmi_items`) rivit ja niiden oma ✕-poisto koskematta — ei click-to-edit,
+  kuten ennenkin.
+**Testattu:** paikallinen staattinen palvelin, oikea sovelluskoodi ajettuna
+selaimessa. Muokkaus (nimi, summa, tyyppi, kuukausi vaihdettu elokuusta
+syyskuuhun) päivitti rivin paikallaan (`id` säilyi, rivimäärä pysyi samana),
+Hero täsmäsi käsin laskettuun kontrolliarvoon sekä ennen että jälkeen
+muutoksen (3650 €, sitten poiston jälkeen 2850 €). Kaikki/Säännölliset/
+Kertaluonteiset-suodattimet ja kuukausiryhmittely tarkistettu muokkauksen
+jälkeen — rivi siirtyi oikeaan kuukausiryhmään, tyhjät kuukaudet katosivat
+oikein suodattimen mukaan. Peruutus (Peru) ei tallentanut muutoksia. Poisto
+editorin kautta toimi. Uuden kertaluonteisen rahavirran lisäys (ei editTarget)
+ja negatiivisen summan normalisointi testattu regressiona — muuttumaton.
+Legacy-täydennysvirta (`rahavirtaEditorOpenLegacy`) testattu byte-identtisenä:
+kentät lukittu, ei päivämäärän esitäyttöä, ei poistopainiketta. Säännöllisen
+rivin (Vuokra/Palkka) rivillä ei click-to-edit-ominaisuutta, oma ✕-poisto
+ennallaan. Visuaalinen tarkistus: "MUOKKAA RAHAVIRTAA" -otsikko, sama Design
+System (`kassa-edit-input`/`kassa-save-btn`/`kassa-delete-btn`) kuin muualla
+editorissa. `node -c` OK. Ei konsolivirheitä.
 
 **Säännöllisen rahavirran summan etumerkki normalisoitu — Kassa-editori (21.7.2026) — valmis:**
 Rajattu validointikorjaus (`js/ui2-v2.js`, `rahavirtaEditorSave()`), ei muutoksia
