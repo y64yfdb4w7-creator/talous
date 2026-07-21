@@ -967,7 +967,7 @@ async function renderDashboard() {
         ${!_pref('cash','expanded',true) ? '<div style="font-size:11px;color:var(--card-primary-dark);margin-top:2px;">Tilit '+fmt(cash)+'</div>' : ''}
         <!-- TODO: .sub-rows on mahdollinen tulevaisuuden siivous – html2-blokki on nyt ensisijainen sisältö -->
         <div class="card-right">
-                <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'block':'none'}">
+                <div class="sub-rows" style="display:${_pref('cash','expanded',true)?'flex':'none'}">
           ${(latest.s_pankki !== undefined && _pref('cash','row_spankki',true)) ? '<div class="sub-row"><span>S-Pankki</span><span>' + fmt(latest.s_pankki) + '</span></div>' : ''}
           ${(latest.tavoitetili !== undefined && _pref('cash','row_tavoitetili',true)) ? '<div class="sub-row"><span>Tavoitetili</span><span>' + fmt(latest.tavoitetili) + '</span></div>' : ''}
           ${(latest.elatustili !== undefined && _pref('cash','row_elatustili',true)) ? '<div class="sub-row"><span>Elatustili</span><span>' + fmt(latest.elatustili) + '</span></div>' : ''}
@@ -978,12 +978,12 @@ async function renderDashboard() {
           var tulotili2  = latest.tulotili ?? 0;
           var yhteensa2  = lahtokassaOf(latest);
 
-          var html2 = '<div style="margin-top:12px;padding-top:10px;">'
+          var html2 = '<div style="margin-top:5px;">'
             // Tulotili-rivi — sama .sub-row-komponentti kuin S-Pankki/Tavoitetili/Elatustili
             +(_pref('cash','row_tulotili',true)
               ? '<div class="sub-row" style="margin-bottom:5px;">'
               + '<span>Tulotili</span>'
-        + '<span data-raw="'+tulotili2+'" id="kassa-tulotili-val" style="cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
+        + '<span data-raw="'+tulotili2+'" id="kassa-tulotili-val" style="font-family:var(--mono);cursor:pointer;" onclick="kassaInlineEdit(\'tulotili\',this)">'+fmt(tulotili2)+'</span>'
         + '<input id="kassa-tulotili-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--text2);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
@@ -991,12 +991,13 @@ async function renderDashboard() {
             +(_pref('cash','row_op_gold',true)
               ? '<div class="sub-row" style="margin-bottom:5px;">'
               + '<span>OP Gold</span>'
-        + '<span data-raw="'+opGold2+'" id="kassa-op_gold-val" style="cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
+        + '<span data-raw="'+opGold2+'" id="kassa-op_gold-val" style="font-family:var(--mono);cursor:pointer;" onclick="kassaInlineEdit(\'op_gold\',this)">'+fmt(-opGold2)+'</span>'
         + '<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--card-primary);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
             // YHT.-rivi — tilien yhteenveto, sama arvo kuin "NYKYINEN"; vain summa lihavoitu, ei väriä
-            + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
+            // Erotusviiva OP Gold-rivin ja yhteenvedon välissä, sama tyyli kuin katkoviiva ennen "SEURAAVA RAHATILANNE"
+            + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);margin-bottom:8px;">'
             + '<span style="font-size:12px;color:var(--text);">YHT.</span>'
             + '<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);">' + fmt(yhteensa2) + '</span>'
             + '</div>'

@@ -2,9 +2,58 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `style: unify Kassa account rows into one shared row style`
+**Viimeisin commit:** (tuleva) `style: fully unify Kassa account list as one table with summary divider`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+
+**Kassa-kortin tiliosion viimeistely v3 — yksi yhtenäinen taulukko + erotusviiva (21.7.2026) — valmis:**
+Puhdas UI-viimeistelysprintti (`js/ui2-v2.js`), jatkoa kahdelle edelliselle
+neutralisointi-/yhtenäistyssprintille, ei laskentamuutoksia. Auditoinnissa
+löytyi kaksi jäljellä ollutta, silmin havaittavaa eroa tililistan riveissä
+(molemmat korjattu tässä sprintissä):
+- **Piilotettu 0px riviväli S-Pankki/Tavoitetili/Elatustili-riveillä:**
+  `.sub-rows`-kontin CSS-luokka määrittää `display:flex;flex-direction:
+  column;gap:5px`, mutta renderöinnissä konttiin lisättiin aina inline
+  `style="display:block"` (expanded-togglen ehdollinen arvo), joka
+  ohitti CSS:n specificiteetillä — `gap:5px` ei koskaan päässyt
+  vaikuttamaan, ja nämä kolme riviä olivat visuaalisesti kiinni toisissaan
+  (0px väli), kun taas Tulotili/OP Gold käyttivät `margin-bottom:5px`.
+  Korjaus: togglen "näkyvissä"-arvo `'block'` → `'flex'`, jolloin CSS:n
+  oma `gap:5px` pääsee toimimaan — kaikkien viiden rivin väli nyt
+  mitattu identtiseksi 5px:ksi selaimessa.
+- **Tulotili/OP Gold-arvot eivät käyttäneet mono-fonttia:** `.sub-row
+  span:last-child { font-family: var(--mono) }` -sääntö vaatii arvo-spanin
+  olevan aidosti DOM:in viimeinen lapsi, mutta Tulotili/OP Gold-riveillä
+  piilotettu `<input>`-elementti (klikkaa-muokkaa-toimintoa varten) on
+  arvo-spanin jälkeinen sisarus, joten sääntö ei koskaan osunut — arvot
+  näyttivät sovelluksen tavallista fonttia (Syne) mono-fontin sijaan,
+  toisin kuin S-Pankki/Tavoitetili/Elatustili. Korjaus: lisätty eksplisiittinen
+  `font-family:var(--mono)` inline-tyyliksi molempien rivien arvo-spaneihin
+  (CSS-sääntöä tai DOM-rakennetta ei muutettu, klikkaa-muokkaa-toiminto
+  koskematon).
+- **22px "sauma" Elatustilin ja Tulotilin välissä:** Tulotili/OP Gold-lohko
+  alkoi omalla `margin-top:12px;padding-top:10px`-parillaan (yhteensä 22px),
+  mikä näkyi selvästi suurempana välinä kuin listan muut 5px-välit ja rikkoi
+  "yksi yhtenäinen taulukko" -vaikutelman. Korjaus: `margin-top:5px`,
+  yhtenäinen muun listan kanssa.
+- **Erotusviiva OP Gold-rivin ja YHT.-rivin väliin:** lisätty täsmälleen
+  sama tyyli kuin sovelluksessa jo käytetty katkoviiva ennen "SEURAAVA
+  RAHATILANNE" -osiota (`border-top:1px dashed rgba(255,255,255,0.07)`,
+  `margin-top:8px;padding-top:8px`), jotta tililista ja yhteenvetorivi
+  erottuvat toisistaan ilman uutta väriä tai paksua reunaviivaa.
+Ei muutoksia YHT.-rivin typografiaan (jo aiemmasta sprintistä oikein:
+otsikko normaalipainoinen, summa lihavoitu, molemmat `var(--text)`).
+`lahtokassaOf`, `kassaValisumma`, `heroSum`, `buildKassajakso`, rahavirtojen
+laskenta, tilien järjestys ja Kassa-kortin rakenne koskematta.
+**Testattu:** paikallinen staattinen palvelin, sama synteettinen
+IndexedDB-snapshotti. `getComputedStyle`-vertailu selaimessa kaikista
+viidestä tilirivistä (fontti, koko, paino, väri) — nolla eroa. Rivien
+väliset mitatut etäisyydet (`getBoundingClientRect`) — täsmälleen 5.0px
+joka parin välillä. Desktop ja 390px mobiiliviewport (iframe-tekniikka,
+cache-busting): ei vaakaylivuotoa. Tulotili- ja OP Gold-rivien klikkaa-
+muokkaa testattu (input avautuu esitäytettynä, Escape peruuttaa), Asetukset-
+popoverin "Yksityiskohdat"-toggle testattu molempiin suuntiin (flex/none),
+Info-modal vahvistettu koskemattomaksi. Ei konsolivirheitä.
 
 **Kassa-kortin visuaalinen viimeistely v2 — tililistan rivit yhtenäistetty (21.7.2026) — valmis:**
 Puhdas UI-viimeistelysprintti (`js/ui2-v2.js`), jatkoa edelliselle
