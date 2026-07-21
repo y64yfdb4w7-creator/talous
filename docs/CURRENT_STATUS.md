@@ -2,9 +2,40 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `style: fully unify Kassa account list as one table with summary divider`
+**Viimeisin commit:** (tuleva) `fix: normalize regular cashflow amount sign to match one-time cashflow`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+
+**Säännöllisen rahavirran summan etumerkki normalisoitu — Kassa-editori (21.7.2026) — valmis:**
+Rajattu validointikorjaus (`js/ui2-v2.js`, `rahavirtaEditorSave()`), ei muutoksia
+laskentaan eikä tietomalliin. Auditoinnissa löytyi juurisyy käyttäjän raportoimalle
+oireelle "säännöllinen meno ei tallennu tai ei näy": funktio esti tallennuksen
+hiljaa (`return`, ei virheilmoitusta) jos Summa-kenttään oli kirjoitettu nollaa
+pienempi tai yhtä suuri luku (rivi 4584, `if (!editTarget && amountRaw <= 0) {
+if (amountEl) amountEl.focus(); return; }`) — luonnollinen tapa kirjoittaa
+esim. vuokra on "-900", jolloin ehto laukesi eikä rivi koskaan päätynyt
+`latest.rytmi_items`/`latest.tulot_items`-listalle, ennen kuin mikään myöhempi
+vaihe (IndexedDB, `collectRahavirrat`, `buildKassajakso`, `renderTulossaList`)
+edes pääsi käsittelemään sitä. Kertaluonteinen rahavirta (`tulossa`-haara) ei
+koskaan kärsinyt tästä, koska se normalisoi summan aina `Math.abs()`:lla eikä
+sisältänyt vastaavaa guardia — suunta tuli yksin Tulo/Meno-radiovalinnasta.
+**Korjaus:** yhtenäistettiin säännöllisen haaran validointi täsmälleen
+kertaluonteisen kaltaiseksi — guard poistettu, `amtKk = Math.abs(amountRaw)`
+suoritetaan nyt aina riippumatta syötetyn luvun etumerkistä, suunta määräytyy
+edelleen yksin `type`-muuttujasta (`tulo`/`meno`, radiovalinnan mukaan). Ei
+uutta virheilmoitusta guardin tilalle, ei muutoksia `collectRahavirrat()`-,
+`buildKassajakso()`- tai `renderTulossaList()`-logiikkaan.
+**Testattu:** paikallinen staattinen palvelin, oikea sovelluskoodi ajettuna
+selaimessa (synteettinen IndexedDB-snapshotti, ei tuotantodataa). Neljä
+vaadittua tapausta — säännöllinen meno +900, säännöllinen meno -900,
+säännöllinen tulo +900, säännöllinen tulo -900 — tallentuivat kaikki
+`amt_kk:900`-arvolla oikeaan listaan (`rytmi_items`/`tulot_items`), suunta
+täsmälleen radiovalinnan mukainen riippumatta syötetyn luvun etumerkistä.
+Koko ketju vahvistettu selaimessa: `collectRahavirrat()` löysi kaikki neljä
+riviä, `buildKassajakso()`/`heroSum()` laskivat Heron oikein (2000 €
+muuttumattomana, koska +900 tulo + "-900" tulo − 900 meno − "-900" meno = 0
+netto), ja kaikki neljä riviä näkyivät `renderTulossaList()`:n RAHAVIRRAT-
+listassa oikealla värillä ja summalla. Ei konsolivirheitä.
 
 **Kassa-kortin tiliosion viimeistely v3 — yksi yhtenäinen taulukko + erotusviiva (21.7.2026) — valmis:**
 Puhdas UI-viimeistelysprintti (`js/ui2-v2.js`), jatkoa kahdelle edelliselle

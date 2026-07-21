@@ -4581,7 +4581,9 @@ window.rahavirtaEditorSave = async function() {
     }
     latest.tulevat_items = tulossaItems;
   } else {
-    if (!editTarget && amountRaw <= 0) { if (amountEl) amountEl.focus(); return; }
+    // Sama normalisointi kuin tulossa-haarassa: summa tulkitaan aina itseisarvona,
+    // suunta tulee yksinomaan Tulo/Meno-radiovalinnasta. Käyttäjä voi siis kirjoittaa
+    // Summa-kenttään 900 tai -900 — molemmat tallentuvat samana rahamääränä.
     var amtKk = Math.abs(amountRaw);
     var paiva = dayNum;
     if (type === 'tulo') {
