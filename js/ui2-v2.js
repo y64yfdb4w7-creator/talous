@@ -4257,7 +4257,7 @@ function renderTulossaList() {
         var itemKey = item.id != null ? item.id : ('idx:' + snap.tulevat_items.indexOf(item));
         var sign = (item.amount > 0) ? '+' : '';
         var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--expense)' : 'var(--text3)');
-        html += '<div class="kassa-view-row" onclick="rahavirtaEditorOpenTulossa(\'' + itemKey + '\')">' +
+        html += '<div class="kassa-view-row" onclick="rahavirtaEditorOpenEdit(\'tulevat_items\',\'' + itemKey + '\')">' +
           '<span class="kassa-vr-label" style="color:' + amtColor + '">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
           '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
           '</div>';
@@ -4270,12 +4270,17 @@ function renderTulossaList() {
         var dayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (day !== null ? day + '.' : '') + '</span>';
         var srcArr = isIncome ? snap.tulot_items : snap.rytmi_items;
         var delKey = ritem.id != null ? ritem.id : ('idx:' + srcArr.indexOf(ritem));
+        var rSource = isIncome ? 'tulot_items' : 'rytmi_items';
         var deleteFn = isIncome ? 'panelTuloDelete' : 'panelMenoDelete';
         var rAmtColor = isIncome ? 'var(--green)' : 'var(--expense)';
-        html += '<div class="panel-row"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span style="color:var(--text3);" title="Säännöllinen">⟳</span><span class="panel-row-lbl" style="color:' + rAmtColor + ';">' + label + '</span></span>'
+        // cursor:pointer on tämä yksittäinen rivi, ei jaettu .panel-row-luokka
+        // (jota käytetään muillakin sivuilla ei-klikattavana) — poistopainikkeen
+        // klikkaus pysäyttää tapahtuman leviämisen, jottei se avaisi editoria
+        // samalla kun rivi poistetaan.
+        html += '<div class="panel-row" style="cursor:pointer;" onclick="rahavirtaEditorOpenEdit(\'' + rSource + '\',\'' + delKey + '\')"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span style="color:var(--text3);" title="Säännöllinen">⟳</span><span class="panel-row-lbl" style="color:' + rAmtColor + ';">' + label + '</span></span>'
           + '<span style="display:flex;align-items:center;gap:8px;">'
           + '<span class="panel-row-val" style="color:' + rAmtColor + ';">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-          + '<button onclick="' + deleteFn + '(\'' + delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
+          + '<button onclick="event.stopPropagation(); ' + deleteFn + '(\'' + delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
           + '</span></div>';
       }
     });
@@ -4354,16 +4359,32 @@ function renderRahavirtaEditor(latest) {
     var item = findRahavirtaItem(latest, editTarget.source, editTarget.key);
     if (item) {
       var isFullEdit = editTarget.mode === 'edit';
+      var isOnceType = editTarget.source === 'tulevat_items';
+      // Tulo/Meno-suunta on aidosti muokattavissa vain tulevat_items-riveillä,
+      // koska se on suoraan amount-kentän etumerkki (ks. rahavirtaEditorSave).
+      // tulot_items/rytmi_items-riveillä suunta määräytyy yksinomaan siitä
+      // kummasta listasta rivi on — radion tila ei vaikuttaisi tallennukseen,
+      // joten se lukitaan siellä aina, samoin kuin legacy-täydennyksessä.
       prefill = {
         readonly: !isFullEdit,
-        lockSign: !isFullEdit,
+        lockSign: !isFullEdit || !isOnceType,
         label: item.label,
-        amount: (isFullEdit && editTarget.source === 'tulevat_items' && item.amount != null) ? Math.abs(item.amount) : item.amount,
+        amount: (isFullEdit && isOnceType && item.amount != null) ? Math.abs(item.amount) : item.amount,
         amt_kk: item.amt_kk
       };
-      if (isFullEdit && editTarget.source === 'tulevat_items' && item.month) {
-        var prefillYear = (latest.date || '').slice(0, 4) || String(new Date().getFullYear());
-        prefill.date = prefillYear + '-' + String(item.month).padStart(2, '0') + '-01';
+      if (isFullEdit) {
+        var refDate = new Date((latest.date || '') + 'T00:00:00');
+        if (isNaN(refDate.getTime())) refDate = new Date();
+        if (isOnceType && item.month) {
+          prefill.date = refDate.getFullYear() + '-' + String(item.month).padStart(2, '0') + '-01';
+        } else if (!isOnceType) {
+          var prefillDay = validRecurringDay(item.paiva);
+          if (prefillDay !== null) {
+            var py = refDate.getFullYear(), pm = refDate.getMonth();
+            var lastOfPm = new Date(py, pm + 1, 0).getDate();
+            prefill.date = py + '-' + String(pm + 1).padStart(2, '0') + '-' + String(Math.min(prefillDay, lastOfPm)).padStart(2, '0');
+          }
+        }
       }
     }
   }
@@ -4464,23 +4485,23 @@ window.rahavirtaEditorOpenLegacy = async function(source, key) {
   _rahavirtaFocusAndScroll('rv_date');
 };
 
-// Avaa rahavirtaeditorin täydessä muokkaustilassa olemassa olevalle kertaluonteiselle
-// (tulevat_items) rahavirralle: nimi, summa, tulo/meno ja kuukausi ovat kaikki
-// muokattavissa samalla lomakkeella ja samalla tallennuslogiikalla kuin uutta
-// rahavirtaa lisättäessä (rahavirtaEditorSave). "Säännöllinen"-valinta pysyy
-// lukittuna, koska rivin tyyppi (tulevat_items) ei vaihdu muokkauksen yhteydessä.
-// Rajattu toistaiseksi vain kertaluonteisiin — säännöllisten tulojen/menojen
-// muokkaus ei kuulu tähän sprinttiin.
-window.rahavirtaEditorOpenTulossa = async function(id) {
+// Avaa rahavirtaeditorin täydessä muokkaustilassa olemassa olevalle rahavirralle,
+// oli se kertaluonteinen (tulevat_items) tai säännöllinen (tulot_items/rytmi_items).
+// Nimi, summa, tulo/meno (vain tulevat_items) ja päivä/kuukausi ovat muokattavissa
+// samalla lomakkeella ja samalla tallennuslogiikalla kuin uutta rahavirtaa
+// lisättäessä (rahavirtaEditorSave). "Säännöllinen"-valinta pysyy aina lukittuna,
+// koska rivin lista (=tyyppi) ei vaihdu muokkauksen yhteydessä.
+window.rahavirtaEditorOpenEdit = async function(source, key) {
   var snaps = (await DB.getAll('snapshots')).sort(function(a, b) { return a.date.localeCompare(b.date); });
   if (!snaps.length) return;
   var latest = snaps[snaps.length - 1];
-  var item = findRahavirtaItem(latest, 'tulevat_items', id);
+  var item = findRahavirtaItem(latest, source, key);
   if (!item) return;
+  var signMap = { tulot_items: '+', rytmi_items: '-' };
   window._rahavirtaEditorOpen = true;
-  window._rahavirtaRegular = false;
-  window._rahavirtaSign = (Number(item.amount) < 0) ? '-' : '+';
-  window._rahavirtaEditTarget = { source: 'tulevat_items', key: id, mode: 'edit' };
+  window._rahavirtaRegular = (source !== 'tulevat_items');
+  window._rahavirtaSign = signMap[source] || ((Number(item.amount) < 0) ? '-' : '+');
+  window._rahavirtaEditTarget = { source: source, key: key, mode: 'edit' };
   await renderDashboard();
   _rahavirtaFocusAndScroll('rv_label');
 };

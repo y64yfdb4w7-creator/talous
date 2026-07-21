@@ -2,9 +2,54 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `fix: support id-less tulevat_items rows in the rahavirta editor`
+**Viimeisin commit:** (tuleva) `feat: extend the rahavirta editor to regular income and expense rows`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+
+**Yhtenäinen muokkaus kaikille rahavirroille (21.7.2026) — valmis:**
+Laajennettu edellisten sprinttien `tulevat_items`-muokkaus koskemaan myös
+säännöllisiä tuloja (`tulot_items`) ja menoja (`rytmi_items`) — yksi editori,
+yksi validointi- ja tallennuspolku kaikille kolmelle rahavirtatyypille, kuten
+suunniteltu. **`rahavirtaEditorSave()`, `applyRahavirtaEdit()` ja
+`rahavirtaEditorDelete()` olivat jo entuudestaan täysin yleisiä**
+(`editTarget.source`-pohjaisia) — ne rakennettiin alun perin legacy-
+täydennystä varten ja tukivat jo minkä tahansa listan päivitystä/poistoa
+paikallaan. Työ rajautui siis avaus- ja renderöintipuoleen:
+- `rahavirtaEditorOpenTulossa(id)` yleistettiin **`rahavirtaEditorOpenEdit(source, key)`**
+  -funktioksi (ei uutta editoria, ei kopioitua logiikkaa — sama funktio nyt kaikille
+  kolmelle). Asettaa oikean `_rahavirtaSign`/`_rahavirtaRegular`-esitilan lähteen mukaan
+  (`tulot_items`→`+`, `rytmi_items`→`−`, `tulevat_items`→rivin oman etumerkin mukaan).
+- `renderTulossaList()`: säännöllisen rivin koko `.panel-row`-elementille lisättiin
+  `onclick="rahavirtaEditorOpenEdit(...)"` (inline `cursor:pointer`, ei kosketettu
+  jaettua `.panel-row`-CSS-luokkaa, koska sitä käytetään myös muualla sovelluksessa
+  ei-klikattavana). Olemassa oleva pieni ✕-poistopainike (`panelTuloDelete`/
+  `panelMenoDelete`, oma `confirm()`-kysymys) säilytettiin ennallaan rivin sisällä;
+  sen `onclick`:iin lisättiin `event.stopPropagation()`, jotta poistonapin klikkaus
+  ei enää kuplisi rivin omaan klikkaukseen ja avaa editoria samalla.
+- `renderRahavirtaEditor()`:in esitäyttö yleistettiin: Tulo/Meno-radio lukitaan
+  edelleen aina paitsi `tulevat_items`-täysmuokkauksessa (koska `tulot_items`/
+  `rytmi_items`-riveillä radion tila ei vaikuta tallennukseen — suunta määräytyy
+  yksin siitä kummasta listasta rivi on). Päivämääräkenttä esitäyttyy nyt myös
+  näille: `paiva` (1–31) yhdistetään viimeisimmän snapshotin kuukauteen/vuoteen
+  kalenterikelpoiseksi päiväksi (esim. paiva=31 helmikuussa → helmikuun
+  viimeinen päivä) — vain päivä tallentuu (`rahavirtaEditorSave` lukee sen
+  `rv_date`:sta), kuukausi/vuosi ovat pelkkää näyttöä varten kuten `tulevat_items`
+  jo ennestään.
+- `Hero`, `buildKassajakso()`, `collectRahavirrat()`, tietomalli, kuukausiryhmittely,
+  suodatinlogiikka ja legacy-täydennys (`rahavirtaEditorOpenLegacy`, aina lukittu,
+  ei poistopainiketta) koskematta.
+**Testattu:** paikallinen staattinen palvelin, oikea koodi. Kaikki kuusi
+yhdistelmää (kolme tyyppiä × id:llinen/id:tön rivi) läpikäyty täydellä kierrolla:
+avaus (oikea esitäyttö, oikea lukitus) → muokkaus → tallennus (rivi päivittyi
+paikallaan, id säilyi tai puuttui ennallaan, rivimäärä ei kasvanut) → Peru
+(muutokset hylättiin) → poisto editorin kautta (oikea rivi poistui). Hero
+täsmäsi käsin laskettuihin kontrolliarvoihin jokaisen operaation jälkeen
+kaikissa kuudessa tapauksessa. Aito hiiriklikkaus (ei ohjelmallinen kutsu)
+`tulot_items`-rivillä avasi editorin oikein; poistopainikkeen klikkaus ei
+avannut editoria (bubbling-korjaus vahvistettu). Kaikki/Säännölliset/
+Kertaluonteiset-suodatin ja kuukausiryhmittely tarkistettu sekadatalla — ennallaan.
+Legacy-täydennys testattu byte-identtisenä (lukitut kentät, ei päivämäärän
+esitäyttöä, ei poistopainiketta). Ei konsolivirheitä.
 
 **Id:ttömien tulevat_items-rivien tuki muokkauseditoriin (21.7.2026) — valmis:**
 Jatkoauditoinnissa (edellisen sprintin jälkeen) löytyi juurisyy raportoituun
