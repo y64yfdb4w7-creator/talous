@@ -2,9 +2,64 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-22
-**Viimeisin commit:** (tuleva) `feat: lisää kassajakson päättymisraja Odote-modaliin`
+**Viimeisin commit:** (tuleva) `feat: kassajakson sääntömoottori + Rahavirrat-regressiokorjaus`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv.**)
+
+**Rahavirrat-lista vs. Kassajakso: regressiokorjaus (22.7.2026) — valmis:**
+Tuotepäätös #13 (ks. alla) sitoi vahingossa RAHAVIRRAT-listan samaan
+`buildKassajakso()`-rajaukseen kuin Odotteen/Heron — seurauksena listasta
+katosivat kaikki seuraavan tunnetun tulon jälkeiset rahavirrat (UX-regressio).
+**LUKITTU tuotepäätös #14:** Rahavirrat-lista ja Odote/Kassajakso ovat kaksi
+eri asiaa eivätkä enää jaa samaa rajausta. `renderTulossaList()`
+(`js/ui2-v2.js:4335`) käyttää nyt `collectRahavirrat()`-joukkoa suoraan
+(rajaamaton — näyttää aina kaikki tiedossa olevat tulevat rahavirrat).
+`buildKassajakso()`, `heroSum()`, `kassaValisumma()` ja `openOdoteModal()`
+koskematta — Odote käyttää yhä vain kassajaksoon kuuluvia tapahtumia.
+**Testattu:** selainverifiointi paikallisesti ajetulla sovelluksella
+(demo-data): Rahavirrat-lista näytti Heinäkuun ja Elokuun tapahtumat samaan
+aikaan (mm. 1.8. Sali/Ruokakauppa, 3.8. Asuntolaina), Odote-modal näytti
+edelleen vain 19.7.–27.7. kassajakson (ODOTE 7 845 €) ja listasi elokuun
+tapahtumat "Ei mukana tässä Odotteessa" -osiossa — ei konsolivirheitä.
+
+**Kassajakson sääntömoottori (Osa 2) — moottori valmis, EI UI:ta:**
+Toteutettu käyttäjän hyväksymän suunnitelman mukaisesti, yhtenä loogisena
+kokonaisuutena `js/ui2-v2.js`:ssä (erillinen moduulitiedosto myöhempään
+refaktorointiin). Kolme uutta osaa:
+
+1. **`ensureRahavirtaIds(latest)`** — id-migraatio: täydentää puuttuvat
+   pysyvät id:t `tulot_items`/`rytmi_items`/`tulevat_items`-riveille
+   paikallaan, koskematta mihinkään olemassa olevaan arvoon. Kutsutaan
+   `renderDashboard()`:ssa ja `openOdoteModal()`:ssa; tallennetaan vain jos
+   jotain muuttui.
+2. **Sääntöjen tallennus** (`loadKassajaksoRules`/`saveKassajaksoRules`,
+   `localStorage['finos_kassajakso_rules']`) — tietomalli
+   `{ version, strategy: 'open'|'rules', endConditions: [...] }`.
+   `strategy:'open'` ohittaa endConditions-taulukon kokonaan (periodEnd =
+   null); `noEnd` ei ole yksi endCondition-tyyppi vaan oma strategia, kuten
+   käyttäjä päätti.
+3. **`resolveKassajaksoCondition`/`resolveKassajaksoRules`** — resolvoi
+   `itemRef`/`fixedDate`/`monthEnd`-ehdot konkreettisiksi päivämääriksi ja
+   valitsee niistä myöhäisimmän. `itemRef` viittaa pysyvään id:hen, ei
+   label-tekstiin — kaksi samannimistä tuloa eri kuukausina resolvoituvat
+   oikein toisistaan riippumatta (varmistettu testillä).
+
+`buildKassajakso()` kutsuu `resolveKassajaksoRules`:ia ennen "seuraava
+tunnettu tulo" -oletuslaskentaa (tuotepäätös #13); jos sääntöjä ei ole
+konfiguroitu, tai ne eivät resolvoidu mihinkään (esim. tyhjä lista tai
+kaikki viitatut rivit poistettu), pudotaan takaisin oletukseen — sama
+turvaverkko kuin tuotepäätös #12. **UI:ta sääntöjen muokkaamiseen ei ole
+— sijainti päätetään myöhemmässä UX-sprintissä**, käyttäjän päätöksen
+mukaisesti. OP Gold 1.–5. päivän tulologiikka rajattu pois tästä
+sprintistä käyttäjän päätöksellä.
+
+**Testattu (selain, javascript_tool):** yksi ehto, useita ehtoja (max-
+valinta), fixedDate, monthEnd, `strategy:'open'`, poistettuun riviin
+viittaava ehto (fallback), tyhjä endConditions-taulukko (fallback),
+samannimiset tulot eri kuukausina (id erottaa oikein), id-migraatio
+(lisää puuttuvat id:t koskematta muihin kenttiin). Kaikki läpi. Ilman
+konfiguroituja sääntöjä ODOTE pysyi ennallaan (7 845 €) — ei
+regressiota.
 
 **Odote-selitysnäkymän viimeistely: kassajakson päättymisraja (22.7.2026) — valmis:**
 Odote-selitysnäkymään lisättiin kassajakson päättymisen visuaalinen rajaus.

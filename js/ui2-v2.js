@@ -681,6 +681,11 @@ window.openOdoteModal = async function(evt) {
   var latest = snaps[snaps.length - 1];
   if (!latest) return;
 
+  if (ensureRahavirtaIds(latest)) {
+    latest._updatedAt = new Date().toISOString();
+    DB.putSnapshot(latest);
+  }
+
   var kassajakso = buildKassajakso(latest);
   var hero = heroSum(kassajakso);
   var incomeItems = kassajakso.items.filter(function(x) { return x.isIncome; });
@@ -791,6 +796,16 @@ async function renderDashboard() {
   let dbHoldings = []; try { dbHoldings = (await DB.getAll('holdings')).filter(h => h.active !== false); } catch(e) {}
   const latest = snaps[snaps.length - 1];
   const prev   = snaps.length > 1 ? snaps[snaps.length - 2] : null;
+
+  // Kassajakson sääntömoottorin id-migraatio (ks. ensureRahavirtaIds) —
+  // täydentää puuttuvat pysyvät id:t rahavirroille, ei muuta olemassa
+  // olevia arvoja. Tallennetaan taustalla, ei odoteta renderin edestä.
+  if (latest && ensureRahavirtaIds(latest)) {
+    latest._updatedAt = new Date().toISOString();
+    DB.putSnapshot(latest).then(function() {
+      try { setTimeout(function() { if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
+    });
+  }
 
   // ── CALCULATION ENGINE ──
   const calc     = calculateNetWorth(latest);
@@ -2198,20 +2213,133 @@ function findLegacyRahavirrat(latest) {
   return out;
 }
 
+// ── Kassajakson sääntömoottori: id-migraatio (suunnittelupäätös 22.7.2026) ──
+// Osa 2 -sääntömoottori viittaa rahavirtoihin pysyvällä id:llä, ei
+// label-tekstillä. Uudet rivit saavat id:n jo rahavirtaEditorSave:ssa,
+// mutta vanhemmilla/synkronoiduilla riveillä sitä ei aina ole (ks.
+// idx:-fallback findRahavirtaItem:ssa). Tämä funktio täydentää puuttuvat
+// id:t paikallaan — puhtaasti lisäävä, ei koske mihinkään olemassa
+// olevaan kenttään (summa, päivä, label, jne.). Palauttaa true jos
+// jotain muutettiin, jolloin kutsuja tallentaa snapshotin.
+function ensureRahavirtaIds(latest) {
+  var changed = false;
+  var prefixes = { tulot_items: 'tulo', rytmi_items: 'meno', tulevat_items: 'tulossa' };
+  Object.keys(prefixes).forEach(function(source) {
+    var items = Array.isArray(latest[source]) ? latest[source] : [];
+    items.forEach(function(item, idx) {
+      if (item.id == null) {
+        item.id = prefixes[source] + '_legacy_' + Date.now() + '_' + idx;
+        changed = true;
+      }
+    });
+  });
+  return changed;
+}
+
+// ── Kassajakson sääntömoottori: säännöt ja resolvointi (Osa 2, suunnittelu-
+// päätös 22.7.2026 — ei vielä UI:ta, UI rakennetaan erillisessä UX-sprintissä) ──
+// Sallii kassajakson päättymisen määrittämisen sääntöjoukkona label-tekstin
+// sijaan pysyviin rahavirta-id:ihin viitaten. Tallennuspaikka: localStorage
+// (laitekohtainen asetus, ei snapshot-dataa — ei siis Supabase-synkkaa tässä
+// vaiheessa). Kun sääntöjä ei ole konfiguroitu (null), käyttäytyminen
+// säilyy TÄYSIN ennallaan: buildKassajakso käyttää "seuraava tunnettu tulo"
+// -oletusta (tuotepäätös #13). Tarkoituksella dormant tila — mikään ei
+// muutu kenenkään nykyisen käyttäjän laskennassa ennen kuin UI rakennetaan
+// ja käyttäjä itse tekee valinnan.
+//
+// Tietomalli:
+//   { version: 1,
+//     strategy: 'open' | 'rules',
+//     endConditions: [
+//       { type: 'itemRef', source: 'tulot_items'|'rytmi_items'|'tulevat_items', id: <rahavirran pysyvä id> },
+//       { type: 'fixedDate', date: 'YYYY-MM-DD' },
+//       { type: 'monthEnd' }
+//     ] }
+//
+// strategy: 'open'  → kassajakso ei koskaan pääty (periodEnd = null);
+//                      endConditions-taulukkoa ei lueta lainkaan.
+// strategy: 'rules' → periodEnd = myöhäisin kaikista resolvoituvista
+//                      endConditions-ehdoista. Jos yksikään ehto ei
+//                      resolvoidu (tyhjä taulukko tai kaikki viitatut
+//                      rivit poistettu), pudotaan takaisin "seuraava
+//                      tunnettu tulo" -oletukseen — sama turvaverkko
+//                      kuin tuotepäätös #12.
+var KASSAJAKSO_RULES_KEY = 'finos_kassajakso_rules';
+
+function loadKassajaksoRules() {
+  try { return JSON.parse(localStorage.getItem(KASSAJAKSO_RULES_KEY) || 'null'); }
+  catch (e) { return null; }
+}
+
+function saveKassajaksoRules(rules) {
+  localStorage.setItem(KASSAJAKSO_RULES_KEY, JSON.stringify(rules));
+}
+
+// Resolvoi yhden endCondition-ehdon konkreettiseksi Dateksi annetulle
+// snapshotille, tai null jos ehto ei resolvoidu (esim. viitattu rivi on
+// poistettu). Käyttää samoja päivämääräfunktioita kuin collectRahavirrat,
+// jotta tulkinta pysyy yhtenäisenä koko sovelluksessa.
+function resolveKassajaksoCondition(latest, snapshotDate, cond) {
+  if (!cond) return null;
+  if (cond.type === 'itemRef') {
+    var items = Array.isArray(latest[cond.source]) ? latest[cond.source] : [];
+    var item = items.find(function(x) { return x.id === cond.id; });
+    if (!item) return null;
+    return cond.source === 'tulevat_items'
+      ? nextMonthOnlyDate(snapshotDate, item.month)
+      : nextRecurringDayDate(snapshotDate, item.paiva);
+  }
+  if (cond.type === 'fixedDate') {
+    var d = new Date(cond.date + 'T00:00:00');
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (cond.type === 'monthEnd') {
+    return new Date(snapshotDate.getFullYear(), snapshotDate.getMonth() + 1, 0);
+  }
+  return null;
+}
+
+// Palauttaa { periodEnd } annetulle snapshotille tallennettujen sääntöjen
+// mukaan, tai null jos sääntöjä ei ole konfiguroitu lainkaan tai ne eivät
+// resolvoidu mihinkään — jolloin buildKassajakso käyttää oletuslogiikkaa.
+function resolveKassajaksoRules(latest, snapshotDate) {
+  var rules = loadKassajaksoRules();
+  if (!rules) return null;
+  if (rules.strategy === 'open') return { periodEnd: null };
+  if (rules.strategy !== 'rules') return null;
+  var conditions = Array.isArray(rules.endConditions) ? rules.endConditions : [];
+  var resolved = conditions
+    .map(function(c) { return resolveKassajaksoCondition(latest, snapshotDate, c); })
+    .filter(function(d) { return d instanceof Date && !isNaN(d.getTime()); });
+  if (!resolved.length) return null;
+  return { periodEnd: new Date(Math.max.apply(null, resolved.map(function(d) { return d.getTime(); }))) };
+}
+
 // Kassajakso: LUKITTU tuotepäätös #13 (22.7.2026, kumoaa osittain #12) —
 // rahavirtajoukko rajataan viimeisimmästä snapshotista seuraavaan tunnettuun
-// tuloon asti (kyseinen tulo mukaan lukien). Seuraavan kassajakson tapahtumat
-// (kaikki mitkä osuvat seuraavan tunnetun tulon jälkeiseen aikaan) eivät
-// vaikuta Odotteeseen — ne palautetaan erikseen excludedItems-kentässä.
-// Jos yhtään tunnettua tuloa ei ole kirjattuna, jakso pysyy avoimena eikä
-// rajaudu mihinkään (tuotepäätös #12:n regressiokorjaus säilyy: puuttuva
-// tulotieto ei tyhjennä koko rahavirtajoukkoa).
-// Hero, Lopputilanne ja RAHAVIRRAT-lista käyttävät kaikki tätä samaa joukkoa.
+// tuloon asti (kyseinen tulo mukaan lukien), MIKÄLI käyttäjä ei ole
+// konfiguroinut omia sääntöjä (ks. resolveKassajaksoRules yllä — sääntöjen
+// puuttuessa käyttäytyminen on identtinen tuotepäätökseen #13). Seuraavan
+// kassajakson tapahtumat (kaikki mitkä osuvat periodEnd:in jälkeiseen
+// aikaan) eivät vaikuta Odotteeseen — ne palautetaan erikseen
+// excludedItems-kentässä. Jos periodEnd jää null:ksi (ei tunnettua tuloa,
+// tai strategy:'open'), jakso pysyy avoimena eikä rajaudu mihinkään
+// (tuotepäätös #12:n regressiokorjaus säilyy: puuttuva tulotieto ei
+// tyhjennä koko rahavirtajoukkoa).
+// LUKITTU tuotepäätös #14 (22.7.2026): Hero/Lopputilanne ja Odote käyttävät
+// tätä rajattua joukkoa, mutta RAHAVIRRAT-lista EI enää — se näyttää aina
+// collectRahavirrat():in koko joukon rajaamattomana (ks. renderTulossaList).
 function buildKassajakso(latest) {
   var snapshotDate = new Date(latest.date + 'T00:00:00');
   var allItems = collectRahavirrat(latest, snapshotDate);
-  var incomeDates = allItems.filter(function(x) { return x.isIncome; }).map(function(x) { return x.date.getTime(); });
-  var periodEnd = incomeDates.length ? new Date(Math.min.apply(null, incomeDates)) : null;
+  var ruleResult = resolveKassajaksoRules(latest, snapshotDate);
+  var periodEnd;
+  if (ruleResult) {
+    periodEnd = ruleResult.periodEnd;
+  } else {
+    var incomeDates = allItems.filter(function(x) { return x.isIncome; }).map(function(x) { return x.date.getTime(); });
+    periodEnd = incomeDates.length ? new Date(Math.min.apply(null, incomeDates)) : null;
+  }
   var items = periodEnd ? allItems.filter(function(x) { return x.date <= periodEnd; }) : allItems;
   var excludedItems = periodEnd ? allItems.filter(function(x) { return x.date > periodEnd; }) : [];
   return { lahtokassa: lahtokassaOf(latest), items: items, excludedItems: excludedItems, periodEnd: periodEnd, snapshotDate: snapshotDate };
@@ -2232,9 +2360,9 @@ function kassaValisumma(latest) {
 // Kassa: "Seuraava rahatilanne" -kortti.
 // NYKYINEN KASSA → RAHAVIRRAT (yksi lista, kertaluonteiset + säännölliset,
 // aikajärjestyksessä; ks. renderTulossaList) → Lopputilanne (Hero).
-// Rahavirtajoukko ei ole rajattu (LUKITTU tuotepäätös #12) — kaikki tiedossa
-// olevat tulevat kertaluonteiset erät ja jokaisen säännöllisen rahavirran
-// seuraava esiintymä näkyvät ja lasketaan mukaan.
+// RAHAVIRRAT-lista näyttää AINA kaiken (rajaamaton, ks. renderTulossaList);
+// Lopputilanne (Hero) käyttää buildKassajakso():n rajattua joukkoa. Nämä
+// kaksi eivät enää jaa samaa rajausta (LUKITTU tuotepäätös #14, 22.7.2026).
 function renderKassaSeuraavaRahatilanne(latest) {
   var kassajakso = buildKassajakso(latest);
 
@@ -4328,15 +4456,17 @@ function toggleInvBroker(key) {
 window.toggleInvBroker = toggleInvBroker;
 
 // ── Kassa: Rahavirrat CRUD ────────────────────────────────────────────
-// Yksi lista kaikille Kassajakson rahavirroille (kertaluonteiset +
-// säännölliset), aikajärjestyksessä. Sama buildKassajakso(...).items-joukko
-// kuin ennen — suodatin vain rajaa mitä joukosta näytetään, ei koske
-// laskentaan käytettävää dataa.
+// Yksi lista KAIKILLE tuleville rahavirroille (kertaluonteiset +
+// säännölliset), aikajärjestyksessä — LUKITTU tuotepäätös #14 (22.7.2026):
+// Rahavirrat-lista ja Odote/Kassajakso ovat kaksi eri asiaa eivätkä enää
+// jaa samaa rajausta. Rahavirrat-lista käyttää collectRahavirrat():ia
+// suoraan (rajaamaton), Odote/Hero käyttävät yhä buildKassajakso():n
+// periodEnd-rajattua joukkoa — ks. buildKassajakso-kommentti.
 function renderTulossaList() {
   var el = document.getElementById('kassaTulossaList');
   if (!el) return;
   var snap = window._allSnaps?.[window._allSnaps.length - 1];
-  var allItems = snap ? buildKassajakso(snap).items : [];
+  var allItems = snap ? collectRahavirrat(snap, new Date(snap.date + 'T00:00:00')) : [];
   var filter = window._rahavirtaFilter || 'all';
   var items = allItems.filter(function(x) {
     if (filter === 'recurring') return x.source !== 'tulevat_items';
