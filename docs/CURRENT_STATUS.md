@@ -2,9 +2,60 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-22
-**Viimeisin commit:** (tuleva) `fix: väritä Ei mukana tässä Odotteessa -rivit tulo/meno-värein`
+**Viimeisin commit:** (tuleva) `feat: OP Gold -laajennus + kassajakson läpinäkyvyys Odote-modaliin`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+
+**Kassajakson läpinäkyvyys + OP Gold -laajennus (22.7.2026) — valmis:**
+Auditoitu ensin `buildKassajakso()`, `resolveKassajaksoRules()`,
+`resolveKassajaksoCondition()` ja `finos_kassajakso_rules` — ei ristiriitoja,
+molemmat funktiot pysyvät tekstillisesti muuttumattomina (vain kommentti
+lisätty). Kaikki uusi rakentuu niiden päälle.
+
+**Osa 1 — OP Gold -laajennus:** Uusi **taaksepäin yhteensopiva boolean**
+`finos_kassajakso_rules.opGoldNextMonth1to5` (strategy/endConditions-
+rakennetta ei muutettu). Uusi jaettu funktio `applyOpGoldExtension()`
+(`js/ui2-v2.js`, buildKassajakso-osion vieressä): jos käytössä ja kassajakso
+päättyisi ennen seuraavan kuukauden 5. päivää, jatketaan kassajaksoa
+viimeiseen seuraavan kuukauden 1.–5. päivän tuloon asti (vain tulot,
+ei menot) — jos lisätuloja ei löydy, periodEnd säilyy muuttumattomana.
+`buildKassajakso()` uudelleenjärjestetty: `resolveBaseKassajaksoPeriodEnd()`
+(peruslaskenta, entinen sisäinen logiikka eriytettynä) → `applyOpGoldExtension()`
+päälle. **Ainoa muutos kassajakson perusalgoritmiin tässä sprintissä.**
+UI: uusi "OP Gold" -osio Kassajakson hallinta -modalissa (aina näkyvissä
+riippumatta strategiasta), tarkka vaadittu seliteteksti. Koska "Oletus"
+tallennetaan normaalisti tyhjänä (ei localStorage-avainta), mutta boolean
+pitää voida tallentaa senkin kanssa, "Oletus + OP Gold" -yhdistelmä
+tallennetaan `{strategy:'rules', endConditions:[], opGoldNextMonth1to5:true}`
+— `resolveKassajaksoRules()` palauttaa tälle jo ennestään null:in (tyhjä
+endConditions-taulukko), joten käyttäytyminen on identtinen aidon
+"Oletuksen" kanssa. Modalin strategian uudelleentunnistus reopenilla
+korjattu tunnistamaan tämä tapaus takaisin "Oletukseksi".
+
+**Osa 2 — kassajakson läpinäkyvyys Odote-modalissa:** Uusi jaettu funktio
+`computeKassajaksoTransparency()` laskee saman periodEnd:in kuin
+buildKassajakso (mukaan lukien OP Gold) ja kertoo lisäksi mitkä ehdot ovat
+aktiivisia ja mikä niistä ratkaisi. `describeKassajaksoBasis()`
+(Kassajakson hallinta -modalin "Peruste"-rivi) delegoi nyt tälle. Odote-
+modaliin (`openOdoteModal`) lisätty KASSAJAKSO-lohkon alle: lyhyt Selitys
+(Oletus/Määritä itse/Avoin-kohtainen), PÄÄTTYMISSÄÄNNÖT (✓-lista kaikista
+aktiivisista ehdoista, mukaan lukien OP Gold), RATKAISEVA EHTO/RATKAISEVAT
+EHDOT (mikä/mitkä ehdot lopulta ratkaisivat, tasapelissä selittävä lause),
+ja erillinen lause kun OP Gold laajensi kassajaksoa. Ei uusia modaleja,
+värejä eikä komponentteja — samat tyylit kuin viereiset osiot. Hero,
+rahavirtojen rakenne ja modalin muu rakenne koskematta.
+
+**Testattu (selain, demo-data + syntetisoidut skenaariot):** Oletus/Määritä
+itse/Avoin, yksi/useita päättymisehtoja, kiinteä päivämäärä, kuukauden
+viimeinen päivä — kaikki täsmäsivät aiempiin arvoihin (regressiovapaa
+refaktorointi). OP Gold pois → ennallaan (27.7.2026, Hero 7 845 €). OP Gold
+päällä (Oletus) → laajeni 5.8.2026:een (Vuokratulo), RATKAISEVA EHTO "OP
+Gold (1.–5. päivän tulot)", selittävä lause näkyi. OP Gold + jo yli 5. pv
+menevä sääntö → ei muutosta. OP Gold ilman 1.–5. pv tuloja → ei muutosta.
+Spec-esimerkki (Palkka 1.8. tulo, Vuokra 3.8. meno, Bonus 5.8. tulo) →
+täsmälleen 5.8. Kassajakson hallinta -modalin "Oletus" tunnistui oikein
+uudelleen OP Gold -yhdistelmällä. Asetukset säilyivät selainpäivityksen
+jälkeen. Ei konsolivirheitä koko testisarjan aikana.
 
 **Odote-modalin värikorjaus: "Ei mukana tässä Odotteessa" (22.7.2026) — valmis:**
 Pelkkä visuaalinen korjaus, ei vaikutuksia laskentaan. Rivit "Ei mukana

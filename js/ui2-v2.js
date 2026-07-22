@@ -704,34 +704,21 @@ function _kjhFmtDate(d) {
   return d ? (d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear()) : null;
 }
 
-// Kuvaa MIKSI kassajakso päättyy periodEnd:iin — käyttää täsmälleen samaa
-// resolvointipolkua kuin buildKassajakso (resolveKassajaksoCondition /
-// "seuraava tunnettu tulo" -oletus collectRahavirrat:ista), joten näytetty
-// peruste täsmää aina buildKassajakso():n todelliseen tulokseen. Puhtaasti
-// selittävä — ei kirjoita mitään.
+// Kuvaa MIKSI kassajakso päättyy periodEnd:iin. Delegoi
+// computeKassajaksoTransparency:lle (ks. jäljempänä tässä tiedostossa,
+// buildKassajakso-osion vieressä), joka käyttää täsmälleen samaa
+// resolvointipolkua kuin buildKassajakso — mukaan lukien Osa 1:n OP Gold
+// -laajennus — joten näytetty peruste täsmää aina buildKassajakso():n
+// todelliseen tulokseen. Puhtaasti selittävä — ei kirjoita mitään.
 function describeKassajaksoBasis(latest, snapshotDate) {
-  var rules = loadKassajaksoRules();
-  if (rules && rules.strategy === 'open') {
-    return { periodEnd: null, basisLabel: 'Avoin kassajakso — ei päättymispistettä' };
+  var t = computeKassajaksoTransparency(latest, snapshotDate);
+  if (!t.periodEnd) {
+    return {
+      periodEnd: null,
+      basisLabel: t.strategy === 'open' ? 'Avoin kassajakso — ei päättymispistettä' : 'Ei tunnettua tuloa — kassajakso avoin'
+    };
   }
-  if (rules && rules.strategy === 'rules' && Array.isArray(rules.endConditions) && rules.endConditions.length) {
-    var resolved = rules.endConditions.map(function(c) {
-      return { cond: c, date: resolveKassajaksoCondition(latest, snapshotDate, c) };
-    }).filter(function(r) { return r.date instanceof Date && !isNaN(r.date.getTime()); });
-    if (resolved.length) {
-      var maxTime = Math.max.apply(null, resolved.map(function(r) { return r.date.getTime(); }));
-      var winners = resolved.filter(function(r) { return r.date.getTime() === maxTime; });
-      var labels = winners.map(function(r) { return _kjhConditionLabel(latest, r.cond); });
-      return { periodEnd: new Date(maxTime), basisLabel: labels.join(' + ') };
-    }
-    // Ei yhtään resolvoituvaa ehtoa (esim. viitattu rivi poistettu) — sama
-    // turvaverkko kuin buildKassajakso:ssa, pudotaan oletukseen alle.
-  }
-  var allItems = collectRahavirrat(latest, snapshotDate);
-  var incomeItems = allItems.filter(function(x) { return x.isIncome; });
-  if (!incomeItems.length) return { periodEnd: null, basisLabel: 'Ei tunnettua tuloa — kassajakso avoin' };
-  var earliest = incomeItems.reduce(function(a, b) { return a.date <= b.date ? a : b; });
-  return { periodEnd: earliest.date, basisLabel: normalizeRecurringLabel(earliest.ref.label, 'Tulo') };
+  return { periodEnd: t.periodEnd, basisLabel: t.decidingLabels.length ? t.decidingLabels.join(' + ') : '—' };
 }
 
 function _kjhConditionLabel(latest, cond) {
@@ -758,9 +745,11 @@ window.openKassajaksoHallintaModal = async function(evt) {
   if (!latest) return;
 
   var storedRules = loadKassajaksoRules();
+  var storedHasConditions = !!(storedRules && Array.isArray(storedRules.endConditions) && storedRules.endConditions.length);
   window._kassajaksoHallintaState = {
-    strategy: !storedRules ? 'default' : (storedRules.strategy === 'open' ? 'open' : 'rules'),
-    endConditions: (storedRules && Array.isArray(storedRules.endConditions)) ? storedRules.endConditions.slice() : []
+    strategy: !storedRules ? 'default' : (storedRules.strategy === 'open' ? 'open' : (storedHasConditions ? 'rules' : 'default')),
+    endConditions: (storedRules && Array.isArray(storedRules.endConditions)) ? storedRules.endConditions.slice() : [],
+    opGold: !!(storedRules && storedRules.opGoldNextMonth1to5)
   };
 
   var overlay = document.createElement('div');
@@ -787,12 +776,19 @@ window.openKassajaksoHallintaModal = async function(evt) {
 function _kjhPersist() {
   var st = window._kassajaksoHallintaState;
   if (!st) return;
-  if (st.strategy === 'default') {
-    localStorage.removeItem(KASSAJAKSO_RULES_KEY);
-  } else if (st.strategy === 'open') {
-    saveKassajaksoRules({ version: 1, strategy: 'open', endConditions: [] });
+  if (st.strategy === 'open') {
+    saveKassajaksoRules({ version: 1, strategy: 'open', endConditions: [], opGoldNextMonth1to5: !!st.opGold });
+  } else if (st.strategy === 'rules') {
+    saveKassajaksoRules({ version: 1, strategy: 'rules', endConditions: st.endConditions, opGoldNextMonth1to5: !!st.opGold });
+  } else if (st.opGold) {
+    // 'default' + OP Gold käytössä: finos_kassajakso_rules säilytetään
+    // tyhjällä endConditions-listalla (resolveKassajaksoRules palauttaa
+    // tälle silti null:in, joten "seuraava tunnettu tulo" -oletus säilyy
+    // muuttumattomana), jotta uusi boolean-lippu saadaan talteen strategy-
+    // ja endConditions-rakennetta koskematta.
+    saveKassajaksoRules({ version: 1, strategy: 'rules', endConditions: [], opGoldNextMonth1to5: true });
   } else {
-    saveKassajaksoRules({ version: 1, strategy: 'rules', endConditions: st.endConditions });
+    localStorage.removeItem(KASSAJAKSO_RULES_KEY);
   }
   if (typeof renderDashboard === 'function') renderDashboard();
 }
@@ -967,6 +963,41 @@ function _renderKassajaksoHallintaBox(latest) {
     box.appendChild(candWrap);
   }
 
+  // ── OP Gold -laajennus (Osa 1, aina näkyvissä riippumatta strategiasta —
+  // sovelletaan buildKassajakso():ssa minkä tahansa strategian tuottaman
+  // periodEnd:in päälle, ks. applyOpGoldExtension) ──
+  var opGoldWrap = document.createElement('div');
+  opGoldWrap.style.cssText = 'border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px;';
+  var opGoldHdr = document.createElement('div');
+  opGoldHdr.style.cssText = 'font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;';
+  opGoldHdr.textContent = 'OP Gold';
+  opGoldWrap.appendChild(opGoldHdr);
+
+  var ogLbl = document.createElement('label');
+  ogLbl.style.cssText = 'display:flex;align-items:flex-start;gap:8px;cursor:pointer;';
+  var ogCb = document.createElement('input');
+  ogCb.type = 'checkbox';
+  ogCb.checked = !!st.opGold;
+  ogCb.style.cssText = 'width:14px;height:14px;margin-top:2px;accent-color:var(--cyan);cursor:pointer;';
+  ogCb.addEventListener('change', function() {
+    st.opGold = ogCb.checked;
+    _kjhPersist();
+    _renderKassajaksoHallintaBox(latest);
+  });
+  var ogTextWrap = document.createElement('div');
+  var ogTitle = document.createElement('div');
+  ogTitle.style.cssText = 'font-size:12px;color:var(--text2);';
+  ogTitle.textContent = 'Huomioi seuraavan kuukauden 1.–5. päivän tulot';
+  var ogDesc = document.createElement('div');
+  ogDesc.style.cssText = 'font-size:11px;color:var(--text3);';
+  ogDesc.textContent = 'Jos kassajakso päättyisi ennen seuraavan kuukauden 5. päivää, mukaan otetaan myös kaikki seuraavan kuukauden 1.–5. päivän tulot.';
+  ogTextWrap.appendChild(ogTitle);
+  ogTextWrap.appendChild(ogDesc);
+  ogLbl.appendChild(ogCb);
+  ogLbl.appendChild(ogTextWrap);
+  opGoldWrap.appendChild(ogLbl);
+  box.appendChild(opGoldWrap);
+
   // ── Aktiivinen päättymispiste ──
   var snapshotDate = new Date((latest.date || '') + 'T00:00:00');
   var basis = describeKassajaksoBasis(latest, snapshotDate);
@@ -1071,6 +1102,47 @@ window.openOdoteModal = async function(evt) {
     + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Kassajakso</div>'
     + '<div style="font-size:12px;color:var(--text2);">' + fmtItemDate(kassajakso.snapshotDate) + ' → ' + periodEndLabel + '</div>'
     + '</div>');
+
+  // Kassajakson läpinäkyvyys (Osa 2, suunnittelupäätös 22.7.2026): kertoo
+  // MIKSI kassajakso päättyy juuri periodEnd:iin — sama resolvointipolku
+  // kuin buildKassajakso (ks. computeKassajaksoTransparency), joten esitys
+  // täsmää aina todelliseen laskentaan. Puhtaasti selittävä, ei uusia
+  // värejä/komponentteja — samat tyylit kuin viereiset osiot.
+  var transparency = computeKassajaksoTransparency(latest, kassajakso.snapshotDate);
+  box.insertAdjacentHTML('beforeend',
+    '<div style="margin-bottom:12px;">'
+    + '<div style="font-size:12px;color:var(--text2);font-style:italic;">' + transparency.explanation + '</div>'
+    + '</div>');
+
+  if (transparency.activeRules.length) {
+    var rulesHtml = '<div style="margin-bottom:12px;">'
+      + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Päättymissäännöt</div>';
+    transparency.activeRules.forEach(function(r) {
+      rulesHtml += '<div style="font-size:12px;color:var(--text2);">✓ ' + r.label + '</div>';
+    });
+    rulesHtml += '</div>';
+    box.insertAdjacentHTML('beforeend', rulesHtml);
+
+    if (transparency.decidingLabels.length) {
+      var multiple = transparency.decidingLabels.length > 1;
+      var decideHtml = '<div style="margin-bottom:12px;">'
+        + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">'
+        + (multiple ? 'Ratkaisevat ehdot' : 'Ratkaiseva ehto') + '</div>';
+      transparency.decidingLabels.forEach(function(l) {
+        decideHtml += '<div style="font-size:12px;color:var(--text2);">' + l + '</div>';
+      });
+      if (multiple) {
+        decideHtml += '<div style="font-size:12px;color:var(--text2);">Päättymispäivä määräytyi viimeiseksi toteutuvan ehdon mukaan.</div>';
+      } else if (kassajakso.periodEnd) {
+        decideHtml += '<div style="font-size:12px;color:var(--text2);">' + fmtItemDate(kassajakso.periodEnd) + '</div>';
+      }
+      if (transparency.opGoldExtended) {
+        decideHtml += '<div style="font-size:12px;color:var(--text2);margin-top:4px;">Kassajaksoa jatkettiin OP Gold -säännön perusteella seuraavan kuukauden 1.–5. päivän tuloihin asti.</div>';
+      }
+      decideHtml += '</div>';
+      box.insertAdjacentHTML('beforeend', decideHtml);
+    }
+  }
 
   box.insertAdjacentHTML('beforeend',
     '<div style="margin-bottom:12px;">'
@@ -2625,6 +2697,9 @@ function resolveKassajaksoCondition(latest, snapshotDate, cond) {
 // Palauttaa { periodEnd } annetulle snapshotille tallennettujen sääntöjen
 // mukaan, tai null jos sääntöjä ei ole konfiguroitu lainkaan tai ne eivät
 // resolvoidu mihinkään — jolloin buildKassajakso käyttää oletuslogiikkaa.
+// KOSKEMATTA (auditoitu 22.7.2026, Osa 1/Osa 2 -sprintti): tätä funktiota
+// ei muutettu — OP Gold -laajennus on oma erillinen kerroksensa
+// (ks. applyOpGoldExtension), ei osa tätä resolvointia.
 function resolveKassajaksoRules(latest, snapshotDate) {
   var rules = loadKassajaksoRules();
   if (!rules) return null;
@@ -2638,15 +2713,58 @@ function resolveKassajaksoRules(latest, snapshotDate) {
   return { periodEnd: new Date(Math.max.apply(null, resolved.map(function(d) { return d.getTime(); }))) };
 }
 
+// Peruslaskenta ILMAN OP Gold -laajennusta: sääntöjen mukainen periodEnd,
+// tai puuttuessa "seuraava tunnettu tulo" -oletus (tuotepäätös #13). Sama
+// logiikka kuin buildKassajakso käytti ennen Osa 1 -sprinttiä (22.7.2026) —
+// eriytetty omaksi funktioksi, jotta computeKassajaksoTransparency (Odote-
+// modalin läpinäkyvyysnäkymä) voi käyttää täsmälleen samaa peruspäätepistettä
+// ennen OP Gold -laajennuksen soveltamista.
+function resolveBaseKassajaksoPeriodEnd(latest, snapshotDate, allItems) {
+  var ruleResult = resolveKassajaksoRules(latest, snapshotDate);
+  if (ruleResult) return ruleResult.periodEnd;
+  var incomeDates = allItems.filter(function(x) { return x.isIncome; }).map(function(x) { return x.date.getTime(); });
+  return incomeDates.length ? new Date(Math.min.apply(null, incomeDates)) : null;
+}
+
+// OP Gold -laajennus (Osa 1, suunnittelupäätös 22.7.2026): valinnainen,
+// finos_kassajakso_rules.opGoldNextMonth1to5-boolean (LUKITTU rakenne,
+// lisätty taaksepäin yhteensopivasti — vanha tallennettu rules-objekti
+// ilman kenttää tulkitaan false:ksi). Jos käytössä ja annettu periodEnd
+// olisi ENNEN seuraavan kuukauden 5. päivää, jatketaan kassajaksoa
+// viimeiseen seuraavan kuukauden 1.–5. päivän tuloon asti. Jos lisätuloja
+// ei löydy tältä väliltä, periodEnd palautuu muuttumattomana (nykyinen
+// toiminta säilyy). Ei koske rahavirtojen rakennetta eikä Heroa — pelkkä
+// lisäaskel periodEnd-arvon päälle, samalla collectRahavirrat()-joukolla.
+function applyOpGoldExtension(rules, allItems, snapshotDate, periodEnd) {
+  if (!periodEnd || !rules || !rules.opGoldNextMonth1to5) {
+    return { periodEnd: periodEnd, extended: false };
+  }
+  var nextMonthDay5 = new Date(snapshotDate.getFullYear(), snapshotDate.getMonth() + 1, 5);
+  if (periodEnd.getTime() >= nextMonthDay5.getTime()) {
+    return { periodEnd: periodEnd, extended: false };
+  }
+  var nextMonthStart = new Date(snapshotDate.getFullYear(), snapshotDate.getMonth() + 1, 1);
+  var matchedDates = allItems
+    .filter(function(x) { return x.isIncome && x.date.getTime() >= nextMonthStart.getTime() && x.date.getTime() <= nextMonthDay5.getTime(); })
+    .map(function(x) { return x.date.getTime(); });
+  if (!matchedDates.length) return { periodEnd: periodEnd, extended: false };
+  var maxMatched = Math.max.apply(null, matchedDates);
+  if (maxMatched <= periodEnd.getTime()) return { periodEnd: periodEnd, extended: false };
+  return { periodEnd: new Date(maxMatched), extended: true };
+}
+
 // Kassajakso: LUKITTU tuotepäätös #13 (22.7.2026, kumoaa osittain #12) —
 // rahavirtajoukko rajataan viimeisimmästä snapshotista seuraavaan tunnettuun
 // tuloon asti (kyseinen tulo mukaan lukien), MIKÄLI käyttäjä ei ole
 // konfiguroinut omia sääntöjä (ks. resolveKassajaksoRules yllä — sääntöjen
-// puuttuessa käyttäytyminen on identtinen tuotepäätökseen #13). Seuraavan
-// kassajakson tapahtumat (kaikki mitkä osuvat periodEnd:in jälkeiseen
-// aikaan) eivät vaikuta Odotteeseen — ne palautetaan erikseen
-// excludedItems-kentässä. Jos periodEnd jää null:ksi (ei tunnettua tuloa,
-// tai strategy:'open'), jakso pysyy avoimena eikä rajaudu mihinkään
+// puuttuessa käyttäytyminen on identtinen tuotepäätökseen #13). Tämän
+// PÄÄLLE sovelletaan valinnainen OP Gold -laajennus (Osa 1, ks.
+// applyOpGoldExtension) — ainoa muutos kassajakson perusalgoritmiin tässä
+// sprintissä. Seuraavan kassajakson tapahtumat (kaikki mitkä osuvat
+// (mahdollisesti OP Gold -laajennetun) periodEnd:in jälkeiseen aikaan)
+// eivät vaikuta Odotteeseen — ne palautetaan erikseen excludedItems-
+// kentässä. Jos periodEnd jää null:ksi (ei tunnettua tuloa, tai
+// strategy:'open'), jakso pysyy avoimena eikä rajaudu mihinkään
 // (tuotepäätös #12:n regressiokorjaus säilyy: puuttuva tulotieto ei
 // tyhjennä koko rahavirtajoukkoa).
 // LUKITTU tuotepäätös #14 (22.7.2026): Hero/Lopputilanne ja Odote käyttävät
@@ -2655,17 +2773,76 @@ function resolveKassajaksoRules(latest, snapshotDate) {
 function buildKassajakso(latest) {
   var snapshotDate = new Date(latest.date + 'T00:00:00');
   var allItems = collectRahavirrat(latest, snapshotDate);
-  var ruleResult = resolveKassajaksoRules(latest, snapshotDate);
-  var periodEnd;
-  if (ruleResult) {
-    periodEnd = ruleResult.periodEnd;
-  } else {
-    var incomeDates = allItems.filter(function(x) { return x.isIncome; }).map(function(x) { return x.date.getTime(); });
-    periodEnd = incomeDates.length ? new Date(Math.min.apply(null, incomeDates)) : null;
-  }
+  var basePeriodEnd = resolveBaseKassajaksoPeriodEnd(latest, snapshotDate, allItems);
+  var rules = loadKassajaksoRules();
+  var opGoldResult = applyOpGoldExtension(rules, allItems, snapshotDate, basePeriodEnd);
+  var periodEnd = opGoldResult.periodEnd;
   var items = periodEnd ? allItems.filter(function(x) { return x.date <= periodEnd; }) : allItems;
   var excludedItems = periodEnd ? allItems.filter(function(x) { return x.date > periodEnd; }) : [];
-  return { lahtokassa: lahtokassaOf(latest), items: items, excludedItems: excludedItems, periodEnd: periodEnd, snapshotDate: snapshotDate };
+  return { lahtokassa: lahtokassaOf(latest), items: items, excludedItems: excludedItems, periodEnd: periodEnd, snapshotDate: snapshotDate, opGoldExtended: opGoldResult.extended };
+}
+
+// Kassajakson läpinäkyvyys (Osa 2, suunnittelupäätös 22.7.2026): laskee
+// TÄSMÄLLEEN saman periodEnd:in kuin buildKassajakso (mukaan lukien Osa 1:n
+// OP Gold -laajennus, samoilla resolveBaseKassajaksoPeriodEnd/
+// applyOpGoldExtension-funktioilla), ja kertoo lisäksi MITKÄ ehdot ovat
+// aktiivisia ja MIKÄ niistä lopulta ratkaisi päättymispisteen. Puhtaasti
+// selittävä — ei kirjoita mitään. Käytetään sekä Kassajakson hallinta
+// -modalin "Peruste"-rivillä (ks. describeKassajaksoBasis) että Odote-
+// modalin PÄÄTTYMISSÄÄNNÖT/RATKAISEVA EHTO -osioissa.
+function computeKassajaksoTransparency(latest, snapshotDate) {
+  var allItems = collectRahavirrat(latest, snapshotDate);
+  var rules = loadKassajaksoRules();
+  var hasConditions = !!(rules && Array.isArray(rules.endConditions) && rules.endConditions.length);
+  var strategy = !rules ? 'default' : (rules.strategy === 'open' ? 'open' : (hasConditions ? 'rules' : 'default'));
+  var opGoldActive = !!(rules && rules.opGoldNextMonth1to5);
+
+  var explanation = strategy === 'open'
+    ? 'Kassajakso on avoin eikä sille ole päättymispistettä.'
+    : strategy === 'rules'
+      ? 'Kassajakso päättyy, kun kaikki valitut ehdot ovat täyttyneet.'
+      : 'Kassajakso päättyy seuraavaan tunnettuun tuloon.';
+
+  var basePeriodEnd = resolveBaseKassajaksoPeriodEnd(latest, snapshotDate, allItems);
+  var activeRules = []; // { label, date }
+
+  if (strategy === 'rules' && basePeriodEnd) {
+    rules.endConditions.forEach(function(c) {
+      activeRules.push({ label: _kjhConditionLabel(latest, c), date: resolveKassajaksoCondition(latest, snapshotDate, c) });
+    });
+    var anyMatches = activeRules.some(function(r) { return r.date instanceof Date && !isNaN(r.date.getTime()) && r.date.getTime() === basePeriodEnd.getTime(); });
+    if (!anyMatches) {
+      // Turvaverkko kytkeytyi (ks. resolveKassajaksoRules) — mikään valittu
+      // ehto ei tosiasiassa resolvoitunut, ja perusta on "seuraava tunnettu
+      // tulo". Näytetään käyttäjälle todellinen peruste sen sijaan.
+      var fallbackIncome = allItems.filter(function(x) { return x.isIncome && x.date.getTime() === basePeriodEnd.getTime(); });
+      fallbackIncome.forEach(function(x) { activeRules.push({ label: normalizeRecurringLabel(x.ref.label, 'Tulo'), date: x.date }); });
+    }
+  } else if (basePeriodEnd) {
+    var matchingIncome = allItems.filter(function(x) { return x.isIncome && x.date.getTime() === basePeriodEnd.getTime(); });
+    matchingIncome.forEach(function(x) { activeRules.push({ label: normalizeRecurringLabel(x.ref.label, 'Tulo'), date: x.date }); });
+  }
+
+  var opGoldResult = applyOpGoldExtension(rules, allItems, snapshotDate, basePeriodEnd);
+  var periodEnd = opGoldResult.periodEnd;
+
+  if (opGoldActive) {
+    activeRules.push({ label: 'OP Gold (1.–5. päivän tulot)', date: opGoldResult.extended ? periodEnd : null });
+  }
+
+  var decidingLabels = periodEnd
+    ? activeRules.filter(function(r) { return r.date instanceof Date && !isNaN(r.date.getTime()) && r.date.getTime() === periodEnd.getTime(); }).map(function(r) { return r.label; })
+    : [];
+
+  return {
+    strategy: strategy,
+    explanation: explanation,
+    periodEnd: periodEnd,
+    activeRules: activeRules,
+    decidingLabels: decidingLabels,
+    opGoldActive: opGoldActive,
+    opGoldExtended: opGoldResult.extended
+  };
 }
 
 // Hero: puhdas laskentakomponentti. Summaa vain sille annetun joukon.
