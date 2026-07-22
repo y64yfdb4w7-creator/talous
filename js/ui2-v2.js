@@ -562,6 +562,24 @@ window.openCardSettings = function(card, title, rows, evt) {
   detLbl.appendChild(document.createTextNode('Yksityiskohdat'));
   div.appendChild(detLbl);
 
+  if (card === 'cash') {
+    // Kassajakson hallinta — oma modal, ei osa tätä popoveria (ks.
+    // openKassajaksoHallintaModal, UX-sprintti 22.7.2026).
+    var kjHr = document.createElement('div');
+    kjHr.style.cssText = 'height:1px;background:var(--border);margin:8px 0;';
+    div.appendChild(kjHr);
+
+    var kjBtn = document.createElement('button');
+    kjBtn.textContent = 'Kassajakson hallinta →';
+    kjBtn.style.cssText = 'display:block;width:100%;text-align:left;padding:4px 0;'
+      + 'background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;';
+    kjBtn.addEventListener('click', function() {
+      div.remove();
+      openKassajaksoHallintaModal();
+    });
+    div.appendChild(kjBtn);
+  }
+
   if (card !== 'cash') {
     // Näytä kortti toggle
     var visLbl = document.createElement('label');
@@ -667,6 +685,307 @@ window.openCardInfo = function(cardKey, evt) {
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 };
+
+// ── Kassajakson hallinta -modal (UX-sprintti 22.7.2026) ────────────────
+// Puhdas käyttöliittymä jo olemassa olevan sääntömoottorin päälle (ks.
+// ensureRahavirtaIds/loadKassajaksoRules/saveKassajaksoRules/
+// resolveKassajaksoCondition/resolveKassajaksoRules/buildKassajakso
+// jäljempänä tässä tiedostossa) — EI muuta laskentalogiikkaa, EI
+// tietomallia, EI uutta sääntömoottoria. Lukee ja kirjoittaa ainoastaan
+// olemassa olevaa finos_kassajakso_rules-rakennetta samoilla
+// load/saveKassajaksoRules-funktioilla kuin buildKassajakso jo käyttää.
+// "Oletus"-strategia UI:ssa vastaa TYHJÄÄ tallennusta (ei localStorage-
+// avainta) — resolveKassajaksoRules palauttaa tällöin null ja
+// buildKassajakso käyttää tuotepäätöksen #13 mukaista "seuraava tunnettu
+// tulo" -oletusta, aivan kuten ennen tätä sprinttiä.
+window._kassajaksoHallintaState = null;
+
+function _kjhFmtDate(d) {
+  return d ? (d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear()) : null;
+}
+
+// Kuvaa MIKSI kassajakso päättyy periodEnd:iin — käyttää täsmälleen samaa
+// resolvointipolkua kuin buildKassajakso (resolveKassajaksoCondition /
+// "seuraava tunnettu tulo" -oletus collectRahavirrat:ista), joten näytetty
+// peruste täsmää aina buildKassajakso():n todelliseen tulokseen. Puhtaasti
+// selittävä — ei kirjoita mitään.
+function describeKassajaksoBasis(latest, snapshotDate) {
+  var rules = loadKassajaksoRules();
+  if (rules && rules.strategy === 'open') {
+    return { periodEnd: null, basisLabel: 'Avoin kassajakso — ei päättymispistettä' };
+  }
+  if (rules && rules.strategy === 'rules' && Array.isArray(rules.endConditions) && rules.endConditions.length) {
+    var resolved = rules.endConditions.map(function(c) {
+      return { cond: c, date: resolveKassajaksoCondition(latest, snapshotDate, c) };
+    }).filter(function(r) { return r.date instanceof Date && !isNaN(r.date.getTime()); });
+    if (resolved.length) {
+      var maxTime = Math.max.apply(null, resolved.map(function(r) { return r.date.getTime(); }));
+      var winners = resolved.filter(function(r) { return r.date.getTime() === maxTime; });
+      var labels = winners.map(function(r) { return _kjhConditionLabel(latest, r.cond); });
+      return { periodEnd: new Date(maxTime), basisLabel: labels.join(' + ') };
+    }
+    // Ei yhtään resolvoituvaa ehtoa (esim. viitattu rivi poistettu) — sama
+    // turvaverkko kuin buildKassajakso:ssa, pudotaan oletukseen alle.
+  }
+  var allItems = collectRahavirrat(latest, snapshotDate);
+  var incomeItems = allItems.filter(function(x) { return x.isIncome; });
+  if (!incomeItems.length) return { periodEnd: null, basisLabel: 'Ei tunnettua tuloa — kassajakso avoin' };
+  var earliest = incomeItems.reduce(function(a, b) { return a.date <= b.date ? a : b; });
+  return { periodEnd: earliest.date, basisLabel: normalizeRecurringLabel(earliest.ref.label, 'Tulo') };
+}
+
+function _kjhConditionLabel(latest, cond) {
+  if (cond.type === 'itemRef') {
+    var items = Array.isArray(latest[cond.source]) ? latest[cond.source] : [];
+    var item = items.find(function(x) { return x.id === cond.id; });
+    return item ? normalizeRecurringLabel(item.label, 'Tulo') : '(poistettu rahavirta)';
+  }
+  if (cond.type === 'monthEnd') return 'Kuukauden viimeinen päivä';
+  if (cond.type === 'fixedDate') {
+    var d = new Date(cond.date + 'T00:00:00');
+    return 'Kiinteä päivämäärä (' + (isNaN(d.getTime()) ? cond.date : _kjhFmtDate(d)) + ')';
+  }
+  return '—';
+}
+
+window.openKassajaksoHallintaModal = async function(evt) {
+  if (evt) evt.stopPropagation();
+  var existing = document.getElementById('kassajakso-hallinta-overlay');
+  if (existing) { existing.remove(); return; }
+
+  var snaps = (await DB.getAll('snapshots')).sort(function(a, b) { return a.date.localeCompare(b.date); });
+  var latest = snaps[snaps.length - 1];
+  if (!latest) return;
+
+  var storedRules = loadKassajaksoRules();
+  window._kassajaksoHallintaState = {
+    strategy: !storedRules ? 'default' : (storedRules.strategy === 'open' ? 'open' : 'rules'),
+    endConditions: (storedRules && Array.isArray(storedRules.endConditions)) ? storedRules.endConditions.slice() : []
+  };
+
+  var overlay = document.createElement('div');
+  overlay.id = 'kassajakso-hallinta-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6);'
+    + 'display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+  var box = document.createElement('div');
+  box.id = 'kassajakso-hallinta-box';
+  box.style.cssText = 'background:var(--surface);border:1px solid var(--border-bright);border-radius:12px;'
+    + 'padding:18px 20px;max-width:min(400px,92vw);max-height:80vh;overflow-y:auto;'
+    + 'box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  _renderKassajaksoHallintaBox(latest);
+};
+
+// Tallentaa nykyisen UI-tilan olemassa olevaan finos_kassajakso_rules-
+// rakenteeseen (ei muuta rakennetta) ja päivittää taustan (Hero/Odote)
+// reaaliaikaisesti. Modal on liitetty document.body:iin #db-content:in
+// ulkopuolelle, joten renderDashboard() ei sulje sitä.
+function _kjhPersist() {
+  var st = window._kassajaksoHallintaState;
+  if (!st) return;
+  if (st.strategy === 'default') {
+    localStorage.removeItem(KASSAJAKSO_RULES_KEY);
+  } else if (st.strategy === 'open') {
+    saveKassajaksoRules({ version: 1, strategy: 'open', endConditions: [] });
+  } else {
+    saveKassajaksoRules({ version: 1, strategy: 'rules', endConditions: st.endConditions });
+  }
+  if (typeof renderDashboard === 'function') renderDashboard();
+}
+
+function _renderKassajaksoHallintaBox(latest) {
+  var box = document.getElementById('kassajakso-hallinta-box');
+  if (!box) return;
+  var st = window._kassajaksoHallintaState;
+  box.innerHTML = '';
+
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+  hdr.innerHTML = '<span style="font-size:13px;font-weight:700;color:var(--card-primary,var(--text));">'
+    + '<span class="card-dot"></span>Kassajakson hallinta</span>'
+    + '<button title="Sulje" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>';
+  hdr.querySelector('button').addEventListener('click', function() {
+    var ov = document.getElementById('kassajakso-hallinta-overlay');
+    if (ov) ov.remove();
+  });
+  box.appendChild(hdr);
+
+  var intro = document.createElement('div');
+  intro.style.cssText = 'font-size:12px;color:var(--text3);margin-bottom:14px;';
+  intro.textContent = 'Määritä milloin kassajakso päättyy.';
+  box.appendChild(intro);
+
+  // ── Strategia ──
+  var stratWrap = document.createElement('div');
+  stratWrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-bottom:14px;';
+
+  function strategyOption(value, label, desc) {
+    var lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:flex-start;gap:8px;cursor:pointer;';
+    var radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'kjh_strategy';
+    radio.value = value;
+    radio.checked = st.strategy === value;
+    radio.style.cssText = 'margin-top:2px;accent-color:var(--cyan);cursor:pointer;';
+    radio.addEventListener('change', function() {
+      st.strategy = value;
+      _kjhPersist();
+      _renderKassajaksoHallintaBox(latest);
+    });
+    var textWrap = document.createElement('div');
+    var title = document.createElement('div');
+    title.style.cssText = 'font-size:12px;color:var(--text);font-weight:600;';
+    title.textContent = label;
+    var d = document.createElement('div');
+    d.style.cssText = 'font-size:11px;color:var(--text3);';
+    d.textContent = desc;
+    textWrap.appendChild(title);
+    textWrap.appendChild(d);
+    lbl.appendChild(radio);
+    lbl.appendChild(textWrap);
+    return lbl;
+  }
+
+  stratWrap.appendChild(strategyOption('default', 'Oletus', 'Kassajakso päättyy seuraavaan tunnettuun tuloon.'));
+  stratWrap.appendChild(strategyOption('rules', 'Määritä itse', 'Valitse itse päättymisehdot alta.'));
+  stratWrap.appendChild(strategyOption('open', 'Avoin kassajakso', 'Kassajakso ei koskaan pääty — kaikki muut ehdot poistuvat käytöstä.'));
+  box.appendChild(stratWrap);
+
+  // ── Päättymisehdot (näkyvissä vain kun strategy === 'rules') ──
+  if (st.strategy === 'rules') {
+    var candWrap = document.createElement('div');
+    candWrap.style.cssText = 'border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px;';
+    var candHdr = document.createElement('div');
+    candHdr.style.cssText = 'font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;';
+    candHdr.textContent = 'Päättymisehdot';
+    candWrap.appendChild(candHdr);
+
+    // Dynaaminen kandidaattilista tulopohjaisista rahavirroista — EI
+    // kovakoodattuja nimiä. rytmi_items (aina meno) ei ole kandidaatti,
+    // koska kassajakso päättyy tuloon, ei menoon.
+    var candidates = [];
+    (Array.isArray(latest.tulot_items) ? latest.tulot_items : []).forEach(function(x) {
+      if (x.id != null) candidates.push({ source: 'tulot_items', id: x.id, label: normalizeRecurringLabel(x.label, 'Tulo') });
+    });
+    (Array.isArray(latest.tulevat_items) ? latest.tulevat_items : []).forEach(function(x) {
+      if (x.id != null && Number(x.amount) > 0) candidates.push({ source: 'tulevat_items', id: x.id, label: normalizeRecurringLabel(x.label, 'Tulo') });
+    });
+
+    function isSelected(source, id) {
+      return st.endConditions.some(function(c) { return c.type === 'itemRef' && c.source === source && c.id === id; });
+    }
+    function toggleItemRef(source, id) {
+      var idx = st.endConditions.findIndex(function(c) { return c.type === 'itemRef' && c.source === source && c.id === id; });
+      if (idx >= 0) st.endConditions.splice(idx, 1);
+      else st.endConditions.push({ type: 'itemRef', source: source, id: id });
+    }
+
+    if (!candidates.length) {
+      var noneMsg = document.createElement('div');
+      noneMsg.style.cssText = 'font-size:12px;color:var(--text3);font-style:italic;margin-bottom:6px;';
+      noneMsg.textContent = 'Ei tulopohjaisia rahavirtoja kirjattuna.';
+      candWrap.appendChild(noneMsg);
+    }
+
+    candidates.forEach(function(c) {
+      var lbl = document.createElement('label');
+      lbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = isSelected(c.source, c.id);
+      cb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);cursor:pointer;';
+      cb.addEventListener('change', function() {
+        toggleItemRef(c.source, c.id);
+        _kjhPersist();
+        _renderKassajaksoHallintaBox(latest);
+      });
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(c.label));
+      candWrap.appendChild(lbl);
+    });
+
+    // Kuukauden viimeinen päivä
+    var monthEndSelected = st.endConditions.some(function(c) { return c.type === 'monthEnd'; });
+    var meLbl = document.createElement('label');
+    meLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+    var meCb = document.createElement('input');
+    meCb.type = 'checkbox';
+    meCb.checked = monthEndSelected;
+    meCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);cursor:pointer;';
+    meCb.addEventListener('change', function() {
+      var idx = st.endConditions.findIndex(function(c) { return c.type === 'monthEnd'; });
+      if (idx >= 0) st.endConditions.splice(idx, 1);
+      else st.endConditions.push({ type: 'monthEnd' });
+      _kjhPersist();
+      _renderKassajaksoHallintaBox(latest);
+    });
+    meLbl.appendChild(meCb);
+    meLbl.appendChild(document.createTextNode('Kuukauden viimeinen päivä'));
+    candWrap.appendChild(meLbl);
+
+    // Kiinteä päivämäärä
+    var fixedCond = st.endConditions.find(function(c) { return c.type === 'fixedDate'; });
+    var fdLbl = document.createElement('label');
+    fdLbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;font-size:12px;color:var(--text2);';
+    var fdCb = document.createElement('input');
+    fdCb.type = 'checkbox';
+    fdCb.checked = !!fixedCond;
+    fdCb.style.cssText = 'width:14px;height:14px;accent-color:var(--cyan);cursor:pointer;';
+    fdCb.addEventListener('change', function() {
+      var idx = st.endConditions.findIndex(function(c) { return c.type === 'fixedDate'; });
+      if (idx >= 0) {
+        st.endConditions.splice(idx, 1);
+      } else {
+        st.endConditions.push({ type: 'fixedDate', date: new Date().toISOString().slice(0, 10) });
+      }
+      _kjhPersist();
+      _renderKassajaksoHallintaBox(latest);
+    });
+    fdLbl.appendChild(fdCb);
+    fdLbl.appendChild(document.createTextNode('Kiinteä päivämäärä'));
+    candWrap.appendChild(fdLbl);
+
+    if (fixedCond) {
+      var dateInp = document.createElement('input');
+      dateInp.type = 'date';
+      dateInp.value = fixedCond.date;
+      dateInp.style.cssText = 'margin:4px 0 4px 22px;padding:3px 6px;font-size:12px;background:var(--surface);'
+        + 'border:1px solid var(--border);border-radius:4px;color:var(--text);';
+      dateInp.addEventListener('change', function() {
+        fixedCond.date = dateInp.value;
+        _kjhPersist();
+        _renderKassajaksoHallintaBox(latest);
+      });
+      candWrap.appendChild(dateInp);
+    }
+
+    box.appendChild(candWrap);
+  }
+
+  // ── Aktiivinen päättymispiste ──
+  var snapshotDate = new Date((latest.date || '') + 'T00:00:00');
+  var basis = describeKassajaksoBasis(latest, snapshotDate);
+  var activeWrap = document.createElement('div');
+  activeWrap.style.cssText = 'border-top:1px solid var(--border);padding-top:12px;margin-top:2px;';
+  var activeHdr = document.createElement('div');
+  activeHdr.style.cssText = 'font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;';
+  activeHdr.textContent = 'Nykyinen kassajakso päättyy';
+  var activeDate = document.createElement('div');
+  activeDate.style.cssText = 'font-size:16px;font-weight:700;color:var(--card-primary,var(--text));margin-bottom:4px;';
+  activeDate.textContent = basis.periodEnd ? _kjhFmtDate(basis.periodEnd) : 'Ei päättymispistettä';
+  var activeBasis = document.createElement('div');
+  activeBasis.style.cssText = 'font-size:12px;color:var(--text2);';
+  activeBasis.textContent = 'Peruste: ' + basis.basisLabel;
+  activeWrap.appendChild(activeHdr);
+  activeWrap.appendChild(activeDate);
+  activeWrap.appendChild(activeBasis);
+  box.appendChild(activeWrap);
+}
 
 // Odotteen selitysnäkymä: Kassajaksoon (ks. buildKassajakso) rajattu erittely
 // lähtökassasta ja jokaisesta mukaan lasketusta rahavirrasta ODOTE-summaan asti,
