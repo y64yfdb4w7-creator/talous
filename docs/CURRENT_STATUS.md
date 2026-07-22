@@ -1,10 +1,57 @@
 # CURRENT_STATUS.md
 # Finance OS — Current Status
 
-**Päivitetty:** 2026-07-21
-**Viimeisin commit:** (tuleva) `feat: extend the rahavirta editor to regular income and expense rows`
+**Päivitetty:** 2026-07-22
+**Viimeisin commit:** (tuleva) `feat: make rahavirta type and direction editable in the shared editor`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv.**)
+
+**Rahavirran tyypin ja suunnan muokkaus (22.7.2026) — valmis:**
+Laajennettu yhteistä rahavirtaeditoria (`js/ui2-v2.js`) niin, että täydessä
+muokkaustilassa (`editTarget.mode === 'edit'`) käyttäjä voi vaihtaa sekä
+rahavirran tyypin (Kertaluonteinen ↔ Säännöllinen) että erän suunnan
+(Tulo ↔ Meno) — aiemmin molemmat olivat lukittuja rivin alkuperäiseen
+listaan lukuun ottamatta `tulevat_items`-rivien Tulo/Meno-etumerkkiä.
+- `renderRahavirtaEditor()`: `prefill.lockSign` yksinkertaistettu
+  `!isFullEdit`:ksi (aiemmin myös `!isOnceType` lukitsi tulot/rytmi-rivit) —
+  Tulo/Meno-radio on nyt auki täydessä muokkauksessa kaikilla riveillä.
+- `renderRahavirtaFields()`: `regularLockAttr` sidottu `prefill.readonly`
+  (=legacy-täydennys) eikä enää blanko `prefill`-totuusarvoon — "Säännöllinen"-
+  valintaruutu on nyt auki täydessä muokkauksessa, lukittu vain legacy-
+  täydennyksessä kuten ennenkin.
+- `rahavirtaEditorSave()`: tyyppi lasketaan täydessä muokkauksessa ja uutta
+  rahavirtaa lisättäessä aina lomakkeen Tyyppi/Säännöllinen-valinnoista
+  (ei enää `editTarget.source`:sta) — legacy-täydennys pysyy ennallaan
+  lukittuna alkuperäiseen listaan. Kun lasketun kohdetaulun (`targetSource`)
+  ja `editTarget.source`:n välillä on ero, rivi **siirretään**: uusi rivi
+  lisätään oikeaan tauluun (alkuperäinen `id` säilytetään jos rivillä sellainen
+  oli) ja vanha rivi poistetaan alkuperäisestä vasta sen jälkeen — ei
+  duplikaatteja missään vaiheessa.
+- Uusi apufunktio `removeRahavirtaItem(latest, source, key)` (sama
+  `idx:`-fallback kuin `applyRahavirtaEdit`/`rahavirtaEditorDelete`) poistaa
+  siirretyn rivin alkuperäisestä taulukosta ja päivittää `tulot_kk`:n jos
+  poisto kohdistuu `tulot_items`:iin (sama laskentatapa kuin muualla
+  tiedostossa, esim. `panelTuloDelete`).
+- `Hero`, `buildKassajakso()`, `collectRahavirrat()`, laskentalogiikka,
+  snapshot-rakenne ja legacy-tuki koskematta — molemmat lukevat jo ennestään
+  yleisesti kaikkia kolmea listaa, joten siirretty rivi näkyy oikein
+  seuraavalla renderillä ilman erillistä muutosta niihin.
+**Testattu:** paikallinen staattinen palvelin, oikea koodi selaimessa
+(claude-in-chrome), aidot hiiriklikkaukset. Kaikki kuusi vaadittua
+yhdistelmää käyty läpi täydellä kierrolla (avaus → tyypin/suunnan vaihto
+lomakkeella → tallennus → DB-tarkistus): Säännöllinen tulo → Säännöllinen
+meno, Säännöllinen meno → Säännöllinen tulo, Kertaluonteinen tulo →
+Kertaluonteinen meno, Kertaluonteinen meno → Kertaluonteinen tulo,
+Säännöllinen → Kertaluonteinen, Kertaluonteinen → Säännöllinen. Jokaisessa
+tapauksessa: rivi siirtyi oikeaan taulukkoon, `id` säilyi, ei duplikaatteja,
+`tulot_kk` täsmäsi käsin laskettuun kontrolliarvoon. Hero ("ODOTE") päivittyi
+oikein jokaisen tallennuksen jälkeen. Kaikki/Säännölliset/Kertaluonteiset-
+suodatin ja kuukausiryhmittely tarkistettu sekadatalla sekamuutosten jälkeen —
+ennallaan. Legacy-täydennys (`rahavirtaEditorOpenLegacy`) testattu erikseen:
+Tyyppi/Säännöllinen/Tulo-Meno pysyivät lukittuina, tallennus täydensi vain
+päivän eikä siirtänyt riviä. Peru (muutokset hylättiin) ja Poisto editorin
+kautta (oikea rivi poistui) molemmat vahvistettu toimiviksi. Ei
+konsolivirheitä. Testidata siivottu selaimen IndexedDB:stä testien jälkeen.
 
 **Yhtenäinen muokkaus kaikille rahavirroille (21.7.2026) — valmis:**
 Laajennettu edellisten sprinttien `tulevat_items`-muokkaus koskemaan myös

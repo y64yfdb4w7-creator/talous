@@ -4346,6 +4346,22 @@ function applyRahavirtaEdit(items, key, fields) {
   return true;
 }
 
+// Poistaa rivin annetusta listasta paikallaan latest-objektissa — käytössä kun
+// rahavirran tyyppi tai suunta muuttuu muokkauksessa niin, että rivi siirtyy
+// toiseen tauluun (ks. rahavirtaEditorSave). Sama idx:-fallback kuin
+// applyRahavirtaEdit/rahavirtaEditorDelete.
+function removeRahavirtaItem(latest, source, key) {
+  var items = Array.isArray(latest[source]) ? latest[source].slice() : [];
+  var idx = (typeof key === 'string' && key.indexOf('idx:') === 0)
+    ? parseInt(key.slice(4), 10)
+    : items.findIndex(function(x) { return x.id === key; });
+  if (idx >= 0 && idx < items.length) items.splice(idx, 1);
+  latest[source] = items;
+  if (source === 'tulot_items') {
+    latest.tulot_kk = items.reduce(function(s, x) { return s + (Number(x.amt_kk) || 0); }, 0);
+  }
+}
+
 function renderRahavirtaEditor(latest) {
   if (!window._rahavirtaEditorOpen) {
     return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);">'
@@ -4360,14 +4376,13 @@ function renderRahavirtaEditor(latest) {
     if (item) {
       var isFullEdit = editTarget.mode === 'edit';
       var isOnceType = editTarget.source === 'tulevat_items';
-      // Tulo/Meno-suunta on aidosti muokattavissa vain tulevat_items-riveillä,
-      // koska se on suoraan amount-kentän etumerkki (ks. rahavirtaEditorSave).
-      // tulot_items/rytmi_items-riveillä suunta määräytyy yksinomaan siitä
-      // kummasta listasta rivi on — radion tila ei vaikuttaisi tallennukseen,
-      // joten se lukitaan siellä aina, samoin kuin legacy-täydennyksessä.
+      // Täydessä muokkaustilassa sekä Tulo/Meno-suunta että Säännöllinen-tyyppi
+      // ovat muokattavissa kaikilla riveillä (ks. rahavirtaEditorSave, joka
+      // siirtää rivin tarvittaessa oikeaan tauluun). Legacy-täydennyksessä
+      // molemmat pysyvät lukittuina rivin alkuperäiseen listaan, kuten ennenkin.
       prefill = {
         readonly: !isFullEdit,
-        lockSign: !isFullEdit || !isOnceType,
+        lockSign: !isFullEdit,
         label: item.label,
         amount: (isFullEdit && isOnceType && item.amount != null) ? Math.abs(item.amount) : item.amount,
         amt_kk: item.amt_kk
@@ -4409,12 +4424,11 @@ function renderRahavirtaEditor(latest) {
 // logiikka kuin ennenkin.
 function renderRahavirtaFields(prefill) {
   var ro = (prefill && prefill.readonly) ? ' readonly' : '';
-  // Tyypin (Tulo/Meno-lista vs. Säännöllinen-lista) vaihto ei koskaan toimi
-  // editTarget-tilassa (rahavirtaEditorSave lukee tyypin aina editTarget.source:sta),
-  // joten "Säännöllinen"-valinta lukitaan aina kun muokataan olemassa olevaa riviä.
-  // Tulo/Meno-suunta sen sijaan on muokattavissa täydessä muokkaustilassa (mode:'edit'),
-  // koska se on vain tulevat_items-rivin amount-kentän etumerkki, ei listan valinta.
-  var regularLockAttr = prefill ? ' disabled' : '';
+  // "Säännöllinen"-valinta lukitaan vain legacy-täydennyksessä (prefill.readonly),
+  // jossa tyyppi pysyy rivin alkuperäisen listan mukaisena. Täydessä muokkaustilassa
+  // (mode:'edit') ja uutta rahavirtaa lisättäessä se on muokattavissa — rahavirtaEditorSave
+  // siirtää rivin tarvittaessa oikeaan tauluun, jos tyyppi tai suunta vaihtuu.
+  var regularLockAttr = (prefill && prefill.readonly) ? ' disabled' : '';
   var signLockAttr = (prefill && prefill.lockSign) ? ' disabled' : '';
   var regular = !!window._rahavirtaRegular;
   var sign = window._rahavirtaSign || '+';
@@ -4576,16 +4590,33 @@ window.rahavirtaEditorSave = async function() {
   var monthNum = parseInt(dateMatch[2], 10);
   var dayNum = parseInt(dateMatch[3], 10);
 
-  // Täydennystilassa (editTarget) tyyppi tulee rivin alkuperäisestä listasta
-  // eikä lomakkeen Tyyppi/Säännöllinen-kontrolleista, jotka on lukittu.
+  // Legacy-täydennystilassa (editTarget ilman mode:'edit') tyyppi tulee aina
+  // rivin alkuperäisestä listasta, koska lomakkeen Tyyppi/Säännöllinen-kontrollit
+  // ovat siellä lukittuja. Täydessä muokkaustilassa (mode:'edit') ja uutta
+  // rahavirtaa lisättäessä tyyppi tulee lomakkeen valinnoista — käyttäjä voi
+  // siis vaihtaa sekä rahavirran tyypin (kertaluonteinen/säännöllinen) että
+  // suunnan (tulo/meno) muokkauksen yhteydessä.
   var typeMap = { tulot_items: 'tulo', rytmi_items: 'meno', tulevat_items: 'tulossa' };
+  var sourceMap = { tulo: 'tulot_items', meno: 'rytmi_items', tulossa: 'tulevat_items' };
   var sign = window._rahavirtaSign || '+';
   var regular = !!window._rahavirtaRegular;
-  var type = editTarget ? (typeMap[editTarget.source] || 'tulossa') : (regular ? (sign === '-' ? 'meno' : 'tulo') : 'tulossa');
+  var isLegacyComplete = !!(editTarget && editTarget.mode !== 'edit');
+  var type = isLegacyComplete ? (typeMap[editTarget.source] || 'tulossa') : (regular ? (sign === '-' ? 'meno' : 'tulo') : 'tulossa');
+  var targetSource = sourceMap[type];
+  // Jos käyttäjä vaihtoi tyypin tai suunnan niin ettei rivi enää kuulu
+  // alkuperäiseen listaan, se siirretään: uusi rivi lisätään oikeaan tauluun
+  // ja vanha poistetaan alkuperäisestä vasta sen jälkeen, ettei duplikaatteja synny.
+  var movedFrom = (editTarget && editTarget.source !== targetSource) ? editTarget.source : null;
+  var sameListEdit = editTarget && !movedFrom;
 
   var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
   if (!snaps.length) return;
   var latest = Object.assign({}, snaps[snaps.length - 1]);
+
+  // Siirrettävän rivin alkuperäinen id säilytetään mahdollisuuksien mukaan,
+  // jotta muokkaus ei hävitä tietoa vaikka rivi vaihtaa taulukkoa.
+  var movedItem = movedFrom ? findRahavirtaItem(latest, movedFrom, editTarget.key) : null;
+  var preservedId = (movedItem && movedItem.id != null) ? movedItem.id : null;
 
   if (type === 'tulossa') {
     // Legacy-täydennystilassa (editTarget ilman mode:'edit') säilytetään rivin
@@ -4593,12 +4624,12 @@ window.rahavirtaEditorSave = async function() {
     // siellä lukittu eikä käyttäjä muokkaa sitä. Uudella rivillä ja täydessä
     // muokkaustilassa (mode:'edit') summa normalisoidaan aina itseisarvona,
     // suunta tulee yksinomaan Tyyppi-valinnasta — sama periaate molemmissa.
-    var amount = (editTarget && editTarget.mode !== 'edit') ? amountRaw : (sign === '-' ? -Math.abs(amountRaw) : Math.abs(amountRaw));
+    var amount = isLegacyComplete ? amountRaw : (sign === '-' ? -Math.abs(amountRaw) : Math.abs(amountRaw));
     var tulossaItems = Array.isArray(latest.tulevat_items) ? latest.tulevat_items.slice() : [];
-    if (editTarget && editTarget.source === 'tulevat_items') {
+    if (sameListEdit) {
       applyRahavirtaEdit(tulossaItems, editTarget.key, { label: label, month: monthNum, amount: amount });
     } else {
-      tulossaItems.push({ id: 'tulossa_' + Date.now(), month: monthNum, label: label, amount: amount });
+      tulossaItems.push({ id: preservedId || ('tulossa_' + Date.now()), month: monthNum, label: label, amount: amount });
     }
     latest.tulevat_items = tulossaItems;
   } else {
@@ -4609,22 +4640,26 @@ window.rahavirtaEditorSave = async function() {
     var paiva = dayNum;
     if (type === 'tulo') {
       var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items.slice() : [];
-      if (editTarget && editTarget.source === 'tulot_items') {
+      if (sameListEdit) {
         applyRahavirtaEdit(tulotItems, editTarget.key, { label: label, amt_kk: amtKk, paiva: paiva });
       } else {
-        tulotItems.push({ id: 'tulo_' + Date.now(), label: label, amt_kk: amtKk, paiva: paiva });
+        tulotItems.push({ id: preservedId || ('tulo_' + Date.now()), label: label, amt_kk: amtKk, paiva: paiva });
       }
       latest.tulot_items = tulotItems;
       latest.tulot_kk = tulotItems.reduce(function(s,x){ return s + (Number(x.amt_kk) || 0); }, 0);
     } else {
       var menotItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
-      if (editTarget && editTarget.source === 'rytmi_items') {
+      if (sameListEdit) {
         applyRahavirtaEdit(menotItems, editTarget.key, { label: label, amt_kk: amtKk, paiva: paiva });
       } else {
-        menotItems.push({ id: 'meno_' + Date.now(), label: label, amt_kk: amtKk, paiva: paiva });
+        menotItems.push({ id: preservedId || ('meno_' + Date.now()), label: label, amt_kk: amtKk, paiva: paiva });
       }
       latest.rytmi_items = menotItems;
     }
+  }
+
+  if (movedFrom) {
+    removeRahavirtaItem(latest, movedFrom, editTarget.key);
   }
 
   latest._updatedAt = new Date().toISOString();
