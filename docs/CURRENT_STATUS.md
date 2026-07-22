@@ -2,9 +2,44 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-22
-**Viimeisin commit:** (tuleva) `feat: make rahavirta type and direction editable in the shared editor`
+**Viimeisin commit:** (tuleva) `feat: add recurrence selection for regular cashflows`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv.**)
+
+**Säännöllisten rahavirtojen toistuvuusvalinta (22.7.2026) — valmis:**
+Lisätty yhteiseen rahavirtaeditoriin (`js/ui2-v2.js`) mahdollisuus määrittää
+säännöllisen rahavirran (`tulot_items`/`rytmi_items`) toistuvuus kuukausina —
+aiemmin "Säännöllinen" tarkoitti aina kiinteästi joka kuukausi.
+- Uusi kenttä `repeat_every_months` tulo-/menoriveille. Arvot: 1 (joka kuukausi,
+  oletus), 2, 3, 4, 6 (puolivuosittain), 12 (vuosittain). Kertaluonteisilla
+  (`tulevat_items`) kenttää ei ole — ei koskaan tallenneta.
+- `renderRahavirtaFields()`: uusi "Toistuvuus"-pudotusvalikko (`rv_repeat`,
+  `.kassa-edit-select` — CSS-luokka oli jo olemassa käyttämättömänä),
+  näkyy vain kun "Säännöllinen" on valittu. Näkyvyys ohjataan suoraan DOM:sta
+  (`rahavirtaRegularChange`) ilman koko lomakkeen uudelleenrenderöintiä, jotta
+  jo kirjoitetut Nimi/Summa-kentät eivät katoa kesken täytön.
+- `renderRahavirtaEditor()`: `prefill.repeatEveryMonths` laskee esitäytön
+  arvosta `item.repeat_every_months || 1` — vanha data ilman kenttää avautuu
+  aina "Joka kuukausi" -oletuksella.
+- `rahavirtaEditorSave()`: `repeat_every_months` luetaan `rv_repeat`-valinnasta
+  ja tallennetaan vain tulo/meno-haaroissa (`applyRahavirtaEdit`-päivitys ja
+  uuden rivin `push` molemmat). Kertaluonteinen (`tulossa`) haara ei koske
+  kenttää — jos rahavirta vaihdetaan säännöllisestä kertaluonteiseksi,
+  toistuvuus ei siirry mihinkään eikä vaikuta.
+- Ei migraatiota: kentän puuttuminen vanhalla rivillä tulkitaan aina arvoksi 1.
+- `sync2.js`, `Hero`, `buildKassajakso()`, `collectRahavirrat()` ja
+  kassalaskenta koskematta — uusi kenttä on toistaiseksi pelkkää dataa, ei
+  vielä osa laskentaa (jatkosprintti).
+**Testattu:** paikallinen staattinen palvelin, oikea koodi selaimessa
+(claude-in-chrome), aidot klikkaukset ja IndexedDB-tarkistukset jokaisen
+tallennuksen jälkeen. Uusi joka-2.-kuukausi-meno tallentui `repeat_every_months:2`
+oikein. Olemassa oleva legacy-rivi ilman kenttää (`Vakuutus`) avautui editoriin
+oletuksena "Joka kuukausi" ilman virheitä, muokattiin "Puolivuosittain"-arvoon,
+tallennettiin (`repeat_every_months:6`), suljettiin editori ja avattiin rivi
+uudelleen — valinta säilyi. "Säännöllinen"-valintaruudun pois päältä kytkentä
+piilotti Toistuvuus-kentän välittömästi menettämättä jo kirjoitettua Nimi/Summa-
+sisältöä. Ei konsolivirheitä koko session aikana. Testidata siivottu selaimen
+IndexedDB:stä testien jälkeen (paluu alkuperäiseen tilaan).
 
 **Rahavirran tyypin ja suunnan muokkaus (22.7.2026) — valmis:**
 Laajennettu yhteistä rahavirtaeditoria (`js/ui2-v2.js`) niin, että täydessä

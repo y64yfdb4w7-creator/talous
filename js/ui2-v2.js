@@ -4385,7 +4385,8 @@ function renderRahavirtaEditor(latest) {
         lockSign: !isFullEdit,
         label: item.label,
         amount: (isFullEdit && isOnceType && item.amount != null) ? Math.abs(item.amount) : item.amount,
-        amt_kk: item.amt_kk
+        amt_kk: item.amt_kk,
+        repeatEveryMonths: isOnceType ? null : (item.repeat_every_months || 1)
       };
       if (isFullEdit) {
         var refDate = new Date((latest.date || '') + 'T00:00:00');
@@ -4436,6 +4437,7 @@ function renderRahavirtaFields(prefill) {
   var amountRaw = prefill ? (prefill.amt_kk != null ? prefill.amt_kk : prefill.amount) : null;
   var amountVal = (amountRaw != null) ? escAttr(amountRaw) : '';
   var dateVal = (prefill && prefill.date) ? escAttr(prefill.date) : '';
+  var repeatVal = (prefill && prefill.repeatEveryMonths) ? prefill.repeatEveryMonths : 1;
 
   function signRadio(val, label) {
     return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;">'
@@ -4459,6 +4461,17 @@ function renderRahavirtaFields(prefill) {
   html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;margin-top:2px;">'
     + '<input type="checkbox" id="rv_regular"' + (regular ? ' checked' : '') + regularLockAttr + ' onchange="rahavirtaRegularChange(this.checked)"> Säännöllinen'
     + '</label>';
+  // Toistuvuus koskee vain säännöllisiä rahavirtoja (tulot_items/rytmi_items) —
+  // kertaluonteisilla (tulevat_items) kenttä pysyy piilossa. Näkyvyys ohjataan
+  // suoraan DOM:sta (ks. rahavirtaRegularChange) ilman koko lomakkeen
+  // uudelleenrenderöintiä, jotta jo kirjoitetut kentät eivät katoa.
+  var repeatOptions = [[1, 'Joka kuukausi'], [2, 'Joka 2. kuukausi'], [3, 'Joka 3. kuukausi'], [4, 'Joka 4. kuukausi'], [6, 'Puolivuosittain'], [12, 'Vuosittain']];
+  var repeatOptsHtml = repeatOptions.map(function(o) {
+    return '<option value="' + o[0] + '"' + (Number(repeatVal) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+  }).join('');
+  html += '<div class="kassa-field-group" id="rv_repeat_group" style="' + (regular ? '' : 'display:none;') + '">'
+    + '<label class="kassa-field-label">Toistuvuus</label>'
+    + '<select class="kassa-edit-select" id="rv_repeat">' + repeatOptsHtml + '</select></div>';
   return html;
 }
 
@@ -4468,6 +4481,8 @@ window.rahavirtaSignChange = function(val) {
 
 window.rahavirtaRegularChange = function(checked) {
   window._rahavirtaRegular = checked;
+  var repeatGroup = document.getElementById('rv_repeat_group');
+  if (repeatGroup) repeatGroup.style.display = checked ? '' : 'none';
 };
 
 window.rahavirtaEditorOpen = async function() {
@@ -4638,21 +4653,23 @@ window.rahavirtaEditorSave = async function() {
     // Summa-kenttään 900 tai -900 — molemmat tallentuvat samana rahamääränä.
     var amtKk = Math.abs(amountRaw);
     var paiva = dayNum;
+    var repeatEl = document.getElementById('rv_repeat');
+    var repeatEveryMonths = parseInt((repeatEl && repeatEl.value) || '1', 10) || 1;
     if (type === 'tulo') {
       var tulotItems = Array.isArray(latest.tulot_items) ? latest.tulot_items.slice() : [];
       if (sameListEdit) {
-        applyRahavirtaEdit(tulotItems, editTarget.key, { label: label, amt_kk: amtKk, paiva: paiva });
+        applyRahavirtaEdit(tulotItems, editTarget.key, { label: label, amt_kk: amtKk, paiva: paiva, repeat_every_months: repeatEveryMonths });
       } else {
-        tulotItems.push({ id: preservedId || ('tulo_' + Date.now()), label: label, amt_kk: amtKk, paiva: paiva });
+        tulotItems.push({ id: preservedId || ('tulo_' + Date.now()), label: label, amt_kk: amtKk, paiva: paiva, repeat_every_months: repeatEveryMonths });
       }
       latest.tulot_items = tulotItems;
       latest.tulot_kk = tulotItems.reduce(function(s,x){ return s + (Number(x.amt_kk) || 0); }, 0);
     } else {
       var menotItems = Array.isArray(latest.rytmi_items) ? latest.rytmi_items.slice() : [];
       if (sameListEdit) {
-        applyRahavirtaEdit(menotItems, editTarget.key, { label: label, amt_kk: amtKk, paiva: paiva });
+        applyRahavirtaEdit(menotItems, editTarget.key, { label: label, amt_kk: amtKk, paiva: paiva, repeat_every_months: repeatEveryMonths });
       } else {
-        menotItems.push({ id: preservedId || ('meno_' + Date.now()), label: label, amt_kk: amtKk, paiva: paiva });
+        menotItems.push({ id: preservedId || ('meno_' + Date.now()), label: label, amt_kk: amtKk, paiva: paiva, repeat_every_months: repeatEveryMonths });
       }
       latest.rytmi_items = menotItems;
     }
