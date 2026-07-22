@@ -725,6 +725,17 @@ window.openOdoteModal = async function(evt) {
       + '<span style="color:' + color + ';">' + fmt(Math.abs(x.amount)) + '</span>'
       + '</div>';
   });
+  // Kassajakson päättymisraja: kaikki tähän mennessä listatut rivit kuuluvat
+  // kassajaksoon (mikään items-rivi ei ylitä periodEnd:iä, ks. buildKassajakso),
+  // joten hillitty erotin heti viimeisen rivin jälkeen tekee rajan näkyväksi
+  // ilman selitystekstiä. Näytetään vain jos jaksolla on tunnettu loppu.
+  if (kassajakso.periodEnd) {
+    calcHtml += '<div style="display:flex;align-items:center;gap:8px;margin:6px 0;">'
+      + '<div style="flex:1;border-top:1px dashed var(--border);"></div>'
+      + '<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;">Kassajakso päättyy</span>'
+      + '<div style="flex:1;border-top:1px dashed var(--border);"></div>'
+      + '</div>';
+  }
   calcHtml += '<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:700;">'
     + '<span>ODOTE</span><span style="color:' + (hero >= 0 ? 'var(--green)' : 'var(--red)') + ';">' + fmt(hero) + '</span></div>'
     + '</div>';

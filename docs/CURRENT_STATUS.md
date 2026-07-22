@@ -2,9 +2,24 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-22
-**Viimeisin commit:** (tuleva) `fix: rajaa Odote seuraavaan tunnettuun tuloon + selitysnäkymä`
+**Viimeisin commit:** (tuleva) `feat: lisää kassajakson päättymisraja Odote-modaliin`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv.**)
+
+**Odote-selitysnäkymän viimeistely: kassajakson päättymisraja (22.7.2026) — valmis:**
+Odote-selitysnäkymään lisättiin kassajakson päättymisen visuaalinen rajaus.
+Ei muutoksia laskentalogiikkaan. `openOdoteModal()`:n rahavirtaerittelyyn
+(`js/ui2-v2.js:717`) lisättiin hillitty katkoviiva-erotin ("KASSAJAKSO
+PÄÄTTYY") heti viimeisen kassajaksoon kuuluvan rivin jälkeen, ennen
+ODOTE-summariviä — näkyy vain kun jaksolla on tunnettu loppu
+(`kassajakso.periodEnd`). Koska mikään `items`-rivi ei koskaan ylitä
+`periodEnd`:iä, erotin asettuu rakenteellisesti oikeaan kohtaan ilman
+erillistä indeksin etsintää. Ei uusia värejä eikä komponentteja — sama
+`var(--border)`/`var(--text3)`-tyyli kuin modalin muissa osiorivien
+otsikoissa. `buildKassajakso()`, `heroSum()`, `kassaValisumma()` koskematta.
+**Testattu:** selainverifiointi siemennetyllä snapshotilla — erotin näkyy
+"+ Palkka"-rivin jälkeen ja ennen ODOTE-riviä, ODOTE-arvo pysyi 5874 €:ssa,
+"Ei mukana tässä Odotteessa" -osio muuttumaton, ei konsolivirheitä.
 
 **Odote-laskennan auditointi + selitysnäkymä (22.7.2026) — valmis:**
 Auditoitiin koko Odote-laskentaketju (`lahtokassaOf` → `collectRahavirrat` →
