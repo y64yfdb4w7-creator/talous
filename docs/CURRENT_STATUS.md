@@ -2,9 +2,51 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-22
-**Viimeisin commit:** (tuleva) `feat: kertaluonteisen rahavirran kuittaus`
+**Viimeisin commit:** (tuleva) `feat: kassajakson päättymisviiva Rahavirrat-listaan`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+
+**Kassajakson päättymisviiva Rahavirrat-listaan (22.7.2026) — valmis:**
+Puhdas visuaalinen lisäys (`js/ui2-v2.js`, `renderTulossaList()`), ei muutoksia
+laskentalogiikkaan. Auditoitiin ensin `collectRahavirrat()`, `buildKassajakso()`
+ja `renderTulossaList()` — RAHAVIRRAT-lista käyttää `collectRahavirrat()`:in
+rajaamatonta joukkoa (LUKITTU tuotepäätös #14), joten kassajakson päättymispiste
+(`buildKassajakso(snap).periodEnd`) piti hakea erikseen samaa funktiota
+kutsumalla, uutta laskentaa ei kirjoitettu.
+- Lisätty `buildKassajakso(snap).periodEnd`-kutsu `renderTulossaList()`:n
+  alkuun. Rivien renderöintisilmukassa (kuukausiryhmien sisällä, ennen
+  jokaista riviä) tarkistetaan onko rivi ensimmäinen jonka `date` ylittää
+  `periodEnd`:in — jos on, katkoviiva lisätään juuri ennen sitä ja merkitään
+  näytetyksi (`dividerShown`), jottei sitä toisteta.
+- Katkoviiva on sama HTML/tyyli kuin `openOdoteModal()`:in "Kassajakso
+  päättyy" -erotin (`border-top:1px dashed var(--border)`, keskellä
+  pieni versaaliteksti) — kopioitu sellaisenaan, ei uutta CSS:ää eikä väriä.
+- Näytetään riippumatta RAHAVIRRAT-listan suodattimesta (Kaikki/Säännölliset/
+  Kertaluonteiset) — suodatinlogiikkaa itseään ei muutettu, viiva vain
+  asettuu sen hetkisen näkyvän rivijoukon sisälle oikeaan kohtaan.
+- Koska `periodEnd` tulee suoraan `buildKassajakso()`:sta, se sisältää jo
+  valmiiksi OP Gold -laajennuksen (`applyOpGoldExtension`) ja kaikki
+  Kassajakson hallinta -sääntömoottorin strategiat (Oletus/Määritä itse/
+  Avoin) — viiva siirtyy automaattisesti ilman erillistä koodia. Jos jakso
+  on avoin (`periodEnd === null`) tai mikään näkyvä rivi ei ylitä sitä
+  (esim. kaikki rivit mahtuvat jaksoon), viivaa ei näytetä lainkaan.
+- `collectRahavirrat()`, `buildKassajakso()`, `heroSum()`, `kassaValisumma()`,
+  rahavirtojen järjestys ja suodattimet koskematta.
+**Testattu (selain, claude-in-chrome, siemennetty IndexedDB-snapshot: Palkka
+25.7. +2500, Vuokra 28.7. −900, Bonus 1.8. +200, Auton huolto 1.8. −300,
+Syyskuun meno 1.9. −100):** Oletusstrategia (periodEnd 25.7., ODOTE 3200 €) —
+viiva Palkan ja Vuokran välissä. Määritä itse, kiinteä päivämäärä 26.7.
+(ODOTE 3200 €) — viiva samassa kohdassa kuin Oletuksella (täsmää Odote-
+modaliin). Määritä itse, `itemRef`-ehto osuen samaan päivään kuin toinen rivi
+(Bonus 1.8., ODOTE 3200 €) — ei viivaa, koska mikään näkyvä rivi ei ylittänyt
+periodEnd:iä (odotettu, ei virhe). OP Gold päällä (Oletus + OP Gold, ODOTE
+2200 €) — viiva siirtyi automaattisesti heinäkuun ja elokuun riveiltä
+syyskuun rivin eteen, sisällytti Vuokran/Bonuksen/Auton huollon. Avoin
+kassajakso (ODOTE 2100 €) — ei viivaa lainkaan. Kertaluonteiset-suodatin
+kiinteällä päivämäärällä — viiva näkyi oikeassa kohdassa myös suodatetussa
+listassa. Ei konsolivirheitä koko testisarjan aikana. Testidata ja
+`finos_kassajakso_rules` siivottu selaimen IndexedDB:stä/localStoragesta
+testien jälkeen.
 
 **Kertaluonteisen rahavirran kuittaus (22.7.2026) — valmis:**
 Mahdollistaa kertaluonteisen tulevan rahavirran ("Kertaluonteinen") merkitsemisen

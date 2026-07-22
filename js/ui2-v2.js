@@ -4974,6 +4974,22 @@ function renderTulossaList() {
     return true;
   }).slice().sort(function(a, b) { return a.date - b.date; });
 
+  // Kassajakson päättymisviiva: sama periodEnd kuin Odote/Hero käyttävät
+  // (buildKassajakso, ei uutta laskentaa) — sisältää jo OP Gold -laajennuksen,
+  // joten viiva siirtyy automaattisesti oikeaan kohtaan ilman erillistä
+  // koodia. Näytetään riippumatta suodattimesta, heti viimeisen kassajaksoon
+  // kuuluvan rivin jälkeen (ensimmäisen sen jälkeisen rivin edellä) — jos
+  // jakso on avoin (periodEnd null) tai mikään näkyvä rivi ei ylitä sitä,
+  // viivaa ei näytetä. Sama visuaalinen tyyli kuin openOdoteModal:in
+  // "Kassajakso päättyy" -erotin.
+  var kassajaksoPeriodEnd = snap ? buildKassajakso(snap).periodEnd : null;
+  var dividerShown = false;
+  var dividerHtml = '<div style="display:flex;align-items:center;gap:8px;margin:6px 0;">'
+    + '<div style="flex:1;border-top:1px dashed var(--border);"></div>'
+    + '<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;">Kassajakso päättyy</span>'
+    + '<div style="flex:1;border-top:1px dashed var(--border);"></div>'
+    + '</div>';
+
   var monthNames = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu','Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'];
   var groups = {};
   var order = [];
@@ -4989,6 +5005,10 @@ function renderTulossaList() {
     var mName = (mNum >= 1 && mNum <= 12) ? monthNames[mNum - 1] : (m || '—');
     html += '<div class="kassa-month-hdr">' + mName + '</div>';
     groups[m].forEach(function(x) {
+      if (kassajaksoPeriodEnd && !dividerShown && x.date.getTime() > kassajaksoPeriodEnd.getTime()) {
+        html += dividerHtml;
+        dividerShown = true;
+      }
       if (x.source === 'tulevat_items') {
         var item = x.ref;
         // Sama taaksepäin yhteensopiva tunniste kuin säännöllisten rivien poistossa
