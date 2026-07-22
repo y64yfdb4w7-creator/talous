@@ -2,9 +2,70 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-23
-**Viimeisin commit:** (tuleva) `feat: seuraava kassajakso -yhteenveto`
+**Viimeisin commit:** (tuleva) `fix: seuraavan kassajakson säännölliset tulot -bugi`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv. — 23.7.2026 (Seuraava kassajakso -yhteenveto): 5635 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv. — 23.7.2026 (Seuraava kassajakso -yhteenveto): 5635 riv. — 23.7.2026 (bugikorjaus: säännölliset tulot): 5645 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+
+**Bugikorjaus: Seuraava kassajakso ei löytänyt säännöllisiä tuloja (23.7.2026) — valmis:**
+Bugi: "SEURAAVA KASSAJAKSO → TULOT → Säännölliset" näytti +0 € vaikka
+sovelluksessa oli seuraavaan kassajaksoon kuuluvia säännöllisiä tuloja.
+Rahavirrat-lista näytti samat tulot oikein — vika oli siis rajattu
+`buildSeuraavaKassajakso()`:iin, ei `collectRahavirrat()`:iin itseensä.
+
+**Todellinen syy:** `nextRecurringDayDate()` (jota `collectRahavirrat()`
+käyttää) palauttaa jokaiselle säännölliselle rahavirralle vain YHDEN,
+annetusta `snapshotDate`:sta seuraavan ajankohdan — ei toistuvaa sarjaa.
+Edellisessä sprintissä (23.7.2026, "Seuraava kassajakso -yhteenveto")
+`buildSeuraavaKassajakso()` käytti seuraavan jakson kandidaattijoukkona
+suoraan `buildKassajakso()`:n jo laskemaa `kassajakso.excludedItems`-
+joukkoa uuden `collectRahavirrat()`-kutsun sijaan (tarkoituksellinen
+päätös, ks. yllä oleva "Seuraava kassajakso -yhteenveto"-kirjaus). Tämä
+petti aina kun sama rahavirta, joka MÄÄRITTÄÄ nykyisen kassajakson
+`periodEnd`:in (esim. ainoa/aikaisin säännöllinen tulo), on se ainoa
+laskettu ajankohta osuu tasan `periodEnd`:iin — jolloin se päätyy
+`kassajakso.items`-joukkoon, ei `excludedItems`-joukkoon, eikä sen
+seuraava (esim. ensi kuukauden) toistuma näkynyt seuraavan jakson
+kandidaateissa lainkaan. Edellisen sprintin selaintesti ei paljastanut
+tätä, koska testidatassa oli KAKSI säännöllistä tuloa — toisen ainoa
+ajankohta sattui jo luonnostaan `excludedItems`-joukkoon, mikä peitti
+bugin. Vika ei liittynyt OP Gold -laajennukseen eikä kassajakson
+päättymisen rajaussääntöihin itseensä — molemmat resolvoivat `periodEnd`:in
+edelleen oikein, syöttöjoukko vain oli väärä.
+
+**Korjaus (`js/ui2-v2.js`, `buildSeuraavaKassajakso()`):** yhden rivin
+muutos — kandidaattijoukko haetaan nyt kutsumalla `collectRahavirrat()`
+uudelleen `nextRefDate`:lla (`periodEnd + 1 vrk`, sama referenssipiste
+kuin ennenkin) `kassajakso.excludedItems`:in sijaan. Sama funktio, ei
+uutta laskentalogiikkaa — vain oikea ankkuripiste, joka antaa jokaiselle
+rahavirralle sen todellisen seuraavan ajankohdan tästä pisteestä katsottuna.
+`resolveBaseKassajaksoPeriodEnd`/`applyOpGoldExtension`-pari ja niiden
+kutsujärjestys ei muuttunut. `kassajakso.excludedItems` itsessään säilyy
+koskemattomana — Odote-modali (`openOdoteModal`) käyttää sitä yhä samalla
+tavalla kuin ennen.
+
+**Testattu (Node-harness, funktiot eristetty suoraan `js/ui2-v2.js`:stä,
+localStorage-stub `finos_kassajakso_rules`-säännöille):**
+- ✓ Oletus, yksi säännöllinen tulo (Palkka 25.7.): Säännölliset +2000 €
+  (ennen korjausta +0 €).
+- ✓ Useita säännöllisiä tuloja (Palkka 25.7. + Vuokratulo 5.8.): seuraava
+  jakso päättyy oikein Vuokratulon 5.8.-toistumaan, Säännölliset +500 €;
+  Palkan 25.8.-toistuma oikein jätetty tämän jakson ulkopuolelle (sama
+  "seuraava tunnettu tulo" -sääntö pätee rekursiivisesti).
+- ✓ Säännöllinen + kertaluonteinen tulo: Säännölliset 0 €, Ilmoitetut
+  +300 €, ei sekoittumista.
+- ✓ Ei tuloja (vain meno): nykyinen kassajakso avoin, `buildSeuraava
+  Kassajakso` palauttaa `null` kuten ennenkin — ei kaadu.
+- ✓ Määritä itse (rules, itemRef): sama sääntö resolvoituu uudelleen
+  seuraavalle jaksolle uudella ankkurilla, Säännölliset +2300 €.
+- ✓ OP Gold -laajennus: nykyinen jakso laajenee 3.8. kuten ennen; seuraava
+  jakso laajenee samalla säännöllä 3.9. asti, Säännölliset +2400 €.
+- ✓ Avoin kassajakso (`strategy:'open'`): `periodEnd` pysyy `null`:na,
+  `buildSeuraavaKassajakso` palauttaa `null`.
+- ✓ Ei konsolivirheitä yhdessäkään testissä.
+
+Ei muutettu Heroa, Odotetta, Rahavirrat-listaa eikä kassajakson
+päättymisen sääntöjä — korjaus rajattu `buildSeuraavaKassajakso()`:n
+kandidaattijoukon lähteeseen.
 
 **Seuraava kassajakso -yhteenveto (23.7.2026) — valmis:**
 Lisätty Kassa-korttiin uusi osio nykyisen LOPPUTILANNE-rivin alle. **Ei

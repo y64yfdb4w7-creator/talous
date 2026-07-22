@@ -2860,17 +2860,29 @@ function kassaValisumma(latest) {
 // Seuraava kassajakso -yhteenveto (23.7.2026, suunnittelupäätös 22.7.2026):
 // EI ennuste — näyttää vain LOPPUTILANTEEN jälkeisen, jo tiedossa olevan
 // rahavirtajoukon samalla säännöllä kuin buildKassajakso laskee nykyisen
-// jakson päättymisen. Ei uutta collectRahavirrat()-kutsua eikä rinnakkaista
-// laskentaa: käyttää suoraan buildKassajakso():n jo laskemaa
-// kassajakso.excludedItems-joukkoa (kaikki tiedossa olevat rahavirrat
-// nykyisen periodEnd:in jälkeen) ja hakee seuraavan jakson päättymispisteen
-// kutsumalla täsmälleen samaa resolveBaseKassajaksoPeriodEnd/
-// applyOpGoldExtension-paria kuin buildKassajakso, periodEnd:istä uutena
-// lähtöpisteenä. Referenssipäiväksi käytetään periodEnd + 1 vrk (ei
-// periodEnd itse), koska "monthEnd"-sääntö laskisi muuten saman kuukauden
-// uudelleen jos periodEnd sattuu jo olemaan kuukauden viimeinen päivä —
-// sama "seuraavan on oltava aidosti myöhempi" -periaate kuin
-// nextRecurringDayDate/nextMonthOnlyDate jo noudattavat.
+// jakson päättymisen. Hakee seuraavan jakson päättymispisteen kutsumalla
+// täsmälleen samaa resolveBaseKassajaksoPeriodEnd/applyOpGoldExtension-
+// paria kuin buildKassajakso, periodEnd:istä uutena lähtöpisteenä.
+// Referenssipäiväksi käytetään periodEnd + 1 vrk (ei periodEnd itse),
+// koska "monthEnd"-sääntö laskisi muuten saman kuukauden uudelleen jos
+// periodEnd sattuu jo olemaan kuukauden viimeinen päivä — sama "seuraavan
+// on oltava aidosti myöhempi" -periaate kuin nextRecurringDayDate/
+// nextMonthOnlyDate jo noudattavat.
+// BUGIKORJAUS (23.7.2026): candidateItems haetaan UUDELLA collectRahavirrat-
+// kutsulla (nextRefDate:iin ankkuroituna), EI kassajakso.excludedItems-
+// joukosta. collectRahavirrat/nextRecurringDayDate palauttaa jokaiselle
+// säännölliselle rahavirralle vain YHDEN, snapshotDate:sta seuraavan
+// ajankohdan — ei toistuvaa sarjaa. Kun rahavirta ITSE määrittää nykyisen
+// periodEnd:in (tyypillisesti ainoa/aikaisin säännöllinen tulo), sen ainoa
+// laskettu ajankohta osuu periodEnd:iin ja päätyy kassajakso.items-
+// joukkoon, ei excludedItems-joukkoon — jolloin se puuttui kokonaan
+// seuraavan jakson kandidaateista eikä sen seuraava (esim. ensi kuukauden)
+// toistuma näkynyt "Säännölliset"-rivillä lainkaan (näkyi +0 €:na vaikka
+// säännöllisiä tuloja oli). Kutsumalla collectRahavirrat uudelleen
+// nextRefDate:lla saadaan jokaiselle rahavirralle sen todellinen seuraava
+// ajankohta TÄSTÄ referenssipisteestä — sama funktio, ei uutta laskenta-
+// logiikkaa, vain oikea ankkuripiste. kassajakso.excludedItems säilyy
+// koskemattomana (Odote-modali käyttää sitä yhä, ks. openOdoteModal).
 // "Harvemmin toistuvat" (repeat_every_months > 1) -erillisosiota EI
 // toteutettu tässä sprintissä (käyttäjän suunnittelupäätös 22.7.2026, ks.
 // CURRENT_STATUS.md) — nykyinen tietomalli ei tallenna näille ankkuria,
@@ -2882,8 +2894,8 @@ function buildSeuraavaKassajakso(latest, kassajakso, hero) {
   var periodEnd = kassajakso.periodEnd;
   if (!periodEnd) return null;
 
-  var candidateItems = kassajakso.excludedItems;
   var nextRefDate = new Date(periodEnd.getTime() + 86400000);
+  var candidateItems = collectRahavirrat(latest, nextRefDate);
   var rules = loadKassajaksoRules();
   var basePeriodEnd = resolveBaseKassajaksoPeriodEnd(latest, nextRefDate, candidateItems);
   var opGoldResult = applyOpGoldExtension(rules, candidateItems, nextRefDate, basePeriodEnd);
