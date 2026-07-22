@@ -2,9 +2,29 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-22
-**Viimeisin commit:** (tuleva) `feat: kassajakson hallinta -modal sääntömoottorin päälle`
+**Viimeisin commit:** (tuleva) `fix: väritä Ei mukana tässä Odotteessa -rivit tulo/meno-värein`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv.**)
+
+**Odote-modalin värikorjaus: "Ei mukana tässä Odotteessa" (22.7.2026) — valmis:**
+Pelkkä visuaalinen korjaus, ei vaikutuksia laskentaan. Rivit "Ei mukana
+tässä Odotteessa" -osiossa (`openOdoteModal`, `js/ui2-v2.js:1085`)
+käyttivät aiemmin yhtä neutraalia väriä (`var(--text3)`) tulolle ja
+menolle molemmille. Väritetty nyt samalla väriparilla kuin muualla
+Kassa-kortissa (`renderTulossaList`:in `amtColor`-käytäntö): meno
+(`amount < 0`) punaisena `var(--expense)`, tulo vihreänä `var(--green)`
+— sekä rivin teksti että summa samalla värillä. Ei uusia värejä, ei uusia
+CSS-luokkia, olemassa olevat Design Systemin muuttujat. Laskenta
+(`buildKassajakso`, `heroSum`, `kassaValisumma`), rahavirtojen järjestys
+ja modalin rakenne koskematta.
+
+**Testattu:** selainverifiointi demo-datalla — elokuun/syyskuun/lokakuun
+excludedItems-rivit (Sali, Ruokakauppa, Kesälomamatka, Auton huolto,
+Asuntolaina, Sähkö, Vakuutukset, Kesämökin remontti = menot) näkyivät
+punaisina, ja (Bonus, Vuokratulo, Sivutulo, Osinko, Verottajan palautus,
+Joulupukki = tulot) vihreinä, rivin teksti ja summa samalla värillä.
+ODOTE pysyi ennallaan (7 845 €), Rahavirrat-lista ja Dashboard
+muuttumattomia, ei konsolivirheitä.
 
 **Kassajakson hallinta -modal (UX-sprintti, 22.7.2026) — valmis:**
 Lisätty käyttöliittymä jo olemassa olevan kassajakson sääntömoottorin

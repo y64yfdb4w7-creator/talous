@@ -1083,9 +1083,13 @@ window.openOdoteModal = async function(evt) {
     var exHtml = '<div>'
       + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Ei mukana tässä Odotteessa</div>';
     sortedExcluded.forEach(function(x) {
-      exHtml += '<div style="font-size:12px;color:var(--text3);display:flex;justify-content:space-between;">'
-        + '<span>' + fmtItemDate(x.date) + ' ' + itemLabel(x) + '</span>'
-        + '<span>' + fmt(Math.abs(x.amount)) + '</span>'
+      // Sama väripari kuin muualla Kassa-kortissa (ks. renderTulossaList
+      // amtColor) — meno punaisena (var(--expense)), tulo vihreänä
+      // (var(--green)), rivin teksti ja summa samalla värillä.
+      var color = x.amount < 0 ? 'var(--expense)' : 'var(--green)';
+      exHtml += '<div style="font-size:12px;display:flex;justify-content:space-between;">'
+        + '<span style="color:' + color + ';">' + fmtItemDate(x.date) + ' ' + itemLabel(x) + '</span>'
+        + '<span style="color:' + color + ';">' + fmt(Math.abs(x.amount)) + '</span>'
         + '</div>';
     });
     exHtml += '</div>';
