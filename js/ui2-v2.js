@@ -4999,8 +4999,16 @@ function renderTulossaList() {
         var itemKey = item.id != null ? item.id : ('idx:' + snap.tulevat_items.indexOf(item));
         var sign = (item.amount > 0) ? '+' : '';
         var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--expense)' : 'var(--text3)');
+        // Kuittausruutu vain kertaluonteisilla (tulevat_items) riveillä —
+        // säännöllisiin ei kosketa (ks. else-haara alla). Ruutu ei itsessään
+        // tallenna tilaa: onchange avaa vahvistusmodalin, joka joko poistaa
+        // rivin tulevat_items-taulukosta (kuitattu) tai palauttaa ruudun
+        // rastittomaksi (peruttu) — ks. rahavirtaKuittausConfirm.
         html += '<div class="kassa-view-row" onclick="rahavirtaEditorOpenEdit(\'tulevat_items\',\'' + itemKey + '\')">' +
+          '<span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' +
+          '<input type="checkbox" class="rv-once-check" title="Merkitse hoidetuksi" onclick="event.stopPropagation();" onchange="rahavirtaKuittausConfirm(this,\'' + itemKey + '\')" style="width:14px;height:14px;flex-shrink:0;accent-color:var(--cyan);cursor:pointer;">' +
           '<span class="kassa-vr-label" style="color:' + amtColor + '">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
+          '</span>' +
           '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
           '</div>';
       } else {
@@ -5041,6 +5049,91 @@ window.rahavirtaFilterSet = function(mode) {
   window._rahavirtaFilter = mode;
   renderTulossaList();
 };
+
+// ── Kertaluonteisen rahavirran kuittaus (sprint 22.7.2026) ──────────────
+// Käyttäjän näkökulmasta rahavirta "merkitään hoidetuksi" — toteutuksessa
+// tämä on rivin poisto tulevat_items-taulukosta, koska kaikki näkymät
+// (Rahavirrat-lista, Kassajakso, Odote, Hero) lukevat saman taulukon joko
+// suoraan tai collectRahavirrat()/buildKassajakso():n kautta. Yhden rivin
+// poisto pitää datan siis automaattisesti yhtenäisenä kaikkialla — ei uutta
+// "hoidettu"-kenttää, ei arkistoa. Koskee vain kertaluonteisia; säännöllisiin
+// rahavirtoihin ei kosketa.
+function _tulevatItemIsActiveEndCondition(itemId) {
+  if (itemId == null) return false;
+  var rules = loadKassajaksoRules();
+  if (!rules || rules.strategy !== 'rules') return false;
+  var conditions = Array.isArray(rules.endConditions) ? rules.endConditions : [];
+  return conditions.some(function(c) { return c.type === 'itemRef' && c.source === 'tulevat_items' && c.id === itemId; });
+}
+
+window.rahavirtaKuittausConfirm = function(checkboxEl, itemKey) {
+  var existing = document.getElementById('rahavirta-kuittaus-overlay');
+  if (existing) existing.remove();
+
+  // itemKey on idx:-fallback vain riveillä joilla ei ole id:tä lainkaan —
+  // tällaiseen riviin ei voi viitata itemRef-päättymisehdolla, joten
+  // varoitus tarkistetaan vain kun itemKey on todellinen id.
+  var isEndCondition = (typeof itemKey === 'string' && itemKey.indexOf('idx:') !== 0)
+    && _tulevatItemIsActiveEndCondition(itemKey);
+
+  function cancel() {
+    checkboxEl.checked = false;
+    overlay.remove();
+  }
+
+  var overlay = document.createElement('div');
+  overlay.id = 'rahavirta-kuittaus-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.6);'
+    + 'display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) cancel(); });
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface);border:1px solid var(--border-bright);border-radius:12px;'
+    + 'padding:18px 20px;max-width:min(320px,92vw);box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+
+  var warningHtml = isEndCondition
+    ? '<div style="font-size:12px;color:var(--text2);background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:12px;">'
+      + '<div style="font-weight:700;color:var(--card-primary,var(--text));margin-bottom:4px;">Huomio</div>'
+      + 'Tämä rahavirta on tällä hetkellä yksi kassajakson päättymisehdoista. Jos merkitset sen hoidetuksi, kassajakso lasketaan uudelleen.'
+      + '</div>'
+    : '';
+
+  box.innerHTML = warningHtml
+    + '<div style="font-size:13px;color:var(--text);margin-bottom:6px;">Merkitäänkö tämä rahavirta hoidetuksi?</div>'
+    + '<div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Hoidettu rahavirta poistuu tulevista rahavirroista ja kassajakso lasketaan uudelleen.</div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    + '<button id="rv-kuittaus-cancel" class="kassa-cancel-btn">Peruuta</button>'
+    + '<button id="rv-kuittaus-confirm" class="kassa-save-btn">Merkitse hoidetuksi</button>'
+    + '</div>';
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  box.querySelector('#rv-kuittaus-cancel').addEventListener('click', cancel);
+  box.querySelector('#rv-kuittaus-confirm').addEventListener('click', function() {
+    overlay.remove();
+    rahavirtaKuittausApply(itemKey);
+  });
+};
+
+// Poistaa kuitatun kertaluonteisen rivin tulevat_items-taulukosta — sama
+// idx:/id-fallback-kaava kuin rahavirtaEditorDelete/panelTuloDelete/
+// panelMenoDelete.
+window.rahavirtaKuittausApply = async function(itemKey) {
+  var snaps = (await DB.getAll('snapshots')).sort(function(a, b) { return a.date.localeCompare(b.date); });
+  if (!snaps.length) return;
+  var latest = Object.assign({}, snaps[snaps.length - 1]);
+  var items = Array.isArray(latest.tulevat_items) ? latest.tulevat_items.slice() : [];
+  var idx = (typeof itemKey === 'string' && itemKey.indexOf('idx:') === 0)
+    ? parseInt(itemKey.slice(4), 10)
+    : items.findIndex(function(x) { return x.id === itemKey; });
+  if (idx >= 0 && idx < items.length) items.splice(idx, 1);
+  latest.tulevat_items = items;
+  latest._updatedAt = new Date().toISOString();
+  await DB.putSnapshot(latest);
+  try { setTimeout(function() { if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch (e) {}
+  await renderDashboard();
+};
+
 // ── RAHAVIRTA: yhteinen "+ Lisää rahavirta" -editori (Tulossa / Säännöllinen tulo / Säännöllinen meno) ──
 
 // Legacy-ilmoitus: näkyy vain jos snapshotilla on rahavirtoja ilman kelvollista

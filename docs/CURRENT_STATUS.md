@@ -2,9 +2,61 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-22
-**Viimeisin commit:** (tuleva) `feat: OP Gold -laajennus + kassajakson läpinäkyvyys Odote-modaliin`
+**Viimeisin commit:** (tuleva) `feat: kertaluonteisen rahavirran kuittaus`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+
+**Kertaluonteisen rahavirran kuittaus (22.7.2026) — valmis:**
+Mahdollistaa kertaluonteisen tulevan rahavirran ("Kertaluonteinen") merkitsemisen
+hoidetuksi käyttäjän näkökulmasta — ei koske säännöllisiä rahavirtoja. Auditoinnin
+perusteella kaikki neljä näkymää (RAHAVIRRAT-lista, Kassajakson hallinta -modal,
+Odote-modal, Hero) lukevat kertaluonteiset rahavirrat samasta `tulevat_items`-
+taulukosta joko suoraan tai `collectRahavirrat()`/`buildKassajakso()`:n kautta —
+yhden rivin poisto tästä taulukosta riittää siis pitämään datan yhtenäisenä
+kaikkialla ilman erillisiä muutoksia niihin. **Ei uutta "hoidettu"-kenttää, ei
+arkistoa, ei undo-toimintoa** (käyttäjän suunnittelupäätös).
+- `renderTulossaList()` (`js/ui2-v2.js`): jokaisen `tulevat_items`-rivin eteen
+  lisätty valintaruutu (vain kertaluonteisille — säännöllisten `else`-haaraan
+  ei kosketa). Ruutu ei itsessään tallenna tilaa: `onchange` avaa vahvistus-
+  modalin sen sijaan että muuttaisi mitään suoraan; ruudun oma klikkaus
+  pysäytetään (`stopPropagation`) ettei se avaa rivin muokkauseditoria.
+- Uusi `rahavirtaKuittausConfirm(checkboxEl, itemKey)`: sama visuaalinen kaava
+  kuin Odote-/Kassajakson hallinta -modaleissa (oma overlay+box, `.kassa-save-btn`/
+  `.kassa-cancel-btn`). Teksti: "Merkitäänkö tämä rahavirta hoidetuksi? Hoidettu
+  rahavirta poistuu tulevista rahavirroista ja kassajakso lasketaan uudelleen."
+  Peruuta palauttaa ruudun rastittomaksi eikä muuta dataa.
+- **Varoitus aktiivisesta päättymisehdosta:** jos kuitattava rivi on tällä
+  hetkellä yksi Kassajakson hallinta -sääntömoottorin `itemRef`-päättymis-
+  ehdoista (`loadKassajaksoRules()`, `strategy:'rules'`), vahvistusmodaliin
+  lisätään "Huomio"-varoitus ennen kysymystä: "Tämä rahavirta on tällä hetkellä
+  yksi kassajakson päättymisehdoista. Jos merkitset sen hoidetuksi, kassajakso
+  lasketaan uudelleen." Tarkistus (`_tulevatItemIsActiveEndCondition`) ohitetaan
+  id:ttömille riveille (`idx:`-fallback), koska niihin ei voi ylipäätään viitata
+  `itemRef`-ehdolla.
+- Uusi `rahavirtaKuittausApply(itemKey)`: poistaa rivin `tulevat_items`-
+  taulukosta samalla `idx:`/`id`-fallback-kaavalla kuin `rahavirtaEditorDelete`/
+  `panelTuloDelete`/`panelMenoDelete`, tallentaa snapshotin, synkkaa taustalla,
+  `renderDashboard()`. Jos rivi oli aktiivinen päättymisehto, `resolveKassajaksoRules()`
+  putoaa jo olemassa olevaan turvaverkkoon (poistettuun riviin viittaava ehto ei
+  resolvoidu → "seuraava tunnettu tulo" -oletus) — ei erillistä siivousta rules-
+  rakenteeseen tarvittu.
+- `collectRahavirrat()`, `buildKassajakso()`, `heroSum()`, `kassaValisumma()`,
+  `openOdoteModal()`, `openKassajaksoHallintaModal()`-kandidaattilista koskematta
+  — kaikki perivät poiston automaattisesti samasta `tulevat_items`-taulukosta.
+**Testattu (selain, claude-in-chrome, siemennetty IndexedDB-snapshot):** kolme
+kertaluonteista riviä (Kesälomamatka -800, Testi +150, Auton huolto -300) ja yksi
+säännöllinen (Palkka) — checkbox näkyi vain kertaluonteisilla. Peruuta-testi:
+ruutu palautui rastittomaksi, rivi/Lopputilanne (3200 €) muuttumattomia. Varoitus-
+testi: "Testi" asetettu aktiiviseksi `itemRef`-päättymisehdoksi, checkbox näytti
+"Huomio"-varoituksen. Kuittaus-testi: "Merkitse hoidetuksi" poisti rivin
+`tulevat_items`-taulukosta (vahvistettu IndexedDB:stä), rivi katosi Kaikki- ja
+Kertaluonteiset-suodattimista, Odote-modal ei enää maininnut sitä missään osiossa
+(dangling `itemRef` näkyi olemassa olevalla "(poistettu rahavirta)" -fallbackilla,
+RATKAISEVA EHTO palautui oikein "Palkka"-tuloon), Lopputilanne päivittyi
+3200 €:oon. Kertaluonteiset-suodatin näytti oikein enää kaksi jäljellä olevaa
+riviä. Ei konsolivirheitä koko testisarjan aikana. Testidata ja
+`finos_kassajakso_rules` siivottu selaimen IndexedDB:stä/localStoragesta
+testien jälkeen.
 
 **Kassajakson läpinäkyvyys + OP Gold -laajennus (22.7.2026) — valmis:**
 Auditoitu ensin `buildKassajakso()`, `resolveKassajaksoRules()`,
