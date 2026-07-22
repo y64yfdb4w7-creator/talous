@@ -668,6 +668,99 @@ window.openCardInfo = function(cardKey, evt) {
   document.body.appendChild(overlay);
 };
 
+// Odotteen selitysnäkymä: Kassajaksoon (ks. buildKassajakso) rajattu erittely
+// lähtökassasta ja jokaisesta mukaan lasketusta rahavirrasta ODOTE-summaan asti,
+// sekä erikseen seuraavan kassajakson rahavirrat jotka EIVÄT vaikuta Odotteeseen.
+// Puhtaasti selittävä — ei lue eikä kirjoita mitään laskentatilaa.
+window.openOdoteModal = async function(evt) {
+  if (evt) evt.stopPropagation();
+  var existing = document.getElementById('odote-modal-overlay');
+  if (existing) { existing.remove(); return; }
+
+  var snaps = (await DB.getAll('snapshots')).sort(function(a, b) { return a.date.localeCompare(b.date); });
+  var latest = snaps[snaps.length - 1];
+  if (!latest) return;
+
+  var kassajakso = buildKassajakso(latest);
+  var hero = heroSum(kassajakso);
+  var incomeItems = kassajakso.items.filter(function(x) { return x.isIncome; });
+  var nextIncome = incomeItems.length
+    ? incomeItems.reduce(function(a, b) { return a.date <= b.date ? a : b; })
+    : null;
+
+  function fmtItemDate(d) {
+    return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+  }
+  function itemLabel(x) {
+    return normalizeRecurringLabel(x.ref.label, x.isIncome ? 'Tulo' : 'Meno');
+  }
+
+  var overlay = document.createElement('div');
+  overlay.id = 'odote-modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6);'
+    + 'display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface);border:1px solid var(--border-bright);border-radius:12px;'
+    + 'padding:18px 20px;max-width:min(380px,92vw);max-height:80vh;overflow-y:auto;'
+    + 'box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
+  hdr.innerHTML = '<span style="font-size:13px;font-weight:700;color:var(--card-primary,var(--text));">'
+    + '<span class="card-dot"></span>Odotteen laskelma</span>'
+    + '<button title="Sulje" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>';
+  hdr.querySelector('button').addEventListener('click', function() { overlay.remove(); });
+  box.appendChild(hdr);
+
+  var sortedItems = kassajakso.items.slice().sort(function(a, b) { return a.date - b.date; });
+  var calcHtml = '<div style="font-size:12px;font-family:var(--mono);line-height:1.8;margin-bottom:14px;">'
+    + '<div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);">Lähtökassa</span><span>' + fmt(kassajakso.lahtokassa) + '</span></div>';
+  sortedItems.forEach(function(x) {
+    var sign = x.isIncome ? '+' : '−';
+    var color = x.isIncome ? 'var(--green)' : 'var(--expense)';
+    calcHtml += '<div style="display:flex;justify-content:space-between;">'
+      + '<span style="color:var(--text2);">' + sign + ' ' + itemLabel(x) + '</span>'
+      + '<span style="color:' + color + ';">' + fmt(Math.abs(x.amount)) + '</span>'
+      + '</div>';
+  });
+  calcHtml += '<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:700;">'
+    + '<span>ODOTE</span><span style="color:' + (hero >= 0 ? 'var(--green)' : 'var(--red)') + ';">' + fmt(hero) + '</span></div>'
+    + '</div>';
+  box.insertAdjacentHTML('beforeend', calcHtml);
+
+  var periodEndLabel = kassajakso.periodEnd ? fmtItemDate(kassajakso.periodEnd) : 'ei tiedossa';
+  box.insertAdjacentHTML('beforeend',
+    '<div style="margin-bottom:12px;">'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Kassajakso</div>'
+    + '<div style="font-size:12px;color:var(--text2);">' + fmtItemDate(kassajakso.snapshotDate) + ' → ' + periodEndLabel + '</div>'
+    + '</div>');
+
+  box.insertAdjacentHTML('beforeend',
+    '<div style="margin-bottom:12px;">'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Seuraava tunnettu tulo</div>'
+    + '<div style="font-size:12px;color:var(--text2);">' + (nextIncome ? (fmtItemDate(nextIncome.date) + ' ' + itemLabel(nextIncome)) : 'Ei tiedossa') + '</div>'
+    + '</div>');
+
+  if (kassajakso.excludedItems.length) {
+    var sortedExcluded = kassajakso.excludedItems.slice().sort(function(a, b) { return a.date - b.date; });
+    var exHtml = '<div>'
+      + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Ei mukana tässä Odotteessa</div>';
+    sortedExcluded.forEach(function(x) {
+      exHtml += '<div style="font-size:12px;color:var(--text3);display:flex;justify-content:space-between;">'
+        + '<span>' + fmtItemDate(x.date) + ' ' + itemLabel(x) + '</span>'
+        + '<span>' + fmt(Math.abs(x.amount)) + '</span>'
+        + '</div>';
+    });
+    exHtml += '</div>';
+    box.insertAdjacentHTML('beforeend', exHtml);
+  }
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+};
+
 async function renderDashboard() {
   const c = document.getElementById('db-content');
   const cnt = await DB.count('snapshots');
@@ -954,7 +1047,7 @@ async function renderDashboard() {
           var lahtokassa = lahtokassaOf(latest);
           var lahtokassaColor = lahtokassa >= 0 ? 'var(--green)' : 'var(--red)';
           return '<div style="display:flex;gap:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);">'
-            + '<div style="flex:1;min-width:0;">'
+            + '<div style="flex:1;min-width:0;cursor:pointer;" onclick="event.stopPropagation();openOdoteModal()" title="Näytä Odotteen laskelma">'
             + '<div style="font-size:11px;color:var(--card-primary);margin-bottom:2px;">ODOTE</div>'
             + '<div class="card-value">' + fmt(heroVal) + '</div>'
             + '</div>'
@@ -2094,15 +2187,23 @@ function findLegacyRahavirrat(latest) {
   return out;
 }
 
-// Kassajakso: LUKITTU tuotepäätös #12 — rahavirtajoukkoa ei katkaista
-// ensimmäiseen tunnettuun tuloon. Joukko sisältää kaikki tiedossa olevat
-// tulevat kertaluonteiset rahavirrat ja jokaisesta säännöllisestä rahavirrasta
-// vain seuraavan esiintymän (collectRahavirrat tuottaa jo tämän valmiiksi).
+// Kassajakso: LUKITTU tuotepäätös #13 (22.7.2026, kumoaa osittain #12) —
+// rahavirtajoukko rajataan viimeisimmästä snapshotista seuraavaan tunnettuun
+// tuloon asti (kyseinen tulo mukaan lukien). Seuraavan kassajakson tapahtumat
+// (kaikki mitkä osuvat seuraavan tunnetun tulon jälkeiseen aikaan) eivät
+// vaikuta Odotteeseen — ne palautetaan erikseen excludedItems-kentässä.
+// Jos yhtään tunnettua tuloa ei ole kirjattuna, jakso pysyy avoimena eikä
+// rajaudu mihinkään (tuotepäätös #12:n regressiokorjaus säilyy: puuttuva
+// tulotieto ei tyhjennä koko rahavirtajoukkoa).
 // Hero, Lopputilanne ja RAHAVIRRAT-lista käyttävät kaikki tätä samaa joukkoa.
 function buildKassajakso(latest) {
   var snapshotDate = new Date(latest.date + 'T00:00:00');
-  var items = collectRahavirrat(latest, snapshotDate);
-  return { lahtokassa: lahtokassaOf(latest), items: items };
+  var allItems = collectRahavirrat(latest, snapshotDate);
+  var incomeDates = allItems.filter(function(x) { return x.isIncome; }).map(function(x) { return x.date.getTime(); });
+  var periodEnd = incomeDates.length ? new Date(Math.min.apply(null, incomeDates)) : null;
+  var items = periodEnd ? allItems.filter(function(x) { return x.date <= periodEnd; }) : allItems;
+  var excludedItems = periodEnd ? allItems.filter(function(x) { return x.date > periodEnd; }) : [];
+  return { lahtokassa: lahtokassaOf(latest), items: items, excludedItems: excludedItems, periodEnd: periodEnd, snapshotDate: snapshotDate };
 }
 
 // Hero: puhdas laskentakomponentti. Summaa vain sille annetun joukon.

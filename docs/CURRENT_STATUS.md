@@ -2,9 +2,48 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-22
-**Viimeisin commit:** (tuleva) `feat: add recurrence selection for regular cashflows`
+**Viimeisin commit:** (tuleva) `fix: rajaa Odote seuraavaan tunnettuun tuloon + selitysnäkymä`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv.**)
+
+**Odote-laskennan auditointi + selitysnäkymä (22.7.2026) — valmis:**
+Auditoitiin koko Odote-laskentaketju (`lahtokassaOf` → `collectRahavirrat` →
+`buildKassajakso` → `heroSum`/`kassaValisumma`) Finance OS:n lukittua
+Kassajakso-määritelmää vasten ("Kassajakso päättyy seuraavaan tunnettuun
+tuloon; seuraavan kassajakson tapahtumat eivät saa vaikuttaa Odotteeseen").
+
+**Löydös:** `buildKassajakso()` sisälsi kaikki tiedossa olevat tulevat
+rahavirrat ilman minkäänlaista päättymisrajaa (LUKITTU tuotepäätös #12,
+20.7.2026) — esim. seuraavan kuukauden vuokra vaikutti Odotteeseen jo ennen
+kuluvan kuun palkkaa. Tämä oli tarkoituksellinen, testattu ja käyttäjän
+hyväksymä päätös, joka poisti aiemman rajauksen erään toisen regression takia
+(jos yhtään tunnettua tuloa ei ollut kirjattuna, koko rahavirtajoukko ja Hero
+tyhjenivät). Ristiriita raportoitiin käyttäjälle ennen korjausta.
+
+**Korjaus (LUKITTU tuotepäätös #13, kumoaa osittain #12):** `buildKassajakso()`
+(`js/ui2-v2.js:2199`) rajaa nyt joukon viimeisimmästä snapshotista seuraavaan
+tunnettuun tuloon asti (tulo mukaan lukien). Rajaus koskee vain tilannetta,
+jossa tunnettu tulo on olemassa — jos ei ole, jakso pysyy avoimena eikä
+rajaudu, jolloin #12:n regressiokorjaus säilyy eikä rahavirtajoukko koskaan
+tyhjene. `heroSum`, `kassaValisumma` ja `renderTulossaList()` (RAHAVIRRAT-lista)
+perivät uuden rajauksen automaattisesti, koska kuluttavat samaa
+`buildKassajakso(...).items`-joukkoa — yksi tietojoukko, yksi totuus (Hero
+v1.0 -periaate säilytetty).
+
+**Uusi ominaisuus:** ODOTE-arvosta klikattava selitysmodal (`openOdoteModal`,
+`js/ui2-v2.js:675`), sama visuaalinen komponentti kuin Kassa-kortin
+Info-modal (`openCardInfo`). Näyttää Lähtökassa → jokainen kassajaksoon
+kuuluva rahavirta → ODOTE-summa, Kassajakson päivämäärävälin, seuraavan
+tunnetun tulon, sekä erillisen "Ei mukana tässä Odotteessa" -osion
+seuraavan kassajakson rahavirroille (`kassajakso.excludedItems`). Sulkeutuu
+taustaa tai ✕-painiketta klikkaamalla.
+
+**Testattu:** puhdas logiikkatesti (Node, neljä sprintin testiskenaariota +
+#12-regressiotarkistus) ja selainverifiointi paikallisesti ajetulla
+sovelluksella siemennetyllä snapshotilla (Lähtökassa 3245 €, Palkka 2750 €
+31.7., Sähkö/Puhelin/Vakuutus ennen sitä, Vuokra 1.8.) — ODOTE = 5874 €,
+Vuokra näkyi ainoastaan "Ei mukana" -osiossa, modalin laskelma täsmäsi
+Hero-korttiin, molemmat sulkemistavat toimivat, ei konsolivirheitä.
 
 **Säännöllisten rahavirtojen toistuvuusvalinta (22.7.2026) — valmis:**
 Lisätty yhteiseen rahavirtaeditoriin (`js/ui2-v2.js`) mahdollisuus määrittää
