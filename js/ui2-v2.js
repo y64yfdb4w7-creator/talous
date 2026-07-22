@@ -2857,6 +2857,96 @@ function kassaValisumma(latest) {
   return heroSum(buildKassajakso(latest));
 }
 
+// Seuraava kassajakso -yhteenveto (23.7.2026, suunnittelupäätös 22.7.2026):
+// EI ennuste — näyttää vain LOPPUTILANTEEN jälkeisen, jo tiedossa olevan
+// rahavirtajoukon samalla säännöllä kuin buildKassajakso laskee nykyisen
+// jakson päättymisen. Ei uutta collectRahavirrat()-kutsua eikä rinnakkaista
+// laskentaa: käyttää suoraan buildKassajakso():n jo laskemaa
+// kassajakso.excludedItems-joukkoa (kaikki tiedossa olevat rahavirrat
+// nykyisen periodEnd:in jälkeen) ja hakee seuraavan jakson päättymispisteen
+// kutsumalla täsmälleen samaa resolveBaseKassajaksoPeriodEnd/
+// applyOpGoldExtension-paria kuin buildKassajakso, periodEnd:istä uutena
+// lähtöpisteenä. Referenssipäiväksi käytetään periodEnd + 1 vrk (ei
+// periodEnd itse), koska "monthEnd"-sääntö laskisi muuten saman kuukauden
+// uudelleen jos periodEnd sattuu jo olemaan kuukauden viimeinen päivä —
+// sama "seuraavan on oltava aidosti myöhempi" -periaate kuin
+// nextRecurringDayDate/nextMonthOnlyDate jo noudattavat.
+// "Harvemmin toistuvat" (repeat_every_months > 1) -erillisosiota EI
+// toteutettu tässä sprintissä (käyttäjän suunnittelupäätös 22.7.2026, ks.
+// CURRENT_STATUS.md) — nykyinen tietomalli ei tallenna näille ankkuria,
+// joten "maksukuukautta" ei voida päätellä. Ne sisältyvät "Säännölliset"-
+// riveihin täsmälleen samalla tavalla kuin muuallakin sovelluksessa
+// (collectRahavirrat ei erottele niitä — repeat_every_months ei vaikuta
+// mihinkään päivämäärälaskentaan tälläkään hetkellä).
+function buildSeuraavaKassajakso(latest, kassajakso, hero) {
+  var periodEnd = kassajakso.periodEnd;
+  if (!periodEnd) return null;
+
+  var candidateItems = kassajakso.excludedItems;
+  var nextRefDate = new Date(periodEnd.getTime() + 86400000);
+  var rules = loadKassajaksoRules();
+  var basePeriodEnd = resolveBaseKassajaksoPeriodEnd(latest, nextRefDate, candidateItems);
+  var opGoldResult = applyOpGoldExtension(rules, candidateItems, nextRefDate, basePeriodEnd);
+  var nextPeriodEnd = opGoldResult.periodEnd;
+
+  var nextItems = nextPeriodEnd
+    ? candidateItems.filter(function(x) { return x.date <= nextPeriodEnd; })
+    : candidateItems.slice();
+
+  var tulotSaannolliset = nextItems.filter(function(x) { return x.source === 'tulot_items'; });
+  var tulotIlmoitetut = nextItems.filter(function(x) { return x.source === 'tulevat_items' && x.isIncome; });
+  var menotSaannolliset = nextItems.filter(function(x) { return x.source === 'rytmi_items'; });
+  var menotIlmoitetut = nextItems.filter(function(x) { return x.source === 'tulevat_items' && !x.isIncome; });
+
+  function sum(arr) { return arr.reduce(function(s, x) { return s + x.amount; }, 0); }
+
+  var tulotSaannollisetSum = sum(tulotSaannolliset);
+  var tulotIlmoitetutSum = sum(tulotIlmoitetut);
+  var menotSaannollisetSum = sum(menotSaannolliset);
+  var menotIlmoitetutSum = sum(menotIlmoitetut);
+  var tulotSum = tulotSaannollisetSum + tulotIlmoitetutSum;
+  var menotSum = menotSaannollisetSum + menotIlmoitetutSum;
+
+  return {
+    periodEnd: nextPeriodEnd,
+    tulot: { saannolliset: tulotSaannollisetSum, ilmoitetut: tulotIlmoitetutSum, ilmoitetutCount: tulotIlmoitetut.length, sum: tulotSum },
+    menot: { saannolliset: menotSaannollisetSum, ilmoitetut: menotIlmoitetutSum, ilmoitetutCount: menotIlmoitetut.length, sum: menotSum },
+    arvioitu: hero + tulotSum + menotSum
+  };
+}
+
+// Puhdas renderöintikerros buildSeuraavaKassajakso():n tulokselle. Sama
+// typografia/värit kuin Kassa-kortin muissa riveissä: .panel-row/
+// .panel-row-lbl/.panel-row-val(.pos/.neg) ja .kassa-section-hdr — ei uusia
+// CSS-luokkia, ei uusia värejä.
+function renderSeuraavaKassajakso(summary) {
+  if (!summary) return '';
+
+  var html = '<div class="kassa-section-hdr" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">SEURAAVA KASSAJAKSO</div>';
+
+  html += '<div class="kassa-section-hdr" style="margin-top:8px;">TULOT</div>';
+  html += '<div class="panel-row"><span class="panel-row-lbl">Säännölliset</span><span class="panel-row-val pos">' + fmtDelta(summary.tulot.saannolliset) + '</span></div>';
+  if (summary.tulot.ilmoitetutCount > 0) {
+    html += '<div class="panel-row"><span class="panel-row-lbl">Ilmoitetut</span><span class="panel-row-val pos">' + fmtDelta(summary.tulot.ilmoitetut) + '</span></div>';
+  }
+  html += '<div class="panel-row" style="border-top:1px dashed var(--border);padding-top:4px;"><span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span><span class="panel-row-val pos" style="font-weight:700;">' + fmtDelta(summary.tulot.sum) + '</span></div>';
+
+  html += '<div class="kassa-section-hdr" style="margin-top:10px;">NÄKYVISSÄ OLEVAT MENOT</div>';
+  html += '<div class="panel-row"><span class="panel-row-lbl">Säännölliset</span><span class="panel-row-val neg">' + fmtDelta(summary.menot.saannolliset) + '</span></div>';
+  if (summary.menot.ilmoitetutCount > 0) {
+    html += '<div class="panel-row"><span class="panel-row-lbl">Ilmoitetut</span><span class="panel-row-val neg">' + fmtDelta(summary.menot.ilmoitetut) + '</span></div>';
+  }
+  html += '<div class="panel-row" style="border-top:1px dashed var(--border);padding-top:4px;"><span class="panel-row-lbl" style="font-weight:700;">Yhteensä</span><span class="panel-row-val neg" style="font-weight:700;">' + fmtDelta(summary.menot.sum) + '</span></div>';
+
+  var arvioituColor = summary.arvioitu >= 0 ? 'var(--green)' : 'var(--red)';
+  html += '<div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'
+    + '<span class="panel-row-lbl" style="font-weight:700;">Arvioitu lähtökassa<br>seuraavaan kassajaksoon</span>'
+    + '<span class="panel-row-val" style="color:' + arvioituColor + ';">' + fmt(summary.arvioitu) + '</span>'
+    + '</div>';
+
+  return html;
+}
+
 // Kassa: "Seuraava rahatilanne" -kortti.
 // NYKYINEN KASSA → RAHAVIRRAT (yksi lista, kertaluonteiset + säännölliset,
 // aikajärjestyksessä; ks. renderTulossaList) → Lopputilanne (Hero).
@@ -2900,6 +2990,8 @@ function renderKassaSeuraavaRahatilanne(latest) {
     + '<span class="panel-row-lbl" style="font-weight:700;">Lopputilanne</span>'
     + '<span class="panel-row-val" style="color:' + heroColor + ';">' + fmt(hero) + '</span>'
     + '</div>';
+
+  html += renderSeuraavaKassajakso(buildSeuraavaKassajakso(latest, kassajakso, hero));
 
   html += '</div>';
   return html;
