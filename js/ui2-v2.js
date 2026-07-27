@@ -2546,14 +2546,23 @@ function nextRecurringDayDate(snapshotDate, paiva) {
   return null;
 }
 
-// Seuraava päivämäärä kuukausinumerolle (1–12; vuotta ei tallenneta dataan).
-// Kuluva kuukausi tulkitaan vielä tulevaksi, koska tarkkaa päivää ei tunneta.
-function nextMonthOnlyDate(snapshotDate, month) {
+// Seuraava päivämäärä kuukausinumerolle (1–12; vuotta ei tallenneta dataan) ja
+// valinnaiselle kuukauden päivälle (day, 27.7.2026 lähtien tallennettu
+// tulevat_items-riveille — ks. rahavirtaEditorSave). Jos day puuttuu tai on
+// virheellinen (legacy-rivi ennen day-kentän lisäystä), käytetään kuukauden
+// 1. päivää — täysin sama käytös kuin ennen day-kenttää, joten vanhat rivit
+// eivät muutu. Kuluva kuukausi tulkitaan silti aina vielä tulevaksi (ei
+// vuoden vaihtoa vain koska tämän kuukauden päivä olisi jo mennyt) — sama
+// periaate kuin ennenkin, day tuo vain tarkkuutta järjestykseen/näyttöön,
+// ei muuta sitä MIKÄ kuukausi valitaan.
+function nextMonthOnlyDate(snapshotDate, month, day) {
   var m = parseInt(month, 10);
   if (!(m >= 1 && m <= 12)) return null;
   var year = snapshotDate.getFullYear();
   if (m < snapshotDate.getMonth() + 1) year += 1;
-  return new Date(year, m - 1, 1);
+  var lastOfMonth = new Date(year, m, 0).getDate();
+  var d = validRecurringDay(day);
+  return new Date(year, m - 1, Math.min(d !== null ? d : 1, lastOfMonth));
 }
 
 // Rahavirta-kerros: kokoaa kaikki kirjatut rahavirrat yhtenäiseen muotoon.
@@ -2580,7 +2589,7 @@ function collectRahavirrat(latest, snapshotDate) {
     out.push({ ref: x, source: 'rytmi_items', date: d, isIncome: false, amount: -Math.abs(amt) });
   });
   (Array.isArray(latest.tulevat_items) ? latest.tulevat_items : []).forEach(function(x) {
-    var d = nextMonthOnlyDate(snapshotDate, x.month);
+    var d = nextMonthOnlyDate(snapshotDate, x.month, x.day);
     if (!d) return;
     var amt = Number(x.amount) || 0;
     out.push({ ref: x, source: 'tulevat_items', date: d, isIncome: amt > 0, amount: amt });
@@ -2681,7 +2690,7 @@ function resolveKassajaksoCondition(latest, snapshotDate, cond) {
     var item = items.find(function(x) { return x.id === cond.id; });
     if (!item) return null;
     return cond.source === 'tulevat_items'
-      ? nextMonthOnlyDate(snapshotDate, item.month)
+      ? nextMonthOnlyDate(snapshotDate, item.month, item.day)
       : nextRecurringDayDate(snapshotDate, item.paiva);
   }
   if (cond.type === 'fixedDate') {
@@ -4699,42 +4708,6 @@ async function myyntiDelete(id) {
 }
 
 
-window.panelMenoDelete = async function(id) {
-  if (!confirm('Poistetaanko meno?')) return;
-  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
-  if (!snaps.length) return;
-  var latest = Object.assign({}, snaps[snaps.length - 1]);
-  var items = Array.isArray(latest.rytmi_items) ? latest.rytmi_items : [];
-  if (typeof id === 'string' && id.indexOf('idx:') === 0) {
-    var idx = parseInt(id.slice(4), 10);
-    latest.rytmi_items = items.filter(function(x, i){ return i !== idx; });
-  } else {
-    latest.rytmi_items = items.filter(function(x){ return x.id !== id; });
-  }
-  latest._updatedAt = new Date().toISOString();
-  await DB.putSnapshot(latest);
-  try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
-  await renderDashboard();
-};
-
-window.panelTuloDelete = async function(id) {
-  if (!confirm('Poistetaanko tulo?')) return;
-  var snaps = (await DB.getAll('snapshots')).sort(function(a,b){ return a.date.localeCompare(b.date); });
-  if (!snaps.length) return;
-  var latest = Object.assign({}, snaps[snaps.length - 1]);
-  var items = Array.isArray(latest.tulot_items) ? latest.tulot_items : [];
-  if (typeof id === 'string' && id.indexOf('idx:') === 0) {
-    var idx = parseInt(id.slice(4), 10);
-    latest.tulot_items = items.filter(function(x, i){ return i !== idx; });
-  } else {
-    latest.tulot_items = items.filter(function(x){ return x.id !== id; });
-  }
-  latest.tulot_kk = latest.tulot_items.reduce(function(s,x){ return s + (Number(x.amt_kk) || 0); }, 0);
-  latest._updatedAt = new Date().toISOString();
-  await DB.putSnapshot(latest);
-  try { setTimeout(function(){ if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch(e) {}
-  await renderDashboard();
-};
 // ══════════════════════════════════════════════════════════════
 
 // ── KORTTIEN JA OSIOIDEN DRAG & DROP ────────────────────────────────────
@@ -5066,6 +5039,32 @@ window.toggleInvBroker = toggleInvBroker;
 // jaa samaa rajausta. Rahavirrat-lista käyttää collectRahavirrat():ia
 // suoraan (rajaamaton), Odote/Hero käyttävät yhä buildKassajakso():n
 // periodEnd-rajattua joukkoa — ks. buildKassajakso-kommentti.
+
+// ── Rahavirrat: monivalintatila (27.7.2026) ─────────────────────────────
+// Kaikilla riveillä (säännöllinen tulo/meno, kertaluonteinen tulo/meno) on
+// sama valintaruutu-komponentti. Ruutu ei itsessään tee mitään muuta kuin
+// merkitsee rivin valituksi/ei-valituksi — massatoiminnot (Poista valitut,
+// Merkitse maksetuksi, jne.) rakennetaan myöhemmässä sprintissä tämän tilan
+// päälle. compositeId = source+'|'+key, koska sama idx:-fallback-avain voi
+// esiintyä useammassa taulukossa (esim. "idx:0" sekä tulot_items- että
+// rytmi_items-riville) — pelkkä key ei riittäisi erottamaan niitä.
+// HUOM: apufunktio ei saa olla samanniminen kuin window._rahavirtaSelectedIds
+// (tilan säilytyspaikka) — top-level function-esittely luo saman nimisen
+// window-propertyn, jonka funktion sisäinen "window.x = new Set()" ylikirjoittaisi
+// itsensä ensimmäisellä kutsulla (todettu selaintestissä 27.7.2026).
+function _getRahavirtaSelectedIds() {
+  if (!window._rahavirtaSelectedIds) window._rahavirtaSelectedIds = new Set();
+  return window._rahavirtaSelectedIds;
+}
+window.rahavirtaSelectionToggle = function(compositeId, checked) {
+  var selected = _getRahavirtaSelectedIds();
+  if (checked) selected.add(compositeId); else selected.delete(compositeId);
+};
+function rahavirtaCheckboxHtml(compositeId) {
+  var checked = _getRahavirtaSelectedIds().has(compositeId) ? ' checked' : '';
+  return '<input type="checkbox" class="rv-select-check" onclick="event.stopPropagation();" onchange="rahavirtaSelectionToggle(\'' + compositeId + '\', this.checked)"' + checked + ' style="width:14px;height:14px;flex-shrink:0;accent-color:var(--cyan);cursor:pointer;">';
+}
+
 function renderTulossaList() {
   var el = document.getElementById('kassaTulossaList');
   if (!el) return;
@@ -5123,14 +5122,9 @@ function renderTulossaList() {
         var itemKey = item.id != null ? item.id : ('idx:' + snap.tulevat_items.indexOf(item));
         var sign = (item.amount > 0) ? '+' : '';
         var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--expense)' : 'var(--text3)');
-        // Kuittausruutu vain kertaluonteisilla (tulevat_items) riveillä —
-        // säännöllisiin ei kosketa (ks. else-haara alla). Ruutu ei itsessään
-        // tallenna tilaa: onchange avaa vahvistusmodalin, joka joko poistaa
-        // rivin tulevat_items-taulukosta (kuitattu) tai palauttaa ruudun
-        // rastittomaksi (peruttu) — ks. rahavirtaKuittausConfirm.
         html += '<div class="kassa-view-row" onclick="rahavirtaEditorOpenEdit(\'tulevat_items\',\'' + itemKey + '\')">' +
           '<span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' +
-          '<input type="checkbox" class="rv-once-check" title="Merkitse hoidetuksi" onclick="event.stopPropagation();" onchange="rahavirtaKuittausConfirm(this,\'' + itemKey + '\')" style="width:14px;height:14px;flex-shrink:0;accent-color:var(--cyan);cursor:pointer;">' +
+          rahavirtaCheckboxHtml('tulevat_items|' + itemKey) +
           '<span class="kassa-vr-label" style="color:' + amtColor + '">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
           '</span>' +
           '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
@@ -5145,16 +5139,12 @@ function renderTulossaList() {
         var srcArr = isIncome ? snap.tulot_items : snap.rytmi_items;
         var delKey = ritem.id != null ? ritem.id : ('idx:' + srcArr.indexOf(ritem));
         var rSource = isIncome ? 'tulot_items' : 'rytmi_items';
-        var deleteFn = isIncome ? 'panelTuloDelete' : 'panelMenoDelete';
         var rAmtColor = isIncome ? 'var(--green)' : 'var(--expense)';
         // cursor:pointer on tämä yksittäinen rivi, ei jaettu .panel-row-luokka
-        // (jota käytetään muillakin sivuilla ei-klikattavana) — poistopainikkeen
-        // klikkaus pysäyttää tapahtuman leviämisen, jottei se avaisi editoria
-        // samalla kun rivi poistetaan.
-        html += '<div class="panel-row" style="cursor:pointer;" onclick="rahavirtaEditorOpenEdit(\'' + rSource + '\',\'' + delKey + '\')"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + dayCell + '<span style="color:var(--text3);" title="Säännöllinen">⟳</span><span class="panel-row-lbl" style="color:' + rAmtColor + ';">' + label + '</span></span>'
+        // (jota käytetään muillakin sivuilla ei-klikattavana).
+        html += '<div class="panel-row" style="cursor:pointer;" onclick="rahavirtaEditorOpenEdit(\'' + rSource + '\',\'' + delKey + '\')"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + rahavirtaCheckboxHtml(rSource + '|' + delKey) + dayCell + '<span style="color:var(--text3);" title="Säännöllinen">⟳</span><span class="panel-row-lbl" style="color:' + rAmtColor + ';">' + label + '</span></span>'
           + '<span style="display:flex;align-items:center;gap:8px;">'
           + '<span class="panel-row-val" style="color:' + rAmtColor + ';">' + amt.toLocaleString('fi-FI',{maximumFractionDigits:0}) + ' €/kk</span>'
-          + '<button onclick="event.stopPropagation(); ' + deleteFn + '(\'' + delKey + '\')" title="Poista" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
           + '</span></div>';
       }
     });
@@ -5182,6 +5172,11 @@ window.rahavirtaFilterSet = function(mode) {
 // poisto pitää datan siis automaattisesti yhtenäisenä kaikkialla — ei uutta
 // "hoidettu"-kenttää, ei arkistoa. Koskee vain kertaluonteisia; säännöllisiin
 // rahavirtoihin ei kosketa.
+// EI TÄLLÄ HETKELLÄ KUTSUTTU MISTÄÄN (27.7.2026, monivalinta-sprintti):
+// Rahavirrat-listan checkbox on nyt yhtenäinen valintaruutu kaikilla
+// rivityypeillä (ks. rahavirtaCheckboxHtml) eikä enää laukaise tätä
+// vahvistusmodalia suoraan. Koko lohko on jätetty koskemattomaksi, koska
+// se on valmis pohja tulevalle "Merkitse maksetuksi" -massatoiminnolle.
 function _tulevatItemIsActiveEndCondition(itemId) {
   if (itemId == null) return false;
   var rules = loadKassajaksoRules();
@@ -5240,8 +5235,14 @@ window.rahavirtaKuittausConfirm = function(checkboxEl, itemKey) {
 };
 
 // Poistaa kuitatun kertaluonteisen rivin tulevat_items-taulukosta — sama
-// idx:/id-fallback-kaava kuin rahavirtaEditorDelete/panelTuloDelete/
-// panelMenoDelete.
+// idx:/id-fallback-kaava kuin rahavirtaEditorDelete. EI TÄLLÄ HETKELLÄ
+// KUTSUTTU MISTÄÄN (27.7.2026): Rahavirrat-listan checkbox toimii nyt
+// pelkkänä monivalinnan valintaruutuna (ks. rahavirtaCheckboxHtml/
+// rahavirtaSelectionToggle) eikä enää laukaise tätä suoraan. Funktio on
+// jätetty paikalleen, koska se on valmis pohja tulevalle "Merkitse
+// maksetuksi" -massatoiminnolle (ks. suunnitelman kohta 6) — sama
+// aktiivisen päättymisehdon varoituslogiikka (_tulevatItemIsActiveEndCondition)
+// tarvitaan silloinkin.
 window.rahavirtaKuittausApply = async function(itemKey) {
   var snaps = (await DB.getAll('snapshots')).sort(function(a, b) { return a.date.localeCompare(b.date); });
   if (!snaps.length) return;
@@ -5351,7 +5352,10 @@ function renderRahavirtaEditor(latest) {
         var refDate = new Date((latest.date || '') + 'T00:00:00');
         if (isNaN(refDate.getTime())) refDate = new Date();
         if (isOnceType && item.month) {
-          prefill.date = refDate.getFullYear() + '-' + String(item.month).padStart(2, '0') + '-01';
+          var onceDate = nextMonthOnlyDate(refDate, item.month, item.day);
+          if (onceDate) {
+            prefill.date = onceDate.getFullYear() + '-' + String(onceDate.getMonth() + 1).padStart(2, '0') + '-' + String(onceDate.getDate()).padStart(2, '0');
+          }
         } else if (!isOnceType) {
           var prefillDay = validRecurringDay(item.paiva);
           if (prefillDay !== null) {
@@ -5502,10 +5506,14 @@ window.rahavirtaEditorCancel = async function() {
 
 // Poistaa editorissa parhaillaan auki olevan rahavirran. Toimii vain täydessä
 // muokkaustilassa (mode:'edit') — legacy-täydennyksellä tai uuden rahavirran
-// lisäyksellä ei ole poistettavaa riviä.
+// lisäyksellä ei ole poistettavaa riviä. confirm() lisätty 27.7.2026: kun
+// Rahavirrat-listan rivikohtainen "✕"-poisto poistui (korvattu monivalinnan
+// valintaruudulla), tämä on ainoa jäljellä oleva tapa poistaa yksittäinen
+// rivi tässä sprintissä — vahvistus säilyttää saman turvatason kuin ennen.
 window.rahavirtaEditorDelete = async function() {
   var editTarget = window._rahavirtaEditTarget;
   if (!editTarget || editTarget.mode !== 'edit') return;
+  if (!confirm('Poistetaanko tämä rahavirta?')) return;
   var snaps = (await DB.getAll('snapshots')).sort(function(a, b) { return a.date.localeCompare(b.date); });
   if (!snaps.length) return;
   var latest = Object.assign({}, snaps[snaps.length - 1]);
@@ -5601,9 +5609,9 @@ window.rahavirtaEditorSave = async function() {
     var amount = isLegacyComplete ? amountRaw : (sign === '-' ? -Math.abs(amountRaw) : Math.abs(amountRaw));
     var tulossaItems = Array.isArray(latest.tulevat_items) ? latest.tulevat_items.slice() : [];
     if (sameListEdit) {
-      applyRahavirtaEdit(tulossaItems, editTarget.key, { label: label, month: monthNum, amount: amount });
+      applyRahavirtaEdit(tulossaItems, editTarget.key, { label: label, month: monthNum, day: dayNum, amount: amount });
     } else {
-      tulossaItems.push({ id: preservedId || ('tulossa_' + Date.now()), month: monthNum, label: label, amount: amount });
+      tulossaItems.push({ id: preservedId || ('tulossa_' + Date.now()), month: monthNum, day: dayNum, label: label, amount: amount });
     }
     latest.tulevat_items = tulossaItems;
   } else {

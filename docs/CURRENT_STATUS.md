@@ -1,10 +1,101 @@
 # CURRENT_STATUS.md
 # Finance OS — Current Status
 
-**Päivitetty:** 2026-07-23
-**Viimeisin commit:** (tuleva) `fix: seuraavan kassajakson säännölliset tulot -bugi`
+**Päivitetty:** 2026-07-27
+**Viimeisin commit:** (tuleva) `feat: rahavirrat-listan järjestys, day-kenttä ja monivalinnan pohja`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv. — 23.7.2026 (Seuraava kassajakso -yhteenveto): 5635 riv. — 23.7.2026 (bugikorjaus: säännölliset tulot): 5645 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv. — 23.7.2026 (Seuraava kassajakso -yhteenveto): 5635 riv. — 23.7.2026 (bugikorjaus: säännölliset tulot): 5645 riv. — 27.7.2026 (järjestys+monivalinta): 5655 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+
+**Rahavirrat-listan järjestys, day-kenttä ja monivalinnan pohja (27.7.2026) — valmis:**
+Sprintti kokosi kolme muutosta samaan kokonaisuuteen: kertaluonteisen rahavirran
+järjestysbugin korjaus, valintaruudun yhtenäistäminen kaikille riveille, ja
+pohja tulevalle monivalinnalle. Kaikki kolme auditoitiin ja suunnittelupäätökset
+vahvistettiin käyttäjältä ennen toteutusta (ks. alla).
+
+**1) Järjestysbugi — todellinen syy ei ollut lajittelufunktiossa.**
+`renderTulossaList()`:n lajittelu (`a.date - b.date`) oli jo oikein. Todellinen
+syy: `tulevat_items` (kertaluonteiset) tallensivat vain kuukauden, ei päivää —
+`rahavirtaEditorSave()` luki päivämääräkentästä päivän mutta heitti sen pois,
+ja `nextMonthOnlyDate()` palautti aina kuukauden 1. päivän. Esim. "Varha,
+21.8." tallentui sisäisesti `{month: 8}`, jolloin sen laskettu `date` oli aina
+elokuun 1. — ennen mitä tahansa saman kuukauden päivä-4 tapahtumaa.
+- **Korjaus:** `nextMonthOnlyDate(snapshotDate, month, day)` hyväksyy nyt
+  valinnaisen `day`-parametrin. Puuttuessa/virheellisenä (legacy-rivit ennen
+  tätä sprinttiä) fallback on kuukauden 1. päivä — täysin sama käytös kuin
+  ennen, joten vanhat rivit eivät muutu. `collectRahavirrat()` ja
+  `resolveKassajaksoCondition()` välittävät nyt `x.day`/`item.day` mukaan.
+  `rahavirtaEditorSave()` tallentaa `day: dayNum` sekä uusille että
+  muokatuille `tulevat_items`-riveille — editorin päivämääräkenttä oli jo
+  aina täysi `<input type=date>`, joten päivä oli jo koko ajan käyttäjän
+  syöttämä, sitä ei vain aiemmin tallennettu. Editorin esitäyttö (muokkaus-
+  tilassa) käyttää nyt samaa `nextMonthOnlyDate()`-funktiota muotoiluun.
+- Ei uutta laskentalogiikkaa — sama funktio, jolle nyt annetaan tarkempi
+  syöte kun se on saatavilla.
+
+**2) Valintaruutu yhtenäistetty kaikille riveille.**
+Aiemmin vain kertaluonteisilla (`tulevat_items`) riveillä oli checkbox
+("Merkitse hoidetuksi", laukaisi heti vahvistusmodalin + poiston).
+Säännöllisillä riveillä oli sen sijaan "✕"-poistopainike. Nyt kaikki neljä
+rivityyppiä (säännöllinen tulo/meno, kertaluonteinen tulo/meno) käyttävät
+samaa `rahavirtaCheckboxHtml(compositeId)`-komponenttia — pelkkä valintaruutu,
+ei enää välitöntä toimintoa. "✕"-poistopainike ja sitä käyttäneet
+`panelTuloDelete`/`panelMenoDelete`-funktiot poistettu kokonaan (ei muita
+kutsujia koodikannassa).
+- Käyttäjän suunnittelupäätös: vanha "Merkitse hoidetuksi" -toiminto
+  (`rahavirtaKuittausConfirm`/`rahavirtaKuittausApply`/
+  `_tulevatItemIsActiveEndCondition`) EI enää kytkeydy checkboxiin, mutta
+  koko lohko jätettiin koodiin koskemattomana — se on valmis pohja tulevalle
+  "Merkitse maksetuksi" -massatoiminnolle, mukaan lukien sen aktiivisen
+  päättymisehdon varoituksen.
+- **Poistoturva:** koska "✕":n `confirm()`-vahvistus katosi, editorin oma
+  "🗑 Poista" -nappi (`rahavirtaEditorDelete`) sai nyt `confirm()`-kutsun —
+  se on tässä sprintissä ainoa jäljellä oleva tapa poistaa yksittäinen rivi,
+  ja säilyttää saman turvatason kuin aiempi "✕".
+
+**3) Monivalintatila.** `window._rahavirtaSelectedIds` (Set) +
+`rahavirtaSelectionToggle(compositeId, checked)`. `compositeId` on
+`source+'|'+key` (esim. `"rytmi_items|m5"`), koska sama idx:-fallback-avain
+voisi muuten törmätä usean taulukon välillä. Ei vielä massatoimintoja — tila
+vain toimii, kuten sprintti edellytti.
+- **Rivin klikkaus avaa edelleen editorin** (ei muutettu) — `event.stopPropagation()`
+  checkboxissa estää editorin avautumisen valinnan yhteydessä.
+- **Säännöllinen ↔ Kertaluonteinen -vaihto oli jo olemassa** ennen tätä
+  sprinttiä (`rahavirtaEditorOpenEdit`/`rahavirtaEditorSave`, ks. 21.7.2026
+  "yhtenäinen muokkaus kaikille") — auditoitu ja testattu, ei koskettu.
+
+**Bugi selaintestissä (löytyi ja korjattiin ennen commitia):** ensimmäinen
+toteutus nimesi apufunktion `_rahavirtaSelectedIds()` — sama nimi kuin
+`window._rahavirtaSelectedIds`-tilamuuttujalla. Top-level `function`-esittely
+luo saman nimisen `window`-propertyn, joten funktion sisällä oleva
+`window._rahavirtaSelectedIds = new Set()` ylikirjoitti ITSENSÄ ensimmäisellä
+kutsulla → `TypeError: ...has is not a function`, koko Rahavirrat-lista jäi
+tyhjäksi. Korjattu nimeämällä apufunktio `_getRahavirtaSelectedIds()`:ksi.
+Jäi kiinni juuri selaintestistä (claude-in-chrome), ei Node-harnessista, koska
+Node-testit eivät renderöineet HTML:ää eivätkä siten kutsuneet
+`rahavirtaCheckboxHtml`:ää.
+
+**Testattu:**
+- Node-harness (funktiot eristetty suoraan commitoidusta tiedostosta):
+  `nextMonthOnlyDate` backward-compat (day puuttuu → päivä 1), day-aware
+  laskenta, tarkka esimerkkitapaus "Varha 21.8." vs. "Vuokra 4.8." (Vuokra
+  sortautuu ensin, oikein), `resolveKassajaksoCondition` itemRef käyttää
+  day-kenttää. Kaikki läpi.
+- Selaintesti (claude-in-chrome, oikea sovellus + demo-IndexedDB):
+  - Kaikilla 17 rivillä checkbox (`.rv-select-check`), "✕" kokonaan poissa.
+  - Checkboxin klikkaus: tallentuu `selectedIds`-settiin, editori EI avaudu.
+  - Rivin klikkaus (ei checkbox): editori avautuu oikealla kohteella.
+  - Uusi kertaluonteinen testirivi (day=21, elokuu) tallentui `day:21`-
+    kentällä ja ilmestyi listaan OIKEASSA kohdassa (15. ja syyskuun välissä,
+    ei enää kuukauden alussa) — täsmää raportoituun bugiin.
+  - Editorin poisto: `confirm()`-ohitus testattu sekä hylkäys- että
+    hyväksyntäpolulla — hylkäys säilyttää rivin, hyväksyntä poistaa.
+  - Säännöllinen→Kertaluonteinen-vaihto: testirivi siirtyi `tulot_items`→
+    `tulevat_items` oikein, id säilyi, uusi day-kenttä tallentui siirrossa.
+  - Ei konsolivirheitä puhtaalla latauksella korjauksen jälkeen.
+  - Kaikki testidata siivottu IndexedDB:stä testien jälkeen.
+
+**Ei muutettu:** Hero, Odote, Rahavirrat-listan rajaamattomuus (tuotepäätös
+#14), kassajakson sääntömoottori, `repeat_every_months`-toistuvuuslogiikka.
 
 **Bugikorjaus: Seuraava kassajakso ei löytänyt säännöllisiä tuloja (23.7.2026) — valmis:**
 Bugi: "SEURAAVA KASSAJAKSO → TULOT → Säännölliset" näytti +0 € vaikka
