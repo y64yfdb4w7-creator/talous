@@ -5056,14 +5056,124 @@ function _getRahavirtaSelectedIds() {
   if (!window._rahavirtaSelectedIds) window._rahavirtaSelectedIds = new Set();
   return window._rahavirtaSelectedIds;
 }
+// Re-renderöi koko listan jokaisen valinnan jälkeen (28.7.2026, massa-
+// toimintosprintti), jotta toimintopalkin näkyvyys ja "N valittu" -laskuri
+// päivittyvät reaaliaikaisesti — sama kevyt "re-render koko osaan" -malli
+// kuin muuallakin tässä sovelluksessa (esim. rahavirtaFilterSet). Checkboxien
+// checked-tila luetaan aina _getRahavirtaSelectedIds():sta, joten re-render
+// ei voi hukata valintoja.
 window.rahavirtaSelectionToggle = function(compositeId, checked) {
   var selected = _getRahavirtaSelectedIds();
   if (checked) selected.add(compositeId); else selected.delete(compositeId);
+  renderTulossaList();
 };
 function rahavirtaCheckboxHtml(compositeId) {
   var checked = _getRahavirtaSelectedIds().has(compositeId) ? ' checked' : '';
   return '<input type="checkbox" class="rv-select-check" onclick="event.stopPropagation();" onchange="rahavirtaSelectionToggle(\'' + compositeId + '\', this.checked)"' + checked + ' style="width:14px;height:14px;flex-shrink:0;accent-color:var(--cyan);cursor:pointer;">';
 }
+
+// Nykyisen suodattimen (window._rahavirtaFilter) mukaiset rahavirrat
+// compositeId-listaksi, samalla source+'|'+key-kaavalla kuin
+// rahavirtaCheckboxHtml/renderTulossaList käyttävät. Käytetään "Valitse
+// kaikki" / "kaikki valittu" -päättelyssä — EI renderTulossaList():in omassa
+// silmukassa (ei kosketa jo testattua suodatin/järjestyslogiikkaa, pieni
+// päällekkäisyys hyväksytty tämän sijaan).
+function _rahavirtaVisibleCompositeIds() {
+  var snap = window._allSnaps?.[window._allSnaps.length - 1];
+  if (!snap) return [];
+  var allItems = collectRahavirrat(snap, new Date(snap.date + 'T00:00:00'));
+  var filter = window._rahavirtaFilter || 'all';
+  return allItems.filter(function(x) {
+    if (filter === 'recurring') return x.source !== 'tulevat_items';
+    if (filter === 'once') return x.source === 'tulevat_items';
+    return true;
+  }).map(function(x) {
+    var srcArr = snap[x.source];
+    var key = x.ref.id != null ? x.ref.id : ('idx:' + srcArr.indexOf(x.ref));
+    return x.source + '|' + key;
+  });
+}
+
+// Massatoimintopalkki: piilossa kun ei yhtään valintaa (hyväksymiskriteeri).
+// "Valitse kaikki" koskee vain NÄKYVIÄ (nykyisen suodattimen läpäiseviä)
+// rivejä, ei koko rahavirtajoukkoa.
+function rahavirtaBulkToolbarHtml() {
+  var selected = _getRahavirtaSelectedIds();
+  if (!selected.size) return '';
+  var visible = _rahavirtaVisibleCompositeIds();
+  var allVisibleSelected = visible.length > 0 && visible.every(function(id) { return selected.has(id); });
+  return '<div class="kassa-bulk-toolbar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 10px;padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;">'
+    + '<span style="font-size:12px;color:var(--text2);font-weight:600;white-space:nowrap;">' + selected.size + ' valittu</span>'
+    + '<button class="kassa-delete-btn" style="margin-left:0;" onclick="rahavirtaBulkDelete()">Poista</button>'
+    + '<button class="kassa-cancel-btn" onclick="rahavirtaSelectionClear()">Peruuta valinta</button>'
+    + '<button class="kassa-cancel-btn" onclick="rahavirtaSelectAllToggle()">' + (allVisibleSelected ? 'Poista valinta' : 'Valitse kaikki') + '</button>'
+    + '</div>';
+}
+
+window.rahavirtaSelectionClear = function() {
+  _getRahavirtaSelectedIds().clear();
+  renderTulossaList();
+};
+
+window.rahavirtaSelectAllToggle = function() {
+  var selected = _getRahavirtaSelectedIds();
+  var visible = _rahavirtaVisibleCompositeIds();
+  var allVisibleSelected = visible.length > 0 && visible.every(function(id) { return selected.has(id); });
+  if (allVisibleSelected) {
+    visible.forEach(function(id) { selected.delete(id); });
+  } else {
+    visible.forEach(function(id) { selected.add(id); });
+  }
+  renderTulossaList();
+};
+
+// Poistaa kaikki valitut rivit, riippumatta siitä mihin kolmesta taulukosta
+// (tulot_items/rytmi_items/tulevat_items) ne kuuluvat. Kerää ensin id:t ja
+// idx:-fallbackit taulukoittain ja suodattaa jokaisen taulukon YHDELLÄ
+// filter()-kutsulla — EI splice():lla per rivi, koska usean idx:-avaimen
+// peräkkäinen splice samasta taulukosta siirtäisi jäljellä olevien rivien
+// indeksejä ja poistaisi väärän rivin.
+window.rahavirtaBulkDelete = async function() {
+  var selected = Array.from(_getRahavirtaSelectedIds());
+  if (!selected.length) return;
+  if (!confirm('Poistetaanko ' + selected.length + ' valittua rahavirtaa?')) return;
+
+  var bySource = {};
+  selected.forEach(function(compositeId) {
+    var sep = compositeId.indexOf('|');
+    var source = compositeId.slice(0, sep);
+    var key = compositeId.slice(sep + 1);
+    if (!bySource[source]) bySource[source] = { ids: new Set(), idxs: new Set() };
+    if (typeof key === 'string' && key.indexOf('idx:') === 0) {
+      bySource[source].idxs.add(parseInt(key.slice(4), 10));
+    } else {
+      bySource[source].ids.add(key);
+    }
+  });
+
+  var snaps = (await DB.getAll('snapshots')).sort(function(a, b) { return a.date.localeCompare(b.date); });
+  if (!snaps.length) return;
+  var latest = Object.assign({}, snaps[snaps.length - 1]);
+
+  Object.keys(bySource).forEach(function(source) {
+    var items = Array.isArray(latest[source]) ? latest[source] : [];
+    var target = bySource[source];
+    latest[source] = items.filter(function(item, idx) {
+      if (item.id != null && target.ids.has(item.id)) return false;
+      if (item.id == null && target.idxs.has(idx)) return false;
+      return true;
+    });
+  });
+  if (Array.isArray(latest.tulot_items)) {
+    latest.tulot_kk = latest.tulot_items.reduce(function(s, x) { return s + (Number(x.amt_kk) || 0); }, 0);
+  }
+
+  latest._updatedAt = new Date().toISOString();
+  await DB.putSnapshot(latest);
+  _getRahavirtaSelectedIds().clear();
+  try { setTimeout(function() { if (typeof syncToSupabase === 'function') syncToSupabase([latest]); }, 500); } catch (e) {}
+  await renderDashboard();
+};
 
 function renderTulossaList() {
   var el = document.getElementById('kassaTulossaList');
@@ -5157,7 +5267,7 @@ function renderTulossaList() {
     return '<button class="kassa-filter-btn' + (filter === f ? ' active' : '') + '" onclick="rahavirtaFilterSet(\'' + f + '\')">' + flabel + '</button>';
   }).join('') + '</div>';
 
-  el.innerHTML = filterRow + html;
+  el.innerHTML = filterRow + rahavirtaBulkToolbarHtml() + html;
 }
 window.rahavirtaFilterSet = function(mode) {
   window._rahavirtaFilter = mode;
