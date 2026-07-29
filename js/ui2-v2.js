@@ -5234,14 +5234,16 @@ function renderTulossaList() {
         var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--expense)' : 'var(--text3)');
         var itemDay = validRecurringDay(item.day);
         var itemDayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (itemDay !== null ? itemDay + '.' : '') + '</span>';
-        html += '<div class="kassa-view-row" onclick="rahavirtaEditorOpenEdit(\'tulevat_items\',\'' + itemKey + '\')">' +
-          '<span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' +
-          rahavirtaCheckboxHtml('tulevat_items|' + itemKey) +
-          itemDayCell +
-          '<span class="kassa-vr-label" style="color:' + amtColor + '">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
-          '</span>' +
-          '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
-          '</div>';
+        // Näkymätön spacer täsmälleen samalla glyfillä kuin säännöllisen rivin
+        // ⟳-kuvake (visibility:hidden säilyttää tilan mutta ei näy) — sama
+        // HTML-rakenne ja samat CSS-luokat (panel-row/panel-row-lbl/panel-row-val)
+        // kuin säännöllisellä rivillä, jotta typografia on identtinen. Ainoa
+        // näkyvä ero rivityyppien välillä on ⟳:n näkyvyys.
+        var itemIconSpacer = '<span style="visibility:hidden;" aria-hidden="true">⟳</span>';
+        html += '<div class="panel-row" style="cursor:pointer;" onclick="rahavirtaEditorOpenEdit(\'tulevat_items\',\'' + itemKey + '\')"><span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' + rahavirtaCheckboxHtml('tulevat_items|' + itemKey) + itemDayCell + itemIconSpacer + '<span class="panel-row-lbl" style="color:' + amtColor + ';">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span></span>'
+          + '<span style="display:flex;align-items:center;gap:8px;">'
+          + '<span class="panel-row-val" style="color:' + amtColor + ';">' + sign + item.amount + ' €</span>'
+          + '</span></div>';
       } else {
         var isIncome = x.source === 'tulot_items';
         var ritem = x.ref;
