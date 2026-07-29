@@ -5232,9 +5232,12 @@ function renderTulossaList() {
         var itemKey = item.id != null ? item.id : ('idx:' + snap.tulevat_items.indexOf(item));
         var sign = (item.amount > 0) ? '+' : '';
         var amtColor = (item.amount > 0) ? 'var(--green)' : (item.amount < 0 ? 'var(--expense)' : 'var(--text3)');
+        var itemDay = validRecurringDay(item.day);
+        var itemDayCell = '<span style="display:inline-block;width:20px;flex-shrink:0;text-align:right;font-family:var(--mono);color:var(--text3);white-space:nowrap;">' + (itemDay !== null ? itemDay + '.' : '') + '</span>';
         html += '<div class="kassa-view-row" onclick="rahavirtaEditorOpenEdit(\'tulevat_items\',\'' + itemKey + '\')">' +
           '<span style="display:flex;align-items:baseline;gap:8px;min-width:0;">' +
           rahavirtaCheckboxHtml('tulevat_items|' + itemKey) +
+          itemDayCell +
           '<span class="kassa-vr-label" style="color:' + amtColor + '">' + (item.label==='auto'?'🚗 ':'') + normalizeRecurringLabel(item.label, '—') + '</span>' +
           '</span>' +
           '<span class="kassa-vr-amount" style="color:' + amtColor + '">' + sign + item.amount + ' €</span>' +
