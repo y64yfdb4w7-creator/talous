@@ -1,10 +1,66 @@
 # CURRENT_STATUS.md
 # Finance OS — Current Status
 
-**Päivitetty:** 2026-07-27
-**Viimeisin commit:** (tuleva) `feat: rahavirrat-listan massatoiminnot v1`
+**Päivitetty:** 2026-07-29
+**Viimeisin commit:** (tuleva) `fix: OP Gold v2 -laajennus kassajaksoon`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv. — 23.7.2026 (Seuraava kassajakso -yhteenveto): 5635 riv. — 23.7.2026 (bugikorjaus: säännölliset tulot): 5645 riv. — 27.7.2026 (järjestys+monivalinta): 5655 riv. — 27.7.2026 (massatoiminnot v1): 5765 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv. — 23.7.2026 (Seuraava kassajakso -yhteenveto): 5635 riv. — 23.7.2026 (bugikorjaus: säännölliset tulot): 5645 riv. — 27.7.2026 (järjestys+monivalinta): 5655 riv. — 27.7.2026 (massatoiminnot v1): 5765 riv. — 29.7.2026 (OP Gold v2): 5764 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+
+**OP Gold v2 -laajennus + kassajakson laskennan auditointi (29.7.2026) — valmis:**
+Speksi oletti, että Dashboard, Rahavirrat-listan katkoviiva ja Kassajakson
+hallinta -dialogi voivat näyttää eri kassajakson päättymispäivän. Auditointi
+osoitti, ettei tämä pidä paikkaansa nykyisessä koodissa: kaikki viisi paikkaa
+(Hero/Lopputilanne, ODOTE-modaali, Rahavirrat-listan katkoviiva, Kassajakson
+hallinta -dialogin "Nykyinen kassajakso päättyy" ja `kassaValisumma()`)
+kutsuvat jo `buildKassajakso()`:ia tai `computeKassajaksoTransparency()`:ia,
+jotka molemmat käyttävät samoja puhtaita apufunktioita
+(`resolveBaseKassajaksoPeriodEnd`, `applyOpGoldExtension`) samalla
+`snapshotDate`illa — yksi laskentapolku oli jo olemassa (tuotepäätökset
+#13/#14, 22.7.2026). Käyttäjä hyväksyi auditointilöydöksen: kohtia 1, 2, 4,
+5, 6 ei muutettu. Todellinen työ rajautui OP Gold -säännön logiikkaan.
+
+**Toteutus (`js/ui2-v2.js`):**
+- `applyOpGoldExtension()` (rivi ~2748): korvattu v1:n käytös ("etsi tulot
+  seuraavan kuukauden 1.–5. päivän väliltä ja jatka jaksoa viimeiseen
+  löytyneeseen tuloon asti, tai ei lainkaan jos tuloa ei löydy") v2:lla
+  ("jos OP Gold on käytössä ja periodEnd olisi ennen seuraavan kuukauden
+  5. päivää, siirrä periodEnd ehdoitta 5. päivään"). Ei enää suodata
+  `allItems`-joukkoa tulojen mukaan — `allItems`-parametri jäi funktiosignatuuriin
+  koskemattomana (molemmat kutsupaikat välittävät sen yhä), mutta funktion
+  runko ei enää käytä sitä.
+- `buildKassajakso()`/`collectRahavirrat()`: ei muutettu. Normaali
+  `date <= periodEnd` -suodatus (kaikille neljälle rivityypille: säännölliset
+  tulot/menot, kertaluonteiset tulot/menot) poimii automaattisesti kaikki
+  uuteen 5. päivän periodEnd:iin mennessä osuvat rahavirrat — ei erillistä
+  "lisää tulot" -logiikkaa, spekin vaatimuksen mukaisesti.
+- Kolme käyttöliittymätekstiä päivitetty kuvaamaan uutta käytöstä (käyttäjä
+  hyväksyi tämän erikseen, koska kyse on virheellisen kuvauksen korjauksesta
+  eikä ulkoasumuutoksesta): OP Gold -valintaruudun otsikko ja selite
+  (rivit ~990–993), läpinäkyvyysnäkymän "Ratkaiseva ehto" -label (rivi
+  ~2839: "OP Gold (jatkettu seuraavan kuukauden 5. päivään)") ja
+  Kassajakson hallinta -dialogin selitysteksti (rivi ~1140). Ei CSS- eikä
+  layoutmuutoksia.
+
+**Testattu:**
+- Node-harnessi (funktiot kopioitu verbaatim tiedostosta): OP Gold pois,
+  OP Gold päällä + periodEnd ennen 5.pv (→ siirtyy 5.pv), OP Gold päällä +
+  periodEnd jo 5.pv jälkeen (→ ei muutu), kertaluonteinen meno 2.pv,
+  kertaluonteinen tulo 4.pv, säännöllinen meno tasan 5.pv, sekä
+  `buildKassajakso()`/`computeKassajaksoTransparency()`-yhtenäisyys — 11/11
+  läpi.
+- Live-varmennus (claude-in-chrome, paikallinen `python3 -m http.server`,
+  ajettu suoraan oikean sovelluksen ladatun koodin päällä, ei kopiota):
+  samat skenaariot kutsuttu suoraan `window.buildKassajakso`/
+  `computeKassajaksoTransparency`/`applyOpGoldExtension`-funktioilla —
+  tulokset täsmäsivät Node-harnessin kanssa täsmälleen (esim. OP Gold
+  päällä + periodEnd 3.8. → 5.8., transparency-periodEnd myös 5.8.).
+- `node -c js/ui2-v2.js`: syntaksi OK, ei uusia varoituksia (ei
+  linter-konfiguraatiota projektissa).
+
+**Ei muutettu:** tietomalli, paikallinen tallennus, CSS, muut ominaisuudet,
+`collectRahavirrat()`, Rahavirrat-listan katkoviivan/dialogin/ODOTEen omat
+kutsupaikat (kaikki jo käyttivät yhteistä laskentaa ennen tätäkin
+sprinttiä).
 
 **Rahavirrat-listan massatoiminnot v1 (27.7.2026) — valmis:**
 Ensimmäiset massatoiminnot edellisen sprintin selectedIds-monivalinnan päälle.

@@ -987,10 +987,10 @@ function _renderKassajaksoHallintaBox(latest) {
   var ogTextWrap = document.createElement('div');
   var ogTitle = document.createElement('div');
   ogTitle.style.cssText = 'font-size:12px;color:var(--text2);';
-  ogTitle.textContent = 'Huomioi seuraavan kuukauden 1.–5. päivän tulot';
+  ogTitle.textContent = 'Jatka kassajaksoa seuraavan kuukauden 5. päivään';
   var ogDesc = document.createElement('div');
   ogDesc.style.cssText = 'font-size:11px;color:var(--text3);';
-  ogDesc.textContent = 'Jos kassajakso päättyisi ennen seuraavan kuukauden 5. päivää, mukaan otetaan myös kaikki seuraavan kuukauden 1.–5. päivän tulot.';
+  ogDesc.textContent = 'Jos kassajakso päättyisi ennen seuraavan kuukauden 5. päivää, kassajaksoa jatketaan seuraavan kuukauden 5. päivään asti. Kaikki kyseiseen jaksoon kuuluvat rahavirrat huomioidaan.';
   ogTextWrap.appendChild(ogTitle);
   ogTextWrap.appendChild(ogDesc);
   ogLbl.appendChild(ogCb);
@@ -1137,7 +1137,7 @@ window.openOdoteModal = async function(evt) {
         decideHtml += '<div style="font-size:12px;color:var(--text2);">' + fmtItemDate(kassajakso.periodEnd) + '</div>';
       }
       if (transparency.opGoldExtended) {
-        decideHtml += '<div style="font-size:12px;color:var(--text2);margin-top:4px;">Kassajaksoa jatkettiin OP Gold -säännön perusteella seuraavan kuukauden 1.–5. päivän tuloihin asti.</div>';
+        decideHtml += '<div style="font-size:12px;color:var(--text2);margin-top:4px;">Kassajaksoa jatkettiin OP Gold -säännön perusteella seuraavan kuukauden 5. päivään asti. Kaikki kyseiseen jaksoon kuuluvat rahavirrat huomioidaan.</div>';
       }
       decideHtml += '</div>';
       box.insertAdjacentHTML('beforeend', decideHtml);
@@ -2735,15 +2735,16 @@ function resolveBaseKassajaksoPeriodEnd(latest, snapshotDate, allItems) {
   return incomeDates.length ? new Date(Math.min.apply(null, incomeDates)) : null;
 }
 
-// OP Gold -laajennus (Osa 1, suunnittelupäätös 22.7.2026): valinnainen,
-// finos_kassajakso_rules.opGoldNextMonth1to5-boolean (LUKITTU rakenne,
-// lisätty taaksepäin yhteensopivasti — vanha tallennettu rules-objekti
-// ilman kenttää tulkitaan false:ksi). Jos käytössä ja annettu periodEnd
-// olisi ENNEN seuraavan kuukauden 5. päivää, jatketaan kassajaksoa
-// viimeiseen seuraavan kuukauden 1.–5. päivän tuloon asti. Jos lisätuloja
-// ei löydy tältä väliltä, periodEnd palautuu muuttumattomana (nykyinen
-// toiminta säilyy). Ei koske rahavirtojen rakennetta eikä Heroa — pelkkä
-// lisäaskel periodEnd-arvon päälle, samalla collectRahavirrat()-joukolla.
+// OP Gold -laajennus v2 (suunnittelupäätös 29.7.2026, korvaa Osa 1:n
+// 22.7.2026 version): valinnainen, finos_kassajakso_rules.opGoldNextMonth1to5
+// -boolean (LUKITTU rakenne, lisätty taaksepäin yhteensopivasti — vanha
+// tallennettu rules-objekti ilman kenttää tulkitaan false:ksi). Jos käytössä
+// ja annettu periodEnd olisi ENNEN seuraavan kuukauden 5. päivää, periodEnd
+// siirretään EHDOITTA seuraavan kuukauden 5. päivään — ei etsitä tuloja
+// väliltä, ei jatketa vain viimeiseen löytyneeseen tuloon asti (v1:n tapa).
+// Tämän jälkeen collectRahavirrat():in normaali date <= periodEnd -suodatus
+// (ks. buildKassajakso) poimii kaikki jaksoon kuuluvat rahavirrat — säännölliset
+// ja kertaluonteiset, tulot ja menot — ilman erillistä lisäyslogiikkaa.
 function applyOpGoldExtension(rules, allItems, snapshotDate, periodEnd) {
   if (!periodEnd || !rules || !rules.opGoldNextMonth1to5) {
     return { periodEnd: periodEnd, extended: false };
@@ -2752,14 +2753,7 @@ function applyOpGoldExtension(rules, allItems, snapshotDate, periodEnd) {
   if (periodEnd.getTime() >= nextMonthDay5.getTime()) {
     return { periodEnd: periodEnd, extended: false };
   }
-  var nextMonthStart = new Date(snapshotDate.getFullYear(), snapshotDate.getMonth() + 1, 1);
-  var matchedDates = allItems
-    .filter(function(x) { return x.isIncome && x.date.getTime() >= nextMonthStart.getTime() && x.date.getTime() <= nextMonthDay5.getTime(); })
-    .map(function(x) { return x.date.getTime(); });
-  if (!matchedDates.length) return { periodEnd: periodEnd, extended: false };
-  var maxMatched = Math.max.apply(null, matchedDates);
-  if (maxMatched <= periodEnd.getTime()) return { periodEnd: periodEnd, extended: false };
-  return { periodEnd: new Date(maxMatched), extended: true };
+  return { periodEnd: nextMonthDay5, extended: true };
 }
 
 // Kassajakso: LUKITTU tuotepäätös #13 (22.7.2026, kumoaa osittain #12) —
@@ -2836,7 +2830,7 @@ function computeKassajaksoTransparency(latest, snapshotDate) {
   var periodEnd = opGoldResult.periodEnd;
 
   if (opGoldActive) {
-    activeRules.push({ label: 'OP Gold (1.–5. päivän tulot)', date: opGoldResult.extended ? periodEnd : null });
+    activeRules.push({ label: 'OP Gold (jatkettu seuraavan kuukauden 5. päivään)', date: opGoldResult.extended ? periodEnd : null });
   }
 
   var decidingLabels = periodEnd
