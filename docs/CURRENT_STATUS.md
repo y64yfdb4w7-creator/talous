@@ -2,9 +2,69 @@
 # Finance OS — Current Status
 
 **Päivitetty:** 2026-07-29
-**Viimeisin commit:** (tuleva) `fix: OP Gold v2 -laajennus kassajaksoon`
+**Viimeisin commit:** (tuleva) `feat: OP Gold -maksun automaattinen kohdistus v1`
 **Branch:** main
-**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv. — 23.7.2026 (Seuraava kassajakso -yhteenveto): 5635 riv. — 23.7.2026 (bugikorjaus: säännölliset tulot): 5645 riv. — 27.7.2026 (järjestys+monivalinta): 5655 riv. — 27.7.2026 (massatoiminnot v1): 5765 riv. — 29.7.2026 (OP Gold v2): 5764 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+**Tiedostot:** js/ui2-v2.js (4329 riv. — **15.7.2026: 5002 riv. — 20.7.2026: 4551 riv. — 20.7.2026 (Info-modal): 4600 riv. — 20.7.2026 (Info-sisältö): 4602 riv. — 21.7.2026 (terminologia+YHTEENSÄ): 4617 riv. — 21.7.2026 (visuaalinen viimeistely): 4612 riv. — 21.7.2026 (v2, rivien yhtenäistys): 4612 riv. — 21.7.2026 (v3, taulukko+viiva): 4613 riv. — 21.7.2026 (rahavirran summan etumerkki): 4615 riv. — 21.7.2026 (tulevien rahavirtojen muokkaus): 4605 riv. — 21.7.2026 (id:ttömien rivien tuki): 4615 riv. — 21.7.2026 (yhtenäinen muokkaus kaikille): 4636 riv. — 22.7.2026 (tyypin/suunnan muokkaus): 4671 riv. — 22.7.2026 (toistuvuusvalinta): 4688 riv. — 22.7.2026 (Odote-rajaus + selitysnäkymä): 4789 riv. — 22.7.2026 (kassajakson päättymisraja): 4800 riv. — 22.7.2026 (Rahavirrat-regressiokorjaus): 4801 riv. — 22.7.2026 (kassajakson sääntömoottori): 4930 riv. — 22.7.2026 (Kassajakson hallinta -UI): 5249 riv. — 22.7.2026 (Ei mukana -värikorjaus): 5253 riv. — 22.7.2026 (OP Gold + läpinäkyvyys): 5430 riv. — 22.7.2026 (kertaluonteisen rahavirran kuittaus): 5523 riv. — 22.7.2026 (kassajakson päättymisviiva Rahavirrat-listaan): 5543 riv. — 23.7.2026 (Seuraava kassajakso -yhteenveto): 5635 riv. — 23.7.2026 (bugikorjaus: säännölliset tulot): 5645 riv. — 27.7.2026 (järjestys+monivalinta): 5655 riv. — 27.7.2026 (massatoiminnot v1): 5765 riv. — 29.7.2026 (OP Gold v2): 5764 riv. — 29.7.2026 (OP Gold -maksun kohdistus v1): 5842 riv.**), index.html (1252 riv. — **15.7.2026: 1421 riv. — 20.7.2026: 1428 riv. — 20.7.2026 (mobiili-UX): 1463 riv. — 20.7.2026 (desktop-layout-fix): 1464 riv. — 21.7.2026 (.sub-row neutraali): 1463 riv. — 22.7.2026 (cache-bust v208): 1463 riv. — 22.7.2026 (cache-bust v209): 1463 riv. — 22.7.2026 (cache-bust v210): 1463 riv. — 22.7.2026 (cache-bust v211): 1463 riv. — 22.7.2026 (cache-bust v212): 1463 riv. — 22.7.2026 (cache-bust v213): 1463 riv.**)
+
+**OP Gold -maksun automaattinen kohdistus v1 (29.7.2026) — valmis:**
+Snapshotin päivitysapuri, **ei rahavirta eikä kirjanpitoa** — kun käyttäjä
+maksaa OP Gold -laskun, sovellus siirtää maksetun summan Tulotililtä OP
+Goldin kuittaukseksi yhdellä snapshot-kirjoituksella, jottei käteinen pienene
+ilman että luottokorttivelka pienenee samalla.
+
+**Auditointi ennen toteutusta:** `snapshot.tulotili` ja `snapshot.op_gold`
+ovat kenttiä samassa snapshot-oliossa (`js/ui2-v2.js`), tallennetaan
+`DB.putSnapshot()`:lla ja synkataan `syncToSupabase()`:lla (`js/sync2.js`).
+Käyttäjä pystyi päivittämään ne aiemmin vain erikseen, kahdella itsenäisellä
+funktiolla (`saveTulotiliValue`/`saveOpGoldValue`) — ei yhdistettyä
+maksutoimintoa ollut olemassa. Kaikki riippuva laskenta (`calculateNetWorth()`
+`js/calculations.js:38`, `lahtokassaOf`, `kvOf`, Hero/Kassajakso) lukee
+molemmat kentät suoraan samasta snapshotista, joten ei arkkitehtuurista
+estettä: yksi yhteinen kirjoitus riittää päivittämään Käteisen, OP Goldin,
+Nettolikviditeetin, ODOTEen, Heron ja Kassajakson automaattisesti.
+Ylisuorituksen käsittely (salliiko ylisuorituksen) oli spekissä avoinna —
+käyttäjän päätös: **estä aina**, selkeällä virheilmoituksella.
+
+**Toteutus (`js/ui2-v2.js`):**
+- Uusi `renderOpGoldPaymentSection(latest)` — pieni "Maksoin OP Gold
+  -laskun" -painike (`.kassa-add-btn`, sama komponentti kuin "+ Lisää
+  rahavirta") Kassa-kortin OP Gold -rivin alla, ei uutta korttia eikä
+  näkymää. Klikkaus avaa yhden summakentän lomakkeen (`.kassa-field-group`/
+  `.kassa-edit-input`/`.kassa-action-row`/`.kassa-save-btn`/`.kassa-cancel-btn`
+  — kaikki olemassa olevia Visual Language -komponentteja, ei uutta CSS:ää).
+- Uusi `window.opGoldPaymentSave()`: validoi (tyhjä/NaN/≤0 → "Syötä summa,
+  joka on suurempi kuin 0 €"; summa > |OP Gold| → "Maksu (X €) on suurempi
+  kuin OP Gold -velka (Y €)" eikä tallenna mitään), sitten lukee viimeisimmän
+  snapshotin, laskee `tulotili -= summa` ja `op_gold = -(velka - summa)`, ja
+  kirjoittaa **molemmat yhdellä** `DB.putSnapshot()`-kutsulla — sama
+  sync/render-polku (`syncToSupabase`, `renderSalkku`, `renderDashboard`)
+  kuin `saveTulotiliValue`/`saveOpGoldValue`:ssä. `saveTulotiliValue`/
+  `saveOpGoldValue` (yksittäiskenttien inline-editointi) koskematta.
+- Ei uutta tietomallia, ei tapahtumakirjanpitoa, ei transaktiolistaa, ei
+  budjettia — pelkkä snapshotin kahden kentän yhtäaikainen päivitys.
+
+**Testattu (claude-in-chrome, paikallinen `python3 -m http.server` oikean
+sovelluksen ladatun koodin päällä):**
+- 100 € osittainen maksu (OP Gold −900 → −800, Tulotili 4700 → 4600, YHT.
+  3800 € muuttumaton).
+- Koko velan maksu (OP Gold −300 → 0, Tulotili 5000 → 4700, YHT. 4700 €
+  muuttumaton).
+- 0 € → estetty, virheilmoitus, ei tallennusta.
+- Negatiivinen summa (−50) → estetty, virheilmoitus, ei tallennusta.
+- Liian suuri maksu (500 € kun velkaa 300 €) → estetty, "Maksu (500 €) on
+  suurempi kuin OP Gold -velka (300 €).", ei tallennusta.
+- OP Gold = 0 € → painike näkyy yhä, mutta mikä tahansa maksu (esim. 50 €)
+  estyy ("...velka (0 €)").
+- "Peru" sulkee lomakkeen tallentamatta.
+- S-Pankki/Tavoitetili/Elatustili eivät muuttuneet millään testikierroksella;
+  ODOTE, YHT./Nykyinen ja Nettovarallisuus päivittyivät automaattisesti
+  ilman manuaalista väliintuloa. Ei konsolivirheitä (ainoa konsoliviesti oli
+  paikallisen testipalvelimen service worker -polkuvaroitus, ei liity
+  muutokseen).
+- `node -c js/ui2-v2.js`: syntaksi OK.
+
+**Ei muutettu:** tietomalli, `saveTulotiliValue`/`saveOpGoldValue`/
+`kassaInlineEdit`, CSS, muut ominaisuudet, index.html.
 
 **OP Gold v2 -laajennus + kassajakson laskennan auditointi (29.7.2026) — valmis:**
 Speksi oletti, että Dashboard, Rahavirrat-listan katkoviiva ja Kassajakson

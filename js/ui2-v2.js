@@ -1509,6 +1509,7 @@ async function renderDashboard() {
         + '<input id="kassa-op_gold-inp" type="number" inputmode="decimal" style="display:none;width:90px;font-family:var(--mono);font-size:16px;color:var(--card-primary);background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 4px;text-align:right;" />'
               + '</div>'
               : '')
+            + renderOpGoldPaymentSection(latest)
             // YHT.-rivi — tilien yhteenveto, sama arvo kuin "NYKYINEN"; vain summa lihavoitu, ei väriä
             // Erotusviiva OP Gold-rivin ja yhteenvedon välissä, sama tyyli kuin katkoviiva ennen "SEURAAVA RAHATILANNE"
             + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.07);margin-bottom:8px;">'
@@ -2498,6 +2499,83 @@ async function saveOpGoldValue(val) {
     renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
   });
 }
+
+// "Maksoin OP Gold -laskun" — snapshotin päivitysapuri, EI rahavirta.
+// Siirtää käyttäjän syöttämän summan Tulotililtä OP Goldin kuittaukseksi
+// yhdellä snapshot-kirjoituksella: Tulotili −= summa, OP Gold += summa
+// (velka pienenee). Ylisuoritus (summa > nykyinen OP Gold -velka) estetään.
+function renderOpGoldPaymentSection(latest) {
+  if (latest.op_gold === undefined) return '';
+  if (!window._opGoldPaymentOpen) {
+    return '<button class="kassa-add-btn" onclick="opGoldPaymentOpen()">Maksoin OP Gold -laskun</button>';
+  }
+  var errHtml = window._opGoldPaymentError
+    ? '<div style="font-size:11px;color:var(--red);margin-top:4px;">' + escAttr(window._opGoldPaymentError) + '</div>'
+    : '';
+  var amountVal = (window._opGoldPaymentAmount != null) ? escAttr(window._opGoldPaymentAmount) : '';
+  return '<div style="margin-top:6px;">'
+    + '<div class="kassa-section-hdr" style="margin-bottom:6px;">MAKSOIN OP GOLD -LASKUN</div>'
+    + '<div class="kassa-field-group"><label class="kassa-field-label">Maksettu summa (€)</label>'
+    + '<input class="kassa-edit-input" id="op_gold_payment_amount" type="number" inputmode="decimal" placeholder="esim. 400" value="' + amountVal + '"></div>'
+    + errHtml
+    + '<div class="kassa-action-row">'
+    + '<button class="kassa-save-btn" onclick="opGoldPaymentSave()">✓ Tallenna</button>'
+    + '<button class="kassa-cancel-btn" onclick="opGoldPaymentCancel()">✕ Peru</button>'
+    + '</div>'
+    + '</div>';
+}
+
+window.opGoldPaymentOpen = function() {
+  window._opGoldPaymentOpen = true;
+  window._opGoldPaymentError = null;
+  window._opGoldPaymentAmount = null;
+  renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
+};
+
+window.opGoldPaymentCancel = function() {
+  window._opGoldPaymentOpen = false;
+  window._opGoldPaymentError = null;
+  window._opGoldPaymentAmount = null;
+  renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
+};
+
+window.opGoldPaymentSave = async function() {
+  var inp = document.getElementById('op_gold_payment_amount');
+  var raw = inp ? inp.value : '';
+  var v = parseFloat(raw);
+  window._opGoldPaymentAmount = raw;
+
+  if (raw === '' || !Number.isFinite(v) || v <= 0) {
+    window._opGoldPaymentError = 'Syötä summa, joka on suurempi kuin 0 €.';
+    renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
+    return;
+  }
+
+  const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date.localeCompare(b.date));
+  const latest = snaps[snaps.length - 1];
+  if (!latest) return;
+
+  var debt = Math.abs(latest.op_gold || 0);
+  if (v > debt) {
+    window._opGoldPaymentError = 'Maksu (' + fmt(v) + ') on suurempi kuin OP Gold -velka (' + fmt(debt) + ').';
+    renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
+    return;
+  }
+
+  var newTulotili = (latest.tulotili || 0) - v;
+  var newOpGold = -(debt - v);
+  const snap = { ...latest, tulotili: newTulotili, op_gold: newOpGold, _updatedAt: new Date().toISOString() };
+  await DB.putSnapshot(snap);
+  try { setTimeout(() => syncToSupabase(snap), 300); } catch(e) {}
+
+  window._opGoldPaymentOpen = false;
+  window._opGoldPaymentError = null;
+  window._opGoldPaymentAmount = null;
+  requestAnimationFrame(() => {
+    renderSalkku();
+    renderDashboard().then(function(){ if(window.applyDashboardLayout) window.applyDashboardLayout(); });
+  });
+};
 
 // Yhteinen nimen normalisointi Kuukausirytmin/Säännöllisten tulojen/menojen riveille.
 // Tyhjä, puuttuva tai pelkkiä pisteitä/välilyöntejä sisältävä nimi korvataan fallbackilla —
