@@ -3236,7 +3236,8 @@ async function deleteHolding(id) {
 }
 
 async function saveDayFromHoldings() {
-  const holdings = (await DB.getAll('holdings')).filter(h => h.active !== false && h.last_price);
+  const allHoldings = await DB.getAll('holdings');
+  const holdings = allHoldings.filter(h => h.active !== false && h.last_price);
   if (holdings.length === 0) {
     alert('Lisää holdingit ja kurssit ensin.');
     return;
@@ -3253,6 +3254,19 @@ async function saveDayFromHoldings() {
   const snaps = (await DB.getAll('snapshots')).sort((a,b) => a.date.localeCompare(b.date));
   const latest = snaps[snaps.length - 1];
   const today  = new Date().toISOString().slice(0,10);
+
+  // Carry-forward sijoitustilille vain, jos tilillä on olemassa oleva
+  // holding-rivi joka ei saanut hintaa tällä kierroksella (väliaikainen
+  // kurssihakuvirhe). Tiliä jolla ei ole yhtään holding-riviä ei täytetä
+  // vanhalla arvolla, koska käyttäjä on silloin poistanut tilin holdingit
+  // tarkoituksella.
+  const INVESTMENT_ACCOUNT_KEYS = ['nordnet','op_osakkeet','tapiola','s_sijoitus','rahastot','lasten_sijoitus'];
+  const accountsWithHoldingRows = new Set(allHoldings.map(h => h.account));
+  for (const key of INVESTMENT_ACCOUNT_KEYS) {
+    if (!(key in acctTotals) && accountsWithHoldingRows.has(key)) {
+      acctTotals[key] = latest?.[key] ?? 0;
+    }
+  }
 
   const snap = {
     date: today,
