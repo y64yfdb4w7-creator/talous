@@ -26,15 +26,24 @@ Historia löytyy `git log`:sta ja `docs/CURRENT_STATUS.md`:stä.
 
 ## Mitä Hero näyttää
 
-Kassa-kortin yläosan iso lukuarvo (`card-value`, `js/ui2-v2.js:900`) näyttää:
+Kassa-kortin yläosassa (`card-left`, `js/ui2-v2.js:1465-1480`) näytetään **kaksi
+erillistä arvoa** rinnakkain, kumpikin omalla `card-value`-elementillään:
 
-**Kassajakson lopputilanteen** — nykyinen kassa + kaikki `buildKassajakso(...).items`-joukon
-rahavirrat, kertaluonteiset ja säännölliset yhtäläisesti.
+| Nimike | Rivi | Arvo |
+|---|---|---|
+| "ODOTE" | `js/ui2-v2.js:1472-1473` | `kassaValisumma(latest)` = `heroSum(buildKassajakso(latest))` |
+| "NYKYINEN" | `js/ui2-v2.js:1476-1477` | `lahtokassaOf(latest)` |
 
-`kassaValisumma(latest)` (`js/ui2-v2.js:2054`) delegoi suoraan `heroSum(buildKassajakso(latest))`
--funktiolle (`js/ui2-v2.js:2047`), joten näkyvä Hero ja kortin oma "Lopputilanne"-rivi
-näyttävät aina saman luvun. "Hero" viittaa nyt yksiselitteisesti yhteen lukuun, joka
-näytetään kahdessa paikassa.
+Kortin alaosassa toistuvat samat kaksi arvoa vielä kerran:
+
+| Nimike | Rivi | Arvo |
+|---|---|---|
+| "YHT." | `js/ui2-v2.js:1516-1517` | sama kuin "NYKYINEN" (`lahtokassaOf(latest)`) |
+| "Lopputilanne" | `js/ui2-v2.js:3082-3085` (`renderKassaSeuraavaRahatilanne`) | sama kuin "ODOTE" (`heroSum(buildKassajakso(latest))`) |
+
+"ODOTE" ja "Lopputilanne" näyttävät siis aina saman luvun keskenään, ja "NYKYINEN"
+ja "YHT." näyttävät aina saman luvun keskenään — mutta nämä kaksi paria ovat
+toisistaan eriäviä arvoja.
 
 **Legacy-fallback:** jos snapshotilla ei ole `op_gold`-kenttää lainkaan, Hero näyttää
 poikkeuksellisesti pelkän `cash`-summan (vanha data ennen OP Gold -ominaisuutta). Tätä
@@ -75,8 +84,7 @@ kerros sille luovuttaa (ks. myös `docs/FINANCE_OS_ARCHITECTURE.md`):
    - `kassaValisumma(latest)` (`js/ui2-v2.js:2937`) → rakentaa Kassajakson ja
      delegoi `heroSum`:lle.
    - Kassa-kortin Hero-näytön tarkka rakenne (mitä lukuja näytetään ja missä)
-     ei ole tämän dokumentin muiden osioiden mukainen — ks. "Mitä Hero
-     näyttää" yllä, joka on tunnetusti tarkistuksen alla.
+     kuvataan "Mitä Hero näyttää" -osiossa yllä.
 
 Päivämääräfunktiot `nextRecurringDayDate` (`js/ui2-v2.js:2614`, säännöllisille
 kuukauden päivä -erille) ja `nextMonthOnlyDate` (`js/ui2-v2.js:2636`, kertaluonteisille
@@ -193,9 +201,11 @@ suunnittelupäätöstä):
    `buildKassajakso(...).items`-joukon rahavirrat (kertaluonteiset ja
    säännölliset), samalla logiikalla kuin `heroSum()`. Korvaa aiemman
    päätöksen "Hero = lähtökassa + tulevat erät" (`948b625`).
-10. **Käyttöliittymän termi "NYKYINEN KASSA"** — korvaa aiemman UI-tekstin
-    "LÄHTÖKASSA" (`js/ui2-v2.js:2097`), koska arvo kuvaa käyttäjän
-    tämänhetkistä nettokassaa (tilit − luottokortit) eikä Kassajakson alkua.
+10. **Käyttöliittymän termi "NYKYINEN"** — korvaa aiemman UI-tekstin
+    "LÄHTÖKASSA", koska arvo kuvaa käyttäjän tämänhetkistä nettokassaa
+    (tilit − luottokortit) eikä Kassajakson alkua. Näkyy Kassa-kortissa
+    kahdesti: nimikkeellä "NYKYINEN" (`js/ui2-v2.js:1476-1477`) ja
+    nimikkeellä "YHT." (`js/ui2-v2.js:1516-1517`) — molemmat sama arvo.
     Vain käyttöliittymän teksti muuttui — `lahtokassaOf()`-funktio, sisäinen
     `lahtokassa`-muuttuja ja itse laskenta pysyivät ennallaan.
 11. **Rahavirtojen värikoodaus** — tulot vihreällä (`var(--green)`), menot
