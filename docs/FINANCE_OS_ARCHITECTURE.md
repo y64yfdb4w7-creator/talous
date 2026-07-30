@@ -1,6 +1,6 @@
 # Finance OS — Arkkitehtuuridokumentti
 
-> Versio: 2026-06-09  
+> Versio: 2026-07-30  
 > Tila: Vakaa tuotantokäytössä  
 > Tarkoitus: Turvallisten muutosten mahdollistaminen dokumentoimalla järjestelmän rakenne
 
@@ -95,7 +95,7 @@ talous/
                 ### js/db.js
                 **Tekee:**
                 - IndexedDB-abstraktio nimellä `FinanceOS_3` (versio 14)
-                - Storeset: `snapshots`, `holdings`, `events`, `pins`, `backups`
+                - Storeset: `snapshots`, `holdings`, `events`, `pins`, `backups`, `sales`
                 - CRUD-operaatiot: `getAll`, `putHolding`, `bulkPutSnapshots`, `count`, `putBackup`, `getAll('backups')`, `clearOldBackups`
 
                 **Ei tee:**
@@ -174,7 +174,7 @@ talous/
                           ### js/ui2-v2.js
                           **Tekee: KAIKEN UI:N**
 
-                          Tämä on järjestelmän suurin tiedosto (~214k merkkiä / 4329 riv. 2.6.2026 → **~265k merkkiä / 5002 riv. 15.7.2026**). Se sisältää kaikki näkymät ja niiden logiikan.
+                          Tämä on järjestelmän suurin tiedosto (~314k merkkiä / 5842 riv.). Se sisältää kaikki näkymät ja niiden logiikan.
 
                           **Näkymäfunktiot:**
                           - `renderDashboard()` — Etusivu (kassa, sijoitukset, velat, historia, nettovarallisuus)
@@ -351,10 +351,24 @@ Yksittäinen kirjattu tulo tai meno (`tulot_items`, `rytmi_items`, `tulevat_item
 Tuntee vain oman datansa. Kokoaminen yhtenäiseen muotoon: `collectRahavirrat`.
 
 ### Kassajakso
-Rajaa rahavirtajoukon viimeisimmästä snapshotista seuraavaan tunnettuun tuloon
-(`buildKassajakso`). Aikareferenssinä yksinomaan `latest.date` — ei laitteen
-kellonaikaa. Laskee lähtökassan (`lahtokassaOf` — tulotili − |op_gold|) ja
-muodostaa Herolle annettavan rajatun joukon.
+Rajaa rahavirtajoukon viimeisimmästä snapshotista päättymispisteeseen
+(`periodEnd`) asti (`buildKassajakso`, palauttaa `{lahtokassa, items,
+excludedItems, periodEnd, snapshotDate, opGoldExtended}`). Aikareferenssinä
+yksinomaan `latest.date` — ei laitteen kellonaikaa. Laskee lähtökassan
+(`lahtokassaOf` — tulotili − |op_gold|) ja muodostaa Herolle annettavan
+rajatun joukon; ylijäävät rahavirrat palautuvat `excludedItems`-kentässä.
+
+Oletuksena `periodEnd` on seuraava tunnettu tulo
+(`resolveBaseKassajaksoPeriodEnd`). Käyttäjä voi korvata tämän omalla
+sääntöjoukolla (`finos_kassajakso_rules`, localStorage): ehdot `itemRef`
+(viittaus tiettyyn rahavirtaan sen pysyvällä id:llä), `fixedDate` tai
+`monthEnd`, tai `strategy: 'open'` jolloin jakso ei pääty lainkaan. Tähän
+päälle voidaan soveltaa valinnainen OP Gold -laajennus
+(`applyOpGoldExtension`): siirtää `periodEnd`:in seuraavan kuukauden 5.
+päivään, jos se muuten olisi sitä aiemmin.
+
+RAHAVIRRAT-lista (`renderTulossaList`) ei käytä tätä rajausta — se näyttää
+aina `collectRahavirrat(...)`:n koko, rajaamattoman joukon.
 
 ### Hero
 Puhdas laskentakomponentti (`heroSum`). Summaa vain sille Kassajaksolta annetun

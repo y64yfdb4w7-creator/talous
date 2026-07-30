@@ -1,7 +1,7 @@
 # Kassa-kortin nykytila
 
-> Päivitetty: 2026-07-20
-> Viimeisin commit: `948b625`
+> Päivitetty: 2026-07-30
+> Viimeisin commit: `39aa655`
 > Tiedosto: `js/ui2-v2.js`
 
 Tämä dokumentti kuvaa Kassa-kortin **nykyisen, hyväksytyn** tilan — ei kehityshistoriaa.
@@ -48,46 +48,76 @@ Kolmikerroksinen arkkitehtuuri, jossa jokainen kerros tuntee vain sen mitä edel
 kerros sille luovuttaa (ks. myös `docs/FINANCE_OS_ARCHITECTURE.md`):
 
 1. **Rahavirta** — yksittäinen kirjattu tulo/meno. Kootaan kolmesta listasta
-   (`collectRahavirrat`, `js/ui2-v2.js:1988`) yhtenäiseen muotoon
+   (`collectRahavirrat`, `js/ui2-v2.js:2656`) yhtenäiseen muotoon
    `{ref, source, date, isIncome, amount}`.
-2. **Kassajakso** — ei enää rajaa rahavirtajoukkoa (LUKITTU päätös #12,
-   toteutettu). `buildKassajakso` (`js/ui2-v2.js:2034`) palauttaa
-   `{lahtokassa, items}`, jossa `items` on suoraan `collectRahavirrat(...)`:n
-   koko tulos: kaikki tiedossa olevat tulevat kertaluonteiset rahavirrat ja
-   jokaisen säännöllisen rahavirran seuraava esiintymä, ilman katkaisua
-   ensimmäiseen tunnettuun tuloon.
-3. **Hero-taso** — yksi laskenta, kaksi näyttöpaikkaa:
-   - `heroSum(kassajakso)` (`js/ui2-v2.js:2047`) → puhdas laskentakomponentti:
+2. **Kassajakso** — rajaa rahavirtajoukon viimeisimmästä snapshotista
+   päättymispisteeseen (`periodEnd`) asti. `buildKassajakso`
+   (`js/ui2-v2.js:2854`) palauttaa `{lahtokassa, items, excludedItems,
+   periodEnd, snapshotDate, opGoldExtended}`.
+   - `periodEnd` ratkaistaan oletuksena seuraavana tunnettuna tulona
+     (`resolveBaseKassajaksoPeriodEnd`, `js/ui2-v2.js:2809`), ellei
+     käyttäjä ole tallentanut omaa sääntöjoukkoa (`finos_kassajakso_rules`,
+     localStorage) — tällöin `periodEnd` ratkaistaan joko `itemRef`-,
+     `fixedDate`- tai `monthEnd`-ehdoista (`resolveKassajaksoRules`,
+     `js/ui2-v2.js:2790`), tai jää avoimeksi (`strategy: 'open'`).
+   - Ratkaistuun `periodEnd`:iin voidaan lisäksi soveltaa valinnainen OP
+     Gold -laajennus (`applyOpGoldExtension`, `js/ui2-v2.js:2826`, ks.
+     "Miten OP Gold huomioidaan" alla).
+   - `items` sisältää kaikki rahavirrat joiden päivämäärä on ≤ `periodEnd`;
+     loput palautuvat `excludedItems`-kentässä.
+   - **RAHAVIRRAT-lista on poikkeus:** `renderTulossaList()` näyttää aina
+     `collectRahavirrat(...)`:n koko, rajaamattoman joukon — se ei käytä
+     `buildKassajakso(...).items`-rajausta.
+3. **Hero-taso**:
+   - `heroSum(kassajakso)` (`js/ui2-v2.js:2930`) → puhdas laskentakomponentti:
      nykyinen kassa + koko Kassajakson joukko (tulevat + säännölliset tulot −
      säännölliset menot).
-   - `kassaValisumma(latest)` (`js/ui2-v2.js:2054`) → rakentaa Kassajakson ja
-     delegoi `heroSum`:lle. Näkyvä Hero (`card-value`) ja kortin "Lopputilanne"
-     näyttävät siis aina saman luvun.
+   - `kassaValisumma(latest)` (`js/ui2-v2.js:2937`) → rakentaa Kassajakson ja
+     delegoi `heroSum`:lle.
+   - Kassa-kortin Hero-näytön tarkka rakenne (mitä lukuja näytetään ja missä)
+     ei ole tämän dokumentin muiden osioiden mukainen — ks. "Mitä Hero
+     näyttää" yllä, joka on tunnetusti tarkistuksen alla.
 
-Päivämääräfunktiot `nextRecurringDayDate` (`js/ui2-v2.js:1953`, säännöllisille
-kuukauden päivä -erille) ja `nextMonthOnlyDate` (`js/ui2-v2.js:1968`, kertaluonteisille
+Päivämääräfunktiot `nextRecurringDayDate` (`js/ui2-v2.js:2614`, säännöllisille
+kuukauden päivä -erille) ja `nextMonthOnlyDate` (`js/ui2-v2.js:2636`, kertaluonteisille
 kuukausi-erille) eivät ole muuttuneet.
 
 ---
 
 ## Miten OP Gold huomioidaan
 
-Nykyinen kassa lasketaan `lahtokassaOf(snap)`-funktiolla (`js/ui2-v2.js:1946`, funktion
+Nykyinen kassa lasketaan `lahtokassaOf(snap)`-funktiolla (`js/ui2-v2.js:2607`, funktion
 nimeä ei muutettu — ks. terminologiapäätös #10):
 
 ```
 lahtokassa = tulotili − |op_gold|
 ```
 
-OP Goldin sisäistä logiikkaa (esim. saldon syöttö, luottorajan käsittely) ei ole
-käsitelty tässä eikä edellisessä sprintissä — se on tietoisesti rajattu ulos.
+**Saldon syöttö:** `op_gold`-kenttää voi muokata suoraan Kassa-kortilla
+(`kassaInlineEdit('op_gold', ...)`, `saveOpGoldValue`, `js/ui2-v2.js:2487`) —
+arvo tallennetaan aina negatiivisena.
+
+**Maksun kirjaus:** "Maksoin OP Gold -laskun" -painike
+(`renderOpGoldPaymentSection`, `js/ui2-v2.js:2507`) siirtää käyttäjän
+syöttämän summan yhdellä snapshot-kirjoituksella Tulotililtä OP Goldin
+kuittaukseksi (`opGoldPaymentSave`, `js/ui2-v2.js:2542`): tulotili −= summa,
+op_gold += summa. Ylisuoritus (summa > nykyinen OP Gold -velka) estetään.
+Tämä on snapshotin päivitysapuri, ei rahavirta.
+
+**Kassajakson pidennys:** valinnainen `finos_kassajakso_rules.opGoldNextMonth1to5`
+-asetus (`applyOpGoldExtension`, `js/ui2-v2.js:2826`) siirtää `periodEnd`:in
+ehdoitta seuraavan kuukauden 5. päivään, jos ratkaistu `periodEnd` muuten
+olisi sitä aiemmin — ks. "Kassajakso" yllä.
+
+Luottorajan käsittelyä (esim. luottorajan syöttö tai sen ylityksen esto) ei
+ole koodissa.
 
 ---
 
 ## Miten rahavirrat toimivat
 
 Yksi lomake (`renderRahavirtaEditor` → `renderRahavirtaFields`,
-`js/ui2-v2.js:4380`/`4411`) kattaa kaikki rahavirrat: **Nimi, Summa, Tyyppi
+`js/ui2-v2.js:5512`/`5576`) kattaa kaikki rahavirrat: **Nimi, Summa, Tyyppi
 ((+) Tulo / (−) Meno), Päivämäärä, Säännöllinen ✓**.
 
 - Käyttäjä ei valitse etukäteen tyyppiä (Tulossa / Säännöllinen tulo / Säännöllinen
@@ -97,7 +127,7 @@ Yksi lomake (`renderRahavirtaEditor` → `renderRahavirtaFields`,
   Kassa-kortin laskentaa.
 - **Yksi `<input type="date">`-kenttä** palvelee sekä kertaluonteista että
   säännöllistä rahavirtaa; lomakkeen rakenne ei koskaan muutu Säännöllinen-rastin
-  mukaan. Tallennuksessa (`rahavirtaEditorSave`, `js/ui2-v2.js:4509`) samasta
+  mukaan. Tallennuksessa (`rahavirtaEditorSave`, `js/ui2-v2.js:5744`) samasta
   arvosta poimitaan joko kuukausi (`tulevat_items`) tai kuukauden päivä
   (`tulot_items`/`rytmi_items`).
 - Legacy-täydennystilassa Nimi, Summa, Tyyppi ja Säännöllinen lukitaan rivin
@@ -111,9 +141,14 @@ Ei uutta tietomallia — sama kolme listaa kuin ennen tätä sprinttiä:
 
 | Lista | Rivin muoto | Merkki |
 |---|---|---|
-| `tulevat_items` | `{id, month (1–12), label, amount}` | `amount` voi olla + tai − |
-| `tulot_items` | `{id, label, amt_kk, paiva (1–31)}` | aina positiivinen |
-| `rytmi_items` | `{id, label, amt_kk, paiva (1–31)}` | aina positiivinen (tulkitaan menoksi) |
+| `tulevat_items` | `{id, month (1–12), day (1–31), label, amount}` | `amount` voi olla + tai − |
+| `tulot_items` | `{id, label, amt_kk, paiva (1–31), repeat_every_months}` | aina positiivinen |
+| `rytmi_items` | `{id, label, amt_kk, paiva (1–31), repeat_every_months}` | aina positiivinen (tulkitaan menoksi) |
+
+`repeat_every_months` tallennetaan jokaiselle uudelle/muokatulle riville
+(`rahavirtaEditorSave`, `js/ui2-v2.js:5811`), mutta ei vielä vaikuta
+päivämäärälaskentaan (`collectRahavirrat`/`nextRecurringDayDate` tuottavat
+aina vain seuraavan yksittäisen esiintymän).
 
 ---
 
@@ -140,14 +175,12 @@ suunnittelupäätöstä):
    laskentakomponentti: summaa vain sille annetun rahavirtajoukon. Ei tee
    ennusteita, ei päättele kassajaksoa.
 2. **Aikareferenssi** — käyttäjän viimeisin snapshot, ei laitteen kellonaika.
-3. ~~**Kassajakson rajaamiskriteeri** — viimeisin snapshot → seuraava tunnettu tulo.~~
-   **KUMOTTU ja TOTEUTETTU päätöksellä #12** — ei enää voimassa koodissa
-   eikä tuotemäärittelyssä.
-4. ~~**Tunnetun tulon määritelmä** — kirjattu rahavirta jolla on määritelty,
+3. **Kassajakson rajaamiskriteeri (oletus)** — viimeisin snapshot → seuraava
+   tunnettu tulo, ellei käyttäjä ole määrittänyt omaa sääntöjoukkoa (ks.
+   kohta 12).
+4. **Tunnetun tulon määritelmä** — kirjattu rahavirta jolla on määritelty,
    snapshotin jälkeinen ajallinen sijainti; kertaluonteinen ja säännöllinen
-   kelpaavat yhtäläisesti.~~
-   **KUMOTTU päätöksellä #12** — "tunnettu tulo" rajaus-käsitteenä poistuu,
-   kun rahavirtajoukkoa ei enää katkaista ensimmäiseen tuloon.
+   kelpaavat yhtäläisesti.
 5. **Nykyisen kassan lähde** — `tulotili − |op_gold|`, ei erikseen syötetty eikä
    Heron itse johtama.
 6. **Kassavaikutteisen rahavirran määritelmä** — muuttaa nykyiseen kassaan kuuluvien
@@ -170,60 +203,48 @@ suunnittelupäätöstä):
     ei kirkkaalla punaisella. Koskee sekä kertaluonteisia että säännöllisiä
     rahavirtarivejä RAHAVIRRAT-listassa. Tarkoitus on auttaa hahmottamaan
     rahavirran suunta yhdellä vilkaisulla, ei varoittaa käyttäjää.
-12. **Rahavirtajoukkoa ei enää katkaista ensimmäiseen tunnettuun tuloon**
-    (TOTEUTETTU, ks. "Kassajakso"-kohta yllä ja `buildKassajakso`,
-    `js/ui2-v2.js:2034`). Kumoaa päätökset #3 ja #4.
-    - **Kertaluonteiset rahavirrat**: näytetään kaikki tiedossa olevat tulevat
-      kertaluonteiset tapahtumat, ei rajausta ensimmäiseen tuloon.
-    - **Säännölliset rahavirrat**: näytetään jokaisesta vain seuraava
-      toteutuva esiintymä — tämä ei muuta nykyistä `collectRahavirrat`-
-      logiikkaa, joka tuottaa jo vain yhden ajankohdan per säännöllinen erä.
-    - **Hero, Lopputilanne ja Rahavirrat-lista lasketaan samasta,
-      rajaamattomasta joukosta** — käyttäjä ei näe eri logiikkaa kuin mitä
-      Hero käyttää.
+12. **Kassajakso rajaa rahavirtajoukon** viimeisimmästä snapshotista
+    päättymispisteeseen (`periodEnd`) asti (ks. "Kassajakso"-kohta yllä ja
+    `buildKassajakso`, `js/ui2-v2.js:2854`).
+    - **Oletuspäättymispiste** on seuraava tunnettu tulo (kertaluonteinen tai
+      säännöllinen, molemmat kelpaavat yhtäläisesti).
+    - **Käyttäjä voi korvata oletuksen** omalla sääntöjoukolla
+      (`finos_kassajakso_rules`) — `itemRef`/`fixedDate`/`monthEnd`-ehdoista
+      ratkaistu myöhäisin päivämäärä, tai `strategy: 'open'` jolloin jakso ei
+      pääty lainkaan.
+    - **Valinnainen OP Gold -laajennus** voi siirtää päättymispisteen
+      seuraavan kuukauden 5. päivään (ks. "Miten OP Gold huomioidaan").
+    - **Hero ja Lopputilanne** käyttävät rajattua joukkoa
+      (`buildKassajakso(...).items`). **Rahavirrat-lista** näyttää aina
+      `collectRahavirrat(...)`:n koko, rajaamattoman joukon — se ei rajaudu
+      `periodEnd`:iin.
     - **Perustelu**: Finance OS ei yritä ennustaa kuukausia eteenpäin, vaan
-      näyttää nykyisen kassan + kaikki tiedossa olevat kertaluonteiset erät +
-      jokaisen säännöllisen rahavirran seuraavan esiintymän. Esimerkki:
-      tämän kuun OP Gold -ostot maksetaan seuraavan kuun palkalla, joten
-      seuraavan kuun ensimmäinen palkka on olennainen osa nykyistä
-      kassakuvaa eikä sitä saa rajata pois vain koska se sattuu olemaan
-      ensimmäinen tunnettu tulo.
+      näyttää nykyisen kassan ja kaikki rahavirrat seuraavaan tunnettuun
+      tuloon asti — sillä juuri se tulo (esim. seuraava palkka) on se hetki,
+      jolloin kuluva jakso päättyy ja seuraava alkaa.
 
 ---
 
-# Toteutettu: Rahavirrat-listan rajaamismallin muutos (päätös #12)
-
-`buildKassajakso(latest)` (`js/ui2-v2.js:2034`) ei enää rajaa rahavirtajoukkoa.
-Aiempi `incomes`/`boundary`-suodatus poistettiin; `items` on nyt suoraan
-`collectRahavirrat(...)`:n koko tulos:
+# buildKassajakso — nykyinen toteutus
 
 ```js
 function buildKassajakso(latest) {
   var snapshotDate = new Date(latest.date + 'T00:00:00');
-  var items = collectRahavirrat(latest, snapshotDate);
-  return { lahtokassa: lahtokassaOf(latest), items: items };
+  var allItems = collectRahavirrat(latest, snapshotDate);
+  var basePeriodEnd = resolveBaseKassajaksoPeriodEnd(latest, snapshotDate, allItems);
+  var rules = loadKassajaksoRules();
+  var opGoldResult = applyOpGoldExtension(rules, allItems, snapshotDate, basePeriodEnd);
+  var periodEnd = opGoldResult.periodEnd;
+  var items = periodEnd ? allItems.filter(function(x) { return x.date <= periodEnd; }) : allItems;
+  var excludedItems = periodEnd ? allItems.filter(function(x) { return x.date > periodEnd; }) : [];
+  return { lahtokassa: lahtokassaOf(latest), items: items, excludedItems: excludedItems, periodEnd: periodEnd, snapshotDate: snapshotDate, opGoldExtended: opGoldResult.extended };
 }
 ```
 
-`boundary`-kenttä poistettiin palautusarvosta kokonaan (ei enää käytössä).
-`heroSum`, `kassaValisumma` ja `renderTulossaList()` (RAHAVIRRAT-lista) eivät
-muuttuneet — ne kuluttavat `buildKassajakso(...).items`:n sellaisenaan ja
-perivät uuden, rajaamattoman käyttäytymisen automaattisesti. Yksi
-tietojoukko, yksi totuus: Hero, Lopputilanne ja RAHAVIRRAT-lista näyttävät
-aina saman joukon.
-
-Testattu (paikallinen selaintesti, ei kosketettu oikeaa dataa):
-- Snapshot **ilman yhtään tunnettua tulevaa tuloa**: aiemmin koko lista ja
-  Hero tyhjenivät (`items: []`); nyt kaikki kirjatut rahavirrat näkyvät ja
-  lasketaan mukaan.
-- Snapshot jossa kertaluonteisia ja säännöllisiä eriä useassa eri
-  kuukaudessa ensimmäisen tunnetun tulon jälkeen: kaikki näkyivät, aiemmin
-  rajautuneet pois. Kuukausiryhmittely säilyi.
-- Ylätason Hero (`card-value`) ja kortin "Lopputilanne" näyttivät koko ajan
-  saman luvun.
-- Uuden rahavirran lisäys (`rahavirtaEditorSave`) toimi muuttumattomana,
-  myös kaukana tulevaisuudessa olevalle kertaluonteiselle erälle.
-- Ei JS-virheitä konsolissa.
+(`js/ui2-v2.js:2854`.) `heroSum`, `kassaValisumma` kuluttavat `items`:n
+sellaisenaan. `renderTulossaList()` (RAHAVIRRAT-lista) käyttää sen sijaan
+suoraan `collectRahavirrat(...)`:n koko, rajaamatonta tulosta — ei
+`buildKassajakso(...).items`:ä.
 
 ---
 
@@ -231,13 +252,12 @@ Testattu (paikallinen selaintesti, ei kosketettu oikeaa dataa):
 
 Asiat, joista ei ole vielä tehty lopullista päätöstä:
 
-- **OP Gold -logiikka** — saldon syöttö, luottorajan käsittely, mahdolliset
-  puutteet — ei käsitelty, tietoisesti rajattu ulos tästä sprintistä.
-- **`tulevat_items`:n kuukausi-vain-tarkkuus** — erällä ei ole vuotta eikä
-  päivää, joten kuluvan/lähikuukauden erä voi laskea ajankohdakseen jo
-  menneen päivän. Tunnettu, ei korjattu. **Huom:** päätöksen #12
-  toteutuksen jälkeen tämä reunatapaus on aiempaa näkyvämpi, koska
-  Kassajakson rajaus ei enää peitä sitä millään tavalla.
+- **OP Gold -luottorajan käsittely** — luottorajan syöttöä tai sen ylityksen
+  estoa ei ole koodissa. Saldon syöttö ja maksun kirjaus ovat toteutettuja
+  (ks. "Miten OP Gold huomioidaan").
+- **`tulevat_items`:llä ei ole vuotta** — erällä on valinnainen `day`-kenttä,
+  mutta ei vuotta. Legacy-riveiltä `day` voi puuttua kokonaan (käsitellään
+  `undefined`:na, lajitellaan listan loppuun). Tunnettu, ei korjattu.
 - **BUG-B** (Muutosprosentit-asetus ei vaikuta mihinkään Kassa-kortissa,
   `_cardHeader`, `js/ui2-v2.js:608`) ja **BUG-C** (`.sub-rows`-legacy-lohko
   Kassa-kortissa, `js/ui2-v2.js:902–908`, redundantti html2-blokin rinnalla) —
@@ -245,12 +265,11 @@ Asiat, joista ei ole vielä tehty lopullista päätöstä:
 
 ---
 
-# Seuraava sprintti
+# Avoin: OP Gold -luottorajan käsittely
 
-**Tavoite:** selvittää ja päättää, miten OP Gold -logiikka (saldon syöttö,
-luottorajan käsittely, mahdollinen vaikutus Hero-laskentaan) tulisi käsitellä
-Kassa-kortissa — tämä sprintti rajasi OP Goldin tietoisesti ulkopuolelle.
+Luottorajan syöttö ja sen ylityksen esto eivät ole koodissa. Saldon syöttö,
+maksun kirjaus ja kassajakson OP Gold -laajennus ovat toteutettuja (ks.
+"Miten OP Gold huomioidaan" yllä).
 
-Tavoitteen tarkempi rajaus ja toteutustapa odottavat suunnittelijan
-(ChatGPT/käyttäjä) päätöstä ennen toteutusta, CLAUDE.md:n vastuunjaon
-mukaisesti.
+Tarkempi rajaus ja toteutustapa odottavat suunnittelijan (ChatGPT/käyttäjä)
+päätöstä ennen toteutusta, CLAUDE.md:n vastuunjaon mukaisesti.

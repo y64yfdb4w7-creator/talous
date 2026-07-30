@@ -1,6 +1,6 @@
 # Finance OS — Datamalli
 
-> Versio: 2026-06-09  
+> Versio: 2026-07-30  
 > Tarkoitus: Kaikki snapshot-kentät dokumentoituna turvallisten muutosten mahdollistamiseksi
 
 ---
@@ -101,21 +101,21 @@ Kaikki arvot NEGATIIVISIA (velka).
 
 | Kenttä | Tyyppi | Esimerkki | Kuvaus |
 |---|---|---|---|
-| `tulot_kk` | number | `3200` | Kuukausitulot yhteensä (legacy — korvattu tulot_items:llä) |
-| `tulot_items` | array | `[{type:'palkka',amount:3200,label:'Palkka'}]` | Tuloeräluettelo (uusi muoto) |
-| `tulot_pvm` | string? | `"2026-06-05"` | Milloin tulot saatu |
+| `tulot_kk` | number | `3200` | Lasketaan `tulot_items`:stä summaamalla (`amt_kk`); ei enää itsenäinen syöttökenttä |
+| `tulot_items` | array | `[{id:'tulo_...',label:'Palkka',amt_kk:3200,paiva:5,repeat_every_months:1}]` | Toistuvien tulojen luettelo |
+| `tulot_pvm` | string? | `"2026-06-05"` | Milloin tulot saatu (legacy-kenttä) |
 
-**tulot_items rakenne (yksittäinen erä):**
-```json
-{
-  "type": "palkka",
-    "amount": 3200,
-      "label": "Palkka"
-      }
-      ```
-      Tyyppit: `palkka`, `vuokra`, `osinko`, `muu`
+**tulot_items rakenne (yksittäinen erä, `rahavirtaEditorSave`, `js/ui2-v2.js:5811-5817`):**
 
-      **Huomio:** Vanhoissa snapshoissa voi olla vain `tulot_kk` ilman `tulot_items`. Molempia pitää tukea.
+| Kenttä | Tyyppi | Pakollinen | Kuvaus |
+|---|---|---|---|
+| `id` | string | Kyllä (uudet erät) | `'tulo_' + Date.now()`. Legacy-riveiltä voi puuttua — täydentää `ensureRahavirtaIds` |
+| `label` | string | Kyllä | Tulon nimi |
+| `amt_kk` | number | Kyllä | Euromäärä / kk, aina positiivinen |
+| `paiva` | number | Kyllä (uudet erät) | Kuukauden päivä (1–31) |
+| `repeat_every_months` | number | Ei | Tallennetaan aina (oletus 1), mutta ei vielä vaikuta päivämäärälaskentaan |
+
+**Huomio:** Vanhoissa snapshoissa voi olla vain `tulot_kk` ilman `tulot_items`. Molempia pitää tukea.
 
       ---
 
@@ -141,13 +141,34 @@ Kaikki arvot NEGATIIVISIA (velka).
               | `id` | string | Kyllä (uudet erät) | `'meno_' + Date.now()` — käytetään poistossa |
               | `label` | string | Kyllä | Menon nimi |
               | `amt_kk` | number | Kyllä | Euromäärä / kk |
-              | `paiva` | number? | Ei | Eräpäivä (1–31). Lisätty 15.7.2026 mennessä (commit `f076b18`, "Add optional due day to recurring expenses"). Puuttuu vanhoista erista — käsitellään `undefined`:na (ei eräpäivää, lajitellaan listan loppuun) |
+              | `paiva` | number? | Ei | Eräpäivä (1–31). Puuttuu vanhoista erista — käsitellään `undefined`:na (ei eräpäivää, lajitellaan listan loppuun) |
+              | `repeat_every_months` | number | Ei | Tallennetaan aina (oletus 1), mutta ei vielä vaikuta päivämäärälaskentaan |
 
               **Legacy-yhteensopivuus:** Vanhat `rytmi_items`-erät saattavat käyttää kenttänimeä `amount` `amt_kk`:n sijaan. Lukukoodi (`renderRightPanel`, `js/ui2-v2.js`) tukee molempia: `x.amt_kk != null ? x.amt_kk : x.amount`. Uudet erät kirjoitetaan aina `amt_kk`-nimellä.
 
               **Säännölliset menot -paneeli:** Erät renderöidään ja niitä hallitaan desktopin oikeassa paneelissa (`renderRightPanel()`, `js/ui2-v2.js`, funktiot `panelMenoAdd`/`panelMenoDelete`). Lista lajitellaan `paiva`-kentän mukaan (eräpäivättömät viimeisenä), ja rivi näyttää päivän, nimen ja summan. Ks. myös `docs/FINANCE_OS_STATUS.md`.
 
               **Huomio:** `rytmi_items` korvaa `menot_kk`:n lasketun arvon. Jos `rytmi_items` on olemassa, `menot_kk` lasketaan siitä summaamalla.
+
+          ---
+
+          ### KASSAVIRTA — KERTALUONTEISET (tulevat_items)
+
+          | Kenttä | Tyyppi | Esimerkki | Kuvaus |
+          |---|---|---|---|
+          | `tulevat_items` | array | `[{id:'tulossa_...',month:8,day:15,label:'Vero',amount:-200}]` | Kertaluonteisten tulevien rahavirtojen luettelo |
+
+          **tulevat_items rakenne (yksittäinen erä, `rahavirtaEditorSave`, `js/ui2-v2.js:5797-5802`):**
+
+          | Kenttä | Tyyppi | Pakollinen | Kuvaus |
+          |---|---|---|---|
+          | `id` | string | Kyllä (uudet erät) | `'tulossa_' + Date.now()`. Legacy-riveiltä voi puuttua — täydentää `ensureRahavirtaIds` |
+          | `label` | string | Kyllä | Erän nimi |
+          | `month` | number | Kyllä | Kuukausi (1–12) |
+          | `day` | number? | Ei | Kuukauden päivä (1–31). Puuttuu vanhoista erista — käsitellään `undefined`:na |
+          | `amount` | number | Kyllä | Euromäärä, etumerkillinen: positiivinen = tulo, negatiivinen = meno |
+
+          **Huomio:** `tulevat_items`:llä ei ole vuosikenttää — kuukausi (ja valinnainen päivä) tulkitaan aina seuraavana tulevana esiintymänä nykyisestä snapshot-päivämäärästä (`nextMonthOnlyDate`, `js/ui2-v2.js:1968`).
 
           ---
 
